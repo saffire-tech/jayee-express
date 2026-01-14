@@ -180,14 +180,14 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
     await onUpdate(service.id, { is_active: !service.is_active });
   };
 
-  const ServiceForm = () => (
+  const serviceFormContent = (
     <div className="space-y-4">
       <div>
         <Label htmlFor="serviceName">Service Name *</Label>
         <Input
           id="serviceName"
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           placeholder="e.g., Buy Data Bundles"
           className="mt-1"
           maxLength={100}
@@ -200,7 +200,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
           id="serviceUrl"
           type="url"
           value={formData.url}
-          onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+          onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
           placeholder="https://example.com"
           className="mt-1"
         />
@@ -214,7 +214,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
         <Textarea
           id="serviceDescription"
           value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
           placeholder="e.g., Purchase affordable data bundles for all networks"
           className="mt-1"
           maxLength={200}
@@ -225,7 +225,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
         <Label>Icon</Label>
         <Select
           value={formData.icon}
-          onValueChange={(value) => setFormData({ ...formData, icon: value })}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, icon: value }))}
         >
           <SelectTrigger className="mt-1">
             <SelectValue />
@@ -277,7 +277,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
             <DialogHeader>
               <DialogTitle>Add Web Service</DialogTitle>
             </DialogHeader>
-            <ServiceForm />
+            {serviceFormContent}
           </DialogContent>
         </Dialog>
       </div>
@@ -343,7 +343,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
                           <DialogHeader>
                             <DialogTitle>Edit Web Service</DialogTitle>
                           </DialogHeader>
-                          <ServiceForm />
+                          {serviceFormContent}
                         </DialogContent>
                       </Dialog>
                       <AlertDialog>
