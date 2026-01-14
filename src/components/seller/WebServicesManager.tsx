@@ -42,8 +42,12 @@ import {
   ShoppingBag,
   Zap,
   Link as LinkIcon,
-  Loader2
+  Loader2,
+  Image as ImageIcon,
+  X
 } from "lucide-react";
+import ShareButton from "@/components/ui/ShareButton";
+import ImageUpload from "./ImageUpload";
 
 export interface WebService {
   id: string;
@@ -52,6 +56,7 @@ export interface WebService {
   description: string | null;
   url: string;
   icon: string;
+  image_url: string | null;
   is_active: boolean;
   display_order: number;
   created_at: string;
@@ -85,6 +90,7 @@ interface ServiceFormData {
   description: string;
   url: string;
   icon: string;
+  image_url: string;
   is_active: boolean;
   display_order: number;
 }
@@ -98,6 +104,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
     description: "",
     url: "",
     icon: "link",
+    image_url: "",
     is_active: true,
     display_order: 0,
   });
@@ -108,6 +115,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
       description: "",
       url: "",
       icon: "link",
+      image_url: "",
       is_active: true,
       display_order: webServices.length,
     });
@@ -124,6 +132,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
       description: service.description || "",
       url: service.url,
       icon: service.icon,
+      image_url: service.image_url || "",
       is_active: service.is_active,
       display_order: service.display_order,
     });
@@ -154,11 +163,17 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
 
     setLoading(true);
     try {
+      const dataToSubmit = { 
+        ...formData, 
+        url,
+        image_url: formData.image_url || null 
+      };
+      
       if (editingService) {
-        await onUpdate(editingService.id, { ...formData, url });
+        await onUpdate(editingService.id, dataToSubmit);
         setEditingService(null);
       } else {
-        await onAdd({ ...formData, url });
+        await onAdd(dataToSubmit as Omit<WebService, "id" | "store_id" | "created_at" | "updated_at">);
         setIsAddDialogOpen(false);
       }
       resetForm();
@@ -246,6 +261,36 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
         </Select>
       </div>
 
+      <div>
+        <Label>Flyer/Image (for social sharing)</Label>
+        <p className="text-xs text-muted-foreground mb-2">
+          This image will be shown when you share the service link on WhatsApp, Facebook, etc.
+        </p>
+        {formData.image_url ? (
+          <div className="relative">
+            <img 
+              src={formData.image_url} 
+              alt="Service flyer" 
+              className="w-full h-40 object-cover rounded-lg border"
+            />
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8"
+              onClick={() => setFormData(prev => ({ ...prev, image_url: "" }))}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <ImageUpload
+            onImageUploaded={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+            onImageRemoved={() => setFormData(prev => ({ ...prev, image_url: "" }))}
+          />
+        )}
+      </div>
+
       <Button 
         onClick={handleSubmit} 
         disabled={loading || !formData.name.trim() || !formData.url.trim()}
@@ -273,7 +318,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
               Add Service
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Web Service</DialogTitle>
             </DialogHeader>
@@ -299,9 +344,17 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
               <Card key={service.id} className={!service.is_active ? "opacity-60" : ""}>
                 <CardContent className="py-4">
                   <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
+                    {service.image_url ? (
+                      <img 
+                        src={service.image_url} 
+                        alt={service.name}
+                        className="w-16 h-16 object-cover rounded-lg border"
+                      />
+                    ) : (
+                      <div className="p-2 rounded-lg bg-primary/10 h-fit">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium truncate">{service.name}</h4>
@@ -324,10 +377,17 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
                         {new URL(service.url).hostname}
                       </a>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
                       <Switch
                         checked={service.is_active}
                         onCheckedChange={() => handleToggleActive(service)}
+                      />
+                      <ShareButton
+                        url={`/service/${service.id}`}
+                        title={service.name}
+                        description={service.description || undefined}
+                        variant="ghost"
+                        size="icon"
                       />
                       <Dialog open={editingService?.id === service.id} onOpenChange={(open) => !open && setEditingService(null)}>
                         <DialogTrigger asChild>
@@ -339,7 +399,7 @@ const WebServicesManager = ({ webServices, onAdd, onUpdate, onDelete }: WebServi
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>Edit Web Service</DialogTitle>
                           </DialogHeader>

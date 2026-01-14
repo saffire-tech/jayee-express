@@ -25,9 +25,10 @@ const ShareButton = ({ url, title, description, variant = 'outline', size = 'def
     const origin = window.location.origin;
     const path = url.startsWith('/') ? url : `/${url}`;
     
-    // Check if this is a product or store URL to use the OG redirect
+    // Check if this is a product, store, or service URL to use the OG redirect
     const productMatch = path.match(/^\/product\/([a-zA-Z0-9-]+)/);
     const storeMatch = path.match(/^\/store\/([a-zA-Z0-9-]+)/);
+    const serviceMatch = path.match(/^\/service\/([a-zA-Z0-9-]+)/);
     
     if (productMatch) {
       // Use edge function URL for product sharing
@@ -39,6 +40,12 @@ const ShareButton = ({ url, title, description, variant = 'outline', size = 'def
       // Use edge function URL for store sharing
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       return `${supabaseUrl}/functions/v1/og-redirect?type=store&id=${storeMatch[1]}&origin=${encodeURIComponent(origin)}`;
+    }
+    
+    if (serviceMatch) {
+      // Use edge function URL for service sharing
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      return `${supabaseUrl}/functions/v1/og-redirect?type=service&id=${serviceMatch[1]}&origin=${encodeURIComponent(origin)}`;
     }
     
     // For other URLs, use the direct URL
