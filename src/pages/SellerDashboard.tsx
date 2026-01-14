@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStore } from "@/hooks/useStore";
+import { useWebServices } from "@/hooks/useWebServices";
 import { useOrderNotifications } from "@/hooks/useOrderNotifications";
 import Navbar from "@/components/layout/Navbar";
 import StoreSetupWizard from "@/components/seller/StoreSetupWizard";
@@ -11,8 +12,9 @@ import Analytics from "@/components/seller/Analytics";
 import ProductsList from "@/components/seller/ProductsList";
 import OrdersTable from "@/components/seller/OrdersTable";
 import StoreImageUpload from "@/components/seller/StoreImageUpload";
+import WebServicesManager from "@/components/seller/WebServicesManager";
 import CampusSelector from "@/components/ui/CampusSelector";
-import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings } from "lucide-react";
+import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe } from "lucide-react";
 import ShareButton from "@/components/ui/ShareButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +37,13 @@ const SellerDashboard = () => {
     updateStore,
     refetch,
   } = useStore();
+
+  const {
+    webServices,
+    createWebService,
+    updateWebService,
+    deleteWebService,
+  } = useWebServices(store?.id || null);
 
   // Real-time order notifications
   const handleNewOrder = useCallback(() => {
@@ -160,6 +169,10 @@ const SellerDashboard = () => {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="services" className="gap-2 flex-1 md:flex-initial min-w-fit">
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">Services</span>
+            </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2 flex-1 md:flex-initial min-w-fit">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -179,6 +192,17 @@ const SellerDashboard = () => {
             <div className="bg-card border border-border rounded-xl p-6">
               <h2 className="text-xl font-bold mb-6">Orders</h2>
               <OrdersTable orders={orders} onUpdateStatus={updateOrderStatus} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="services">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <WebServicesManager
+                webServices={webServices}
+                onAdd={createWebService}
+                onUpdate={updateWebService}
+                onDelete={deleteWebService}
+              />
             </div>
           </TabsContent>
 
