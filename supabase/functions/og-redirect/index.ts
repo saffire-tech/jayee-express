@@ -31,7 +31,7 @@ function generateOGHtml(
   description: string,
   imageUrl: string,
   url: string,
-  type: 'product' | 'store'
+  type: 'product' | 'store' | 'service'
 ): string {
   const siteName = 'UniPlug';
   const safeTitle = title.replace(/"/g, '&quot;');
@@ -84,8 +84,8 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     
-    // Expected path: /og-redirect?type=product&id=xxx or /og-redirect?type=store&id=xxx
-    const type = url.searchParams.get('type') as 'product' | 'store' | null;
+    // Expected path: /og-redirect?type=product&id=xxx or /og-redirect?type=store&id=xxx or /og-redirect?type=service&id=xxx
+    const type = url.searchParams.get('type') as 'product' | 'store' | 'service' | null;
     const id = url.searchParams.get('id');
     const origin = url.searchParams.get('origin') || 'https://uniplug.lovable.app';
     
@@ -97,7 +97,13 @@ Deno.serve(async (req) => {
     }
 
     const userAgent = req.headers.get('user-agent') || '';
-    const targetUrl = `${origin}/${type === 'product' ? 'product' : 'store'}/${id}`;
+    // For services, redirect to the store page since services don't have their own page
+    let targetUrl: string;
+    if (type === 'service') {
+      targetUrl = origin; // Will be updated with store URL after fetching data
+    } else {
+      targetUrl = `${origin}/${type === 'product' ? 'product' : 'store'}/${id}`;
+    }
     
     // For non-crawlers, just redirect immediately
     if (!isCrawler(userAgent)) {
@@ -172,6 +178,43 @@ Deno.serve(async (req) => {
         : `Shop at ${store.name}${store.location ? ` - ${store.location}` : ''} on UniPlug`;
       // Prefer cover image for stores, fall back to logo
       imageUrl = store.cover_url || store.logo_url || imageUrl;
+    } else if (type === 'service') {
+      const { data: service, error } = await supabase
+        .from('store_web_services')
+        .select('name, description, image_url, url, store_id')
+        .eq('id', id)
+        .single();
+
+      if (error || !service) {
+        console.error('Service not found:', error);
+        return new Response(null, {
+          status: 302,
+          headers: { ...corsHeaders, 'Location': origin },
+        });
+      }
+
+      // Fetch store info for the redirect URL and fallback image
+      let storeName = 'UniPlug';
+      let storeImageUrl = '';
+      if (service.store_id) {
+        const { data: store } = await supabase
+          .from('stores')
+          .select('name, logo_url, cover_url')
+          .eq('id', service.store_id)
+          .single();
+        if (store) {
+          storeName = store.name;
+          storeImageUrl = store.cover_url || store.logo_url || '';
+          targetUrl = `${origin}/store/${service.store_id}`;
+        }
+      }
+
+      title = service.name;
+      description = service.description 
+        ? `${service.description.substring(0, 150)}${service.description.length > 150 ? '...' : ''}`
+        : `${service.name} - Available at ${storeName} on UniPlug`;
+      // Use service image, fall back to store image, then default
+      imageUrl = service.image_url || storeImageUrl || imageUrl;
     }
 
     const html = generateOGHtml(title, description, imageUrl, targetUrl, type);

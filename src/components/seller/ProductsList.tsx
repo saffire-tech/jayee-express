@@ -1,7 +1,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Eye, Package, Share2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Plus, Edit, Trash2, Eye, Package } from "lucide-react";
 import ProductForm from "./ProductForm";
 import ShareButton from "@/components/ui/ShareButton";
 import type { Product } from "@/hooks/useStore";
@@ -118,13 +129,27 @@ const ProductsList = ({ products, onAdd, onUpdate, onDelete }: ProductsListProps
                     variant="outline"
                     size="sm"
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onDelete(product.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{product.name}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDelete(product.id)}>
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </div>
