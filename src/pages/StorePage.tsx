@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useStoreViewTracking } from '@/hooks/useViewTracking';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import WebServicesSection from '@/components/store/WebServicesSection';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Verified, Store as StoreIcon, Package, ShoppingCart, Heart, Eye } from 'lucide-react';
@@ -38,11 +39,20 @@ interface Product {
   stock: number | null;
 }
 
+interface WebService {
+  id: string;
+  name: string;
+  description: string | null;
+  url: string;
+  icon: string;
+}
+
 const StorePage = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
   const [store, setStore] = useState<Store | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [webServices, setWebServices] = useState<WebService[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Track store view
@@ -80,6 +90,20 @@ const StorePage = () => {
       console.error('Error fetching products:', productsError);
     } else {
       setProducts(productsData || []);
+    }
+
+    // Fetch web services
+    const { data: servicesData, error: servicesError } = await supabase
+      .from('store_web_services')
+      .select('id, name, description, url, icon')
+      .eq('store_id', id)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (servicesError) {
+      console.error('Error fetching web services:', servicesError);
+    } else {
+      setWebServices(servicesData || []);
     }
 
     setLoading(false);
@@ -232,6 +256,9 @@ const StorePage = () => {
             </div>
           </div>
         </div>
+
+        {/* Web Services Section */}
+        <WebServicesSection services={webServices} />
 
         {/* Products Section */}
         <div className="container mx-auto px-4 py-8">
