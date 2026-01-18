@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { VAPID_PUBLIC_KEY, isPushConfigured } from '@/config/push';
+import { useNativePushNotifications } from './useNativePushNotifications';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -22,14 +24,15 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 interface PushNotificationState {
   isSupported: boolean;
   isSubscribed: boolean;
-  permission: NotificationPermission;
+  permission: NotificationPermission | 'default';
   isLoading: boolean;
   subscribe: () => Promise<boolean>;
   unsubscribe: () => Promise<boolean>;
-  requestPermission: () => Promise<NotificationPermission>;
+  requestPermission: () => Promise<NotificationPermission | 'default'>;
 }
 
-export const usePushNotifications = (): PushNotificationState => {
+// Web Push implementation hook
+const useWebPushNotifications = (): PushNotificationState => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -82,7 +85,6 @@ export const usePushNotifications = (): PushNotificationState => {
         const subscription = await registration.pushManager.getSubscription();
 
         if (subscription) {
-          // If the browser is already subscribed, make sure the DB row exists
           await ensureSubscriptionSaved(subscription);
           setIsSubscribed(true);
         } else {
@@ -105,11 +107,9 @@ export const usePushNotifications = (): PushNotificationState => {
   }, [isSupported]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
-    console.log('[Push] Subscribe called, isSupported:', isSupported, 'user:', user?.id);
-    console.log('[Push] VAPID key configured:', isPushConfigured(), 'key length:', VAPID_PUBLIC_KEY.length);
+    console.log('[WebPush] Subscribe called, isSupported:', isSupported, 'user:', user?.id);
     
     if (!isSupported || !user) {
-      console.error('[Push] Not supported or no user');
       toast({
         title: "Push notifications not available",
         description: "Please make sure you're logged in and using a supported browser.",
@@ -121,7 +121,6 @@ export const usePushNotifications = (): PushNotificationState => {
     setIsLoading(true);
 
     try {
-      // Request permission if not granted
       let currentPermission = permission;
       if (currentPermission === 'default') {
         currentPermission = await requestPermission();
@@ -136,21 +135,13 @@ export const usePushNotifications = (): PushNotificationState => {
         return false;
       }
 
-      // Get service worker registration
-      console.log('[Push] Getting service worker registration...');
       const registration = await navigator.serviceWorker.ready;
-      console.log('[Push] SW ready, scope:', registration.scope);
-
-      // Subscribe to push notifications
-      console.log('[Push] Subscribing to push manager...');
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey as unknown as BufferSource,
       });
-      console.log('[Push] Subscription created:', subscription.endpoint);
 
-      // Extract keys from subscription
       const subscriptionJson = subscription.toJSON();
       const p256dh = subscriptionJson.keys?.p256dh;
       const auth = subscriptionJson.keys?.auth;
@@ -159,10 +150,7 @@ export const usePushNotifications = (): PushNotificationState => {
         throw new Error('Failed to get subscription keys');
       }
 
-      console.log('[Push] Saving subscription to database for user:', user.id);
-      
-      // Save subscription to database
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from('push_subscriptions')
         .upsert(
           {
@@ -171,28 +159,11 @@ export const usePushNotifications = (): PushNotificationState => {
             p256dh,
             auth,
           },
-          {
-            onConflict: 'user_id,endpoint',
-          }
+          { onConflict: 'user_id,endpoint' }
         )
         .select();
 
-      console.log('[Push] Upsert result - error:', error, 'data:', data);
-
       if (error) throw error;
-
-      // Verify it exists (helps catch RLS/constraint issues early)
-      const { data: verifyRow, error: verifyError } = await supabase
-        .from('push_subscriptions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('endpoint', subscription.endpoint)
-        .maybeSingle();
-
-      console.log('[Push] Verify result - error:', verifyError, 'row:', verifyRow);
-
-      if (verifyError) throw verifyError;
-      if (!verifyRow) throw new Error('Subscription saved but not readable; check access policies.');
 
       setIsSubscribed(true);
       toast({
@@ -224,10 +195,7 @@ export const usePushNotifications = (): PushNotificationState => {
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        // Unsubscribe from push manager
         await subscription.unsubscribe();
-
-        // Remove from database
         await supabase
           .from('push_subscriptions')
           .delete()
@@ -263,4 +231,20 @@ export const usePushNotifications = (): PushNotificationState => {
     unsubscribe,
     requestPermission,
   };
+};
+
+// Unified hook that automatically selects the right implementation
+export const usePushNotifications = (): PushNotificationState => {
+  const isNative = Capacitor.isNativePlatform();
+  const nativePush = useNativePushNotifications();
+  const webPush = useWebPushNotifications();
+
+  // Return native push for Capacitor apps, web push for browsers
+  if (isNative) {
+    console.log('[Push] Using native push notifications');
+    return nativePush;
+  }
+
+  console.log('[Push] Using web push notifications');
+  return webPush;
 };
