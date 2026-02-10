@@ -73,9 +73,14 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
     setUpdating(true);
 
     try {
+      const updateData: any = { delivery_status: nextStatus };
+      if (nextStatus === 'delivered') {
+        updateData.status = 'delivered';
+      }
+
       const { error } = await supabase
         .from('orders')
-        .update({ delivery_status: nextStatus })
+        .update(updateData)
         .eq('id', orderId);
 
       if (error) throw error;
@@ -84,6 +89,8 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
       if (nextStatus === 'delivered') {
         stopBroadcasting();
         toast.success('Delivery completed!');
+        // Small delay to ensure DB propagation before re-fetching
+        await new Promise(resolve => setTimeout(resolve, 500));
         onComplete();
       } else {
         toast.success(`Status updated to: ${statusLabels[nextStatus].label}`);
