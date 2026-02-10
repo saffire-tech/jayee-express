@@ -18,6 +18,8 @@ export interface Store {
   is_active: boolean;
   total_views: number;
   total_sales: number;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
   updated_at: string;
 }

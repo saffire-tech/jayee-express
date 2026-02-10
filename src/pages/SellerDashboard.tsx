@@ -196,7 +196,7 @@ const SellerDashboard = () => {
           <TabsContent value="orders">
             <div className="bg-card border border-border rounded-xl p-6">
               <h2 className="text-xl font-bold mb-6">Orders</h2>
-              <OrdersTable orders={orders} onUpdateStatus={updateOrderStatus} />
+              <OrdersTable orders={orders} onUpdateStatus={updateOrderStatus} storeLocation={store?.latitude && store?.longitude ? { latitude: store.latitude, longitude: store.longitude } : null} />
             </div>
           </TabsContent>
 
