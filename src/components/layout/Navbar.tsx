@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu, X, ShoppingBag, ShoppingCart, Store, User, LogOut, Shield, MessageCircle, Download, LogIn, Bell } from "lucide-react";
+import { Menu, X, ShoppingBag, ShoppingCart, Store, User, LogOut, Shield, MessageCircle, Download, LogIn, Bell, Truck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useNotificationCounts } from "@/hooks/useNotificationCounts";
+import { useDeliveryRole } from "@/hooks/useDeliveryRole";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import uniplugLogo from "@/assets/uniplug-logo.png";
 
@@ -25,6 +26,7 @@ const Navbar = () => {
     isModerator
   } = useAdmin();
   const { unreadMessages, pendingOrders, unreadNotifications, totalNotifications } = useNotificationCounts();
+  const { isDeliveryPerson } = useDeliveryRole();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -76,6 +78,14 @@ const Navbar = () => {
             </Link>
             
             {user ? <>
+                {isDeliveryPerson && (
+                  <Link to="/delivery">
+                    <Button variant="outline" className="gap-2 border-primary text-primary">
+                      <Truck className="h-4 w-4" />
+                      Deliveries
+                    </Button>
+                  </Link>
+                )}
                 {isModerator && <Link to="/admin">
                     <Button variant="outline" className="gap-2 border-primary text-primary">
                       <Shield className="h-4 w-4" />
@@ -193,6 +203,14 @@ const Navbar = () => {
               
               {user ? (
                 <>
+                  {isDeliveryPerson && (
+                    <Link to="/delivery" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" className="w-full justify-start gap-2 border-primary text-primary">
+                        <Truck className="h-4 w-4" />
+                        My Deliveries
+                      </Button>
+                    </Link>
+                  )}
                   {isModerator && (
                     <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
                       <Button variant="outline" className="w-full justify-start gap-2 border-primary text-primary">

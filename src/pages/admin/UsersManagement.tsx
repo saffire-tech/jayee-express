@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Search, MoreHorizontal, Shield, ShieldOff, UserX, UserCheck } from 'lucide-react';
+import { Search, MoreHorizontal, Shield, ShieldOff, UserX, UserCheck, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -94,7 +94,7 @@ export default function UsersManagement() {
   });
 
   const roleMutation = useMutation({
-    mutationFn: async ({ userId, role, action }: { userId: string; role: 'admin' | 'moderator'; action: 'add' | 'remove' }) => {
+    mutationFn: async ({ userId, role, action }: { userId: string; role: 'admin' | 'moderator' | 'delivery'; action: 'add' | 'remove' }) => {
       if (action === 'add') {
         const { error } = await supabase
           .from('user_roles')
@@ -129,7 +129,7 @@ export default function UsersManagement() {
   );
 
   const UserActions = ({ user }: { user: typeof paginatedUsers[0] }) => {
-    const userRole = user.user_role as 'admin' | 'moderator' | null;
+    const userRole = user.user_role as 'admin' | 'moderator' | 'delivery' | null;
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -147,6 +147,10 @@ export default function UsersManagement() {
               <DropdownMenuItem onClick={() => roleMutation.mutate({ userId: user.user_id, role: 'admin', action: 'add' })}>
                 <Shield className="mr-2 h-4 w-4" />
                 Make Admin
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => roleMutation.mutate({ userId: user.user_id, role: 'delivery', action: 'add' })}>
+                <Truck className="mr-2 h-4 w-4" />
+                Make Delivery Person
               </DropdownMenuItem>
             </>
           )}

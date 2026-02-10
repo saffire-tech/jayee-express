@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Package, Clock, CheckCircle, XCircle, Truck } from "lucide-react";
 import type { Order } from "@/hooks/useStore";
 
 interface OrdersTableProps {
@@ -70,6 +70,19 @@ const OrdersTable = ({ orders, onUpdateStatus }: OrdersTableProps) => {
                   <p className="text-sm text-muted-foreground mt-2">
                     Note: {order.notes}
                   </p>
+                )}
+                
+                {(order as any).delivery_type === 'delivery' && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Truck className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Delivery</span>
+                    {(order as any).delivery_status && (
+                      <Badge variant="outline" className="text-xs">{(order as any).delivery_status}</Badge>
+                    )}
+                    {(order as any).delivery_fee > 0 && (
+                      <span className="text-sm text-muted-foreground">Fee: ₵{Number((order as any).delivery_fee).toLocaleString()}</span>
+                    )}
+                  </div>
                 )}
               </div>
 
