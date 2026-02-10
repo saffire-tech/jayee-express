@@ -46,6 +46,71 @@ export type Database = {
           },
         ]
       }
+      delivery_locations: {
+        Row: {
+          id: string
+          latitude: number
+          longitude: number
+          order_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          latitude: number
+          longitude: number
+          order_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          latitude?: number
+          longitude?: number
+          order_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_locations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_zones: {
+        Row: {
+          created_at: string
+          fee: number
+          id: string
+          is_active: boolean
+          max_distance_km: number
+          min_distance_km: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          fee: number
+          id?: string
+          is_active?: boolean
+          max_distance_km: number
+          min_distance_km?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          fee?: number
+          id?: string
+          is_active?: boolean
+          max_distance_km?: number
+          min_distance_km?: number
+          name?: string
+        }
+        Relationships: []
+      }
       device_tokens: {
         Row: {
           created_at: string
@@ -206,6 +271,13 @@ export type Database = {
         Row: {
           buyer_id: string
           created_at: string
+          delivery_address: string | null
+          delivery_fee: number
+          delivery_latitude: number | null
+          delivery_longitude: number | null
+          delivery_person_id: string | null
+          delivery_status: string | null
+          delivery_type: string
           id: string
           notes: string | null
           status: string
@@ -216,6 +288,13 @@ export type Database = {
         Insert: {
           buyer_id: string
           created_at?: string
+          delivery_address?: string | null
+          delivery_fee?: number
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
+          delivery_person_id?: string | null
+          delivery_status?: string | null
+          delivery_type?: string
           id?: string
           notes?: string | null
           status?: string
@@ -226,6 +305,13 @@ export type Database = {
         Update: {
           buyer_id?: string
           created_at?: string
+          delivery_address?: string | null
+          delivery_fee?: number
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
+          delivery_person_id?: string | null
+          delivery_status?: string | null
+          delivery_type?: string
           id?: string
           notes?: string | null
           status?: string
@@ -509,8 +595,10 @@ export type Database = {
           is_featured: boolean | null
           is_suspended: boolean | null
           is_verified: boolean | null
+          latitude: number | null
           location: string | null
           logo_url: string | null
+          longitude: number | null
           name: string
           phone: string | null
           total_sales: number | null
@@ -528,8 +616,10 @@ export type Database = {
           is_featured?: boolean | null
           is_suspended?: boolean | null
           is_verified?: boolean | null
+          latitude?: number | null
           location?: string | null
           logo_url?: string | null
+          longitude?: number | null
           name: string
           phone?: string | null
           total_sales?: number | null
@@ -547,8 +637,10 @@ export type Database = {
           is_featured?: boolean | null
           is_suspended?: boolean | null
           is_verified?: boolean | null
+          latitude?: number | null
           location?: string | null
           logo_url?: string | null
+          longitude?: number | null
           name?: string
           phone?: string | null
           total_sales?: number | null
@@ -625,7 +717,7 @@ export type Database = {
       increment_store_views: { Args: { store_id: string }; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "moderator"
+      app_role: "admin" | "moderator" | "delivery"
       user_mode: "buyer" | "seller"
     }
     CompositeTypes: {
@@ -754,7 +846,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator"],
+      app_role: ["admin", "moderator", "delivery"],
       user_mode: ["buyer", "seller"],
     },
   },
