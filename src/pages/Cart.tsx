@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import DeliveryOption from '@/components/checkout/DeliveryOption';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -27,6 +28,24 @@ const Cart = () => {
   const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
   const [showPaymentNotice, setShowPaymentNotice] = useState(false);
+  const [deliveryData, setDeliveryData] = useState<{
+    deliveryType: 'pickup' | 'delivery';
+    deliveryFee: number;
+    deliveryLatitude?: number;
+    deliveryLongitude?: number;
+    deliveryAddress?: string;
+  }>({ deliveryType: 'pickup', deliveryFee: 0 });
+  const [storeCoords, setStoreCoords] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
+
+  // Fetch store coordinates for the cart items
+  useEffect(() => {
+    if (items.length > 0) {
+      const storeId = items[0].product.store_id;
+      supabase.from('stores').select('latitude, longitude').eq('id', storeId).maybeSingle().then(({ data }) => {
+        if (data) setStoreCoords({ latitude: data.latitude, longitude: data.longitude });
+      });
+    }
+  }, [items]);
 
   const handleCheckoutClick = () => {
     if (!user || items.length === 0) return;
@@ -62,7 +81,7 @@ const Cart = () => {
         const orderTotal = storeItems.reduce(
           (sum, item) => sum + item.product.price * item.quantity, 
           0
-        );
+        ) + deliveryData.deliveryFee;
 
         // Get store owner ID for email notification
         const { data: storeData } = await supabase
@@ -78,7 +97,13 @@ const Cart = () => {
             buyer_id: user.id,
             store_id: storeId,
             total_amount: orderTotal,
-            status: 'pending'
+            status: 'pending',
+            delivery_type: deliveryData.deliveryType,
+            delivery_fee: deliveryData.deliveryFee,
+            delivery_latitude: deliveryData.deliveryLatitude || null,
+            delivery_longitude: deliveryData.deliveryLongitude || null,
+            delivery_address: deliveryData.deliveryAddress || null,
+            delivery_status: deliveryData.deliveryType === 'delivery' ? 'pending' : null,
           })
           .select()
           .single();
@@ -262,8 +287,18 @@ const Cart = () => {
             ))}
           </div>
 
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
+          {/* Delivery Option + Order Summary */}
+          <div className="lg:col-span-1 space-y-4">
+            <Card>
+              <CardContent className="p-4">
+                <DeliveryOption
+                  storeLatitude={storeCoords.latitude}
+                  storeLongitude={storeCoords.longitude}
+                  onDeliveryChange={setDeliveryData}
+                />
+              </CardContent>
+            </Card>
+
             <Card className="lg:sticky lg:top-24">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg md:text-xl">Order Summary</CardTitle>
@@ -275,12 +310,16 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Delivery</span>
-                  <span className="text-green-600">Free</span>
+                  {deliveryData.deliveryFee > 0 ? (
+                    <span>₵{deliveryData.deliveryFee.toLocaleString()}</span>
+                  ) : (
+                    <span className="text-primary">{deliveryData.deliveryType === 'pickup' ? 'Pickup' : 'Free'}</span>
+                  )}
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-base md:text-lg">
                   <span>Total</span>
-                  <span className="text-primary">₵{totalPrice.toLocaleString()}</span>
+                  <span className="text-primary">₵{(totalPrice + deliveryData.deliveryFee).toLocaleString()}</span>
                 </div>
               </CardContent>
               <CardFooter className="flex-col gap-2 md:gap-3">

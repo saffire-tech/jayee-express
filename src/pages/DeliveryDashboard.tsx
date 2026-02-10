@@ -1,0 +1,144 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDeliveryRole } from '@/hooks/useDeliveryRole';
+import { supabase } from '@/integrations/supabase/client';
+import Navbar from '@/components/layout/Navbar';
+import AvailableOrders from '@/components/delivery/AvailableOrders';
+import ActiveDelivery from '@/components/delivery/ActiveDelivery';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, Truck, Package, History } from 'lucide-react';
+import { format } from 'date-fns';
+
+const DeliveryDashboard = () => {
+  const { user, loading: authLoading } = useAuth();
+  const { isDeliveryPerson, loading: roleLoading } = useDeliveryRole();
+  const navigate = useNavigate();
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate('/auth');
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (!authLoading && !roleLoading && !isDeliveryPerson) {
+      navigate('/');
+    }
+  }, [isDeliveryPerson, roleLoading, authLoading]);
+
+  // Check for existing active delivery
+  useEffect(() => {
+    if (!user) return;
+    const checkActive = async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('delivery_person_id', user.id)
+        .in('delivery_status', ['accepted', 'picked_up', 'in_transit'])
+        .limit(1)
+        .maybeSingle();
+      if (data) setActiveOrderId(data.id);
+    };
+    checkActive();
+  }, [user]);
+
+  // Fetch delivery history
+  useEffect(() => {
+    if (!user) return;
+    const fetchHistory = async () => {
+      setLoadingHistory(true);
+      const { data } = await supabase
+        .from('orders')
+        .select('id, total_amount, delivery_fee, delivery_status, created_at, store_id')
+        .eq('delivery_person_id', user.id)
+        .eq('delivery_status', 'delivered')
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        const withStores = await Promise.all(
+          data.map(async (o) => {
+            const { data: store } = await supabase.from('stores').select('name').eq('id', o.store_id).maybeSingle();
+            return { ...o, store_name: store?.name || 'Unknown' };
+          })
+        );
+        setHistory(withStores);
+      }
+      setLoadingHistory(false);
+    };
+    fetchHistory();
+  }, [user, activeOrderId]);
+
+  if (authLoading || roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container max-w-3xl mx-auto px-4 pt-24 pb-16">
+        <div className="flex items-center gap-3 mb-6">
+          <Truck className="h-7 w-7 text-primary" />
+          <h1 className="text-2xl font-bold">Delivery Dashboard</h1>
+        </div>
+
+        {activeOrderId ? (
+          <ActiveDelivery
+            orderId={activeOrderId}
+            onComplete={() => setActiveOrderId(null)}
+          />
+        ) : (
+          <Tabs defaultValue="available">
+            <TabsList className="w-full">
+              <TabsTrigger value="available" className="flex-1 gap-2">
+                <Package className="h-4 w-4" />
+                Available
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 gap-2">
+                <History className="h-4 w-4" />
+                History
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="available" className="mt-4">
+              <AvailableOrders onAccept={(id) => setActiveOrderId(id)} />
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-4">
+              {loadingHistory ? (
+                <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              ) : history.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">No completed deliveries yet</div>
+              ) : (
+                <div className="space-y-3">
+                  {history.map((h) => (
+                    <Card key={h.id}>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{h.store_name}</p>
+                          <p className="text-sm text-muted-foreground">{format(new Date(h.created_at), 'MMM d, yyyy')}</p>
+                        </div>
+                        <Badge variant="outline" className="text-primary border-primary">
+                          ₵{Number(h.delivery_fee).toLocaleString()}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DeliveryDashboard;

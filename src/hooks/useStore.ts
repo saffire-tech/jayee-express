@@ -190,7 +190,7 @@ export const useStore = () => {
     };
   }, [user, store?.id]);
 
-  const createStore = async (data: { name: string; description: string; location: string; phone: string; campus: string }) => {
+  const createStore = async (data: { name: string; description: string; location: string; phone: string; campus: string; latitude?: number; longitude?: number }) => {
     if (!user) throw new Error("Not authenticated");
 
     const { data: newStore, error } = await supabase
@@ -202,6 +202,7 @@ export const useStore = () => {
         location: data.location,
         phone: data.phone,
         campus: data.campus,
+        ...(data.latitude && data.longitude ? { latitude: data.latitude, longitude: data.longitude } : {}),
       })
       .select()
       .single();

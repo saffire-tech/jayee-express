@@ -12,6 +12,7 @@ import Analytics from "@/components/seller/Analytics";
 import ProductsList from "@/components/seller/ProductsList";
 import OrdersTable from "@/components/seller/OrdersTable";
 import StoreImageUpload from "@/components/seller/StoreImageUpload";
+import MapPicker from "@/components/maps/MapPicker";
 import WebServicesManager from "@/components/seller/WebServicesManager";
 import CampusSelector from "@/components/ui/CampusSelector";
 import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe } from "lucide-react";
@@ -65,6 +66,8 @@ const SellerDashboard = () => {
     phone: "",
     logo_url: "",
     cover_url: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -84,6 +87,8 @@ const SellerDashboard = () => {
         phone: store.phone || "",
         logo_url: store.logo_url || "",
         cover_url: store.cover_url || "",
+        latitude: (store as any).latitude || null,
+        longitude: (store as any).longitude || null,
       });
     }
   }, [store]);
@@ -280,6 +285,21 @@ const SellerDashboard = () => {
                       className="mt-1"
                     />
                   </div>
+                </div>
+
+                {/* Map Location */}
+                <div>
+                  <Label className="mb-3 block">Store Map Location</Label>
+                  <MapPicker
+                    latitude={storeSettings.latitude}
+                    longitude={storeSettings.longitude}
+                    onLocationSelect={(lat, lng) => setStoreSettings({ ...storeSettings, latitude: lat, longitude: lng })}
+                  />
+                  {storeSettings.latitude && storeSettings.longitude && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      📍 {storeSettings.latitude.toFixed(5)}, {storeSettings.longitude.toFixed(5)}
+                    </p>
+                  )}
                 </div>
 
                 <Button onClick={handleSaveSettings} disabled={savingSettings}>

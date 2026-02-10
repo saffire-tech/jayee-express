@@ -6,7 +6,8 @@ import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Loader2, Package, AlertTriangle, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle } from "lucide-react";
+import { ArrowLeft, Loader2, Package, AlertTriangle, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle, MapPin } from "lucide-react";
+import DeliveryTracker from "@/components/delivery/DeliveryTracker";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -38,9 +39,17 @@ interface Order {
   status: string;
   notes: string | null;
   created_at: string;
+  delivery_type?: string;
+  delivery_fee?: number;
+  delivery_status?: string | null;
+  delivery_latitude?: number | null;
+  delivery_longitude?: number | null;
+  delivery_person_id?: string | null;
   store?: {
     name: string;
     logo_url: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   order_items: OrderItem[];
 }
@@ -179,7 +188,13 @@ const PurchaseHistory = () => {
           total_amount,
           status,
           notes,
-          created_at
+          created_at,
+          delivery_type,
+          delivery_fee,
+          delivery_status,
+          delivery_latitude,
+          delivery_longitude,
+          delivery_person_id
         `)
         .eq("buyer_id", user.id)
         .order("created_at", { ascending: false });
@@ -192,7 +207,7 @@ const PurchaseHistory = () => {
           // Fetch store
           const { data: storeData } = await supabase
             .from("stores")
-            .select("name, logo_url")
+            .select("name, logo_url, latitude, longitude")
             .eq("id", order.store_id)
             .maybeSingle();
 
@@ -415,6 +430,28 @@ const PurchaseHistory = () => {
                   <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 mb-4">
                     <strong>Notes:</strong> {order.notes}
                   </p>
+                )}
+
+                {/* Delivery Tracking */}
+                {order.delivery_type === 'delivery' && order.delivery_person_id && order.delivery_status !== 'delivered' && (
+                  <div className="mb-4">
+                    <DeliveryTracker
+                      orderId={order.id}
+                      storeLocation={order.store?.latitude && order.store?.longitude ? { latitude: order.store.latitude, longitude: order.store.longitude } : null}
+                      buyerLocation={order.delivery_latitude && order.delivery_longitude ? { latitude: order.delivery_latitude, longitude: order.delivery_longitude } : null}
+                      deliveryStatus={order.delivery_status}
+                    />
+                  </div>
+                )}
+
+                {order.delivery_type === 'delivery' && (
+                  <div className="flex items-center gap-2 mb-4 text-sm">
+                    <Truck className="h-4 w-4 text-primary" />
+                    <span>Delivery</span>
+                    {order.delivery_fee && order.delivery_fee > 0 && (
+                      <span className="text-muted-foreground">Fee: ₵{Number(order.delivery_fee).toLocaleString()}</span>
+                    )}
+                  </div>
                 )}
 
                 <div className="flex justify-between items-center pt-4 border-t border-border">
