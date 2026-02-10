@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import DeliveryMap from '@/components/maps/DeliveryMap';
 import { useDeliveryTracking } from '@/hooks/useDeliveryTracking';
+import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Truck } from 'lucide-react';
 
@@ -18,8 +20,40 @@ const statusLabels: Record<string, string> = {
   delivered: 'Delivered',
 };
 
-const DeliveryTracker = ({ orderId, storeLocation, buyerLocation, deliveryStatus }: DeliveryTrackerProps) => {
+const DeliveryTracker = ({ orderId, storeLocation, buyerLocation, deliveryStatus: initialStatus }: DeliveryTrackerProps) => {
   const deliveryLocation = useDeliveryTracking(orderId);
+  const [deliveryStatus, setDeliveryStatus] = useState(initialStatus);
+
+  // Keep in sync with prop changes
+  useEffect(() => {
+    setDeliveryStatus(initialStatus);
+  }, [initialStatus]);
+
+  // Subscribe to realtime delivery_status changes on this order
+  useEffect(() => {
+    if (!orderId) return;
+
+    const channel = supabase
+      .channel(`delivery-status-${orderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any).delivery_status;
+          if (newStatus) setDeliveryStatus(newStatus);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
 
   return (
     <div className="space-y-3">
