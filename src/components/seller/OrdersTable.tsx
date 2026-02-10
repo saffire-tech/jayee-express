@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, Clock, CheckCircle, XCircle, Truck } from "lucide-react";
 import type { Order } from "@/hooks/useStore";
+import DeliveryTracker from "@/components/delivery/DeliveryTracker";
 
 interface OrdersTableProps {
   orders: Order[];
   onUpdateStatus: (orderId: string, status: string) => Promise<void>;
+  storeLocation?: { latitude: number; longitude: number } | null;
 }
 
 const statusConfig = {
@@ -16,7 +18,7 @@ const statusConfig = {
   cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800", icon: XCircle },
 };
 
-const OrdersTable = ({ orders, onUpdateStatus }: OrdersTableProps) => {
+const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps) => {
   if (orders.length === 0) {
     return (
       <div className="text-center py-12">
@@ -73,14 +75,24 @@ const OrdersTable = ({ orders, onUpdateStatus }: OrdersTableProps) => {
                 )}
                 
                 {(order as any).delivery_type === 'delivery' && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Truck className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Delivery</span>
-                    {(order as any).delivery_status && (
-                      <Badge variant="outline" className="text-xs">{(order as any).delivery_status}</Badge>
-                    )}
-                    {(order as any).delivery_fee > 0 && (
-                      <span className="text-sm text-muted-foreground">Fee: ₵{Number((order as any).delivery_fee).toLocaleString()}</span>
+                  <div className="mt-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Delivery</span>
+                      {(order as any).delivery_status && (
+                        <Badge variant="outline" className="text-xs">{(order as any).delivery_status}</Badge>
+                      )}
+                      {(order as any).delivery_fee > 0 && (
+                        <span className="text-sm text-muted-foreground">Fee: ₵{Number((order as any).delivery_fee).toLocaleString()}</span>
+                      )}
+                    </div>
+                    {(order as any).delivery_status && (order as any).delivery_status !== 'delivered' && (
+                      <DeliveryTracker
+                        orderId={order.id}
+                        storeLocation={storeLocation || null}
+                        buyerLocation={(order as any).delivery_latitude && (order as any).delivery_longitude ? { latitude: (order as any).delivery_latitude, longitude: (order as any).delivery_longitude } : null}
+                        deliveryStatus={(order as any).delivery_status}
+                      />
                     )}
                   </div>
                 )}
