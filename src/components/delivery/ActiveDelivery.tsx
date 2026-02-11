@@ -6,7 +6,7 @@ import DeliveryMap from '@/components/maps/DeliveryMap';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Navigation, Package, Truck, CheckCircle } from 'lucide-react';
+import { Loader2, Navigation, Package, Truck, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ActiveDeliveryProps {
@@ -64,6 +64,36 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
     };
   }, [orderId]);
 
+  // Subscribe to real-time updates for buyer confirmation
+  useEffect(() => {
+    if (!orderId) return;
+
+    const channel = supabase
+      .channel(`delivery-confirm-${orderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any).delivery_status;
+          if (newStatus === 'confirmed') {
+            stopBroadcasting();
+            toast.success('Buyer confirmed receipt! Delivery complete.');
+            setTimeout(() => onComplete(), 500);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
+
   const handleStatusUpdate = async () => {
     if (!order) return;
     const currentIdx = statusProgression.indexOf(order.delivery_status);
@@ -73,25 +103,17 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
     setUpdating(true);
 
     try {
-      const updateData: any = { delivery_status: nextStatus };
-      if (nextStatus === 'delivered') {
-        updateData.status = 'delivered';
-      }
-
+      // Only update delivery_status; do NOT set main status to delivered yet
       const { error } = await supabase
         .from('orders')
-        .update(updateData)
+        .update({ delivery_status: nextStatus })
         .eq('id', orderId);
 
       if (error) throw error;
       setOrder({ ...order, delivery_status: nextStatus });
 
       if (nextStatus === 'delivered') {
-        stopBroadcasting();
-        toast.success('Delivery completed!');
-        // Small delay to ensure DB propagation before re-fetching
-        await new Promise(resolve => setTimeout(resolve, 500));
-        onComplete();
+        toast.success('Marked as delivered! Waiting for buyer to confirm receipt.');
       } else {
         toast.success(`Status updated to: ${statusLabels[nextStatus].label}`);
       }
@@ -108,6 +130,7 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
 
   const currentIdx = statusProgression.indexOf(order.delivery_status);
   const nextStatus = currentIdx < statusProgression.length - 1 ? statusProgression[currentIdx + 1] : null;
+  const isWaitingConfirmation = order.delivery_status === 'delivered';
 
   return (
     <div className="space-y-4">
@@ -115,7 +138,7 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{order.store?.name || 'Order'}</CardTitle>
-            <Badge>{statusLabels[order.delivery_status]?.label}</Badge>
+            <Badge>{statusLabels[order.delivery_status]?.label || order.delivery_status}</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -147,6 +170,8 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
             deliveryLocation={currentPosition}
             storeLocation={order.store?.latitude && order.store?.longitude ? { latitude: order.store.latitude, longitude: order.store.longitude } : null}
             buyerLocation={order.delivery_latitude && order.delivery_longitude ? { latitude: order.delivery_latitude, longitude: order.delivery_longitude } : null}
+            showRoute={!isWaitingConfirmation}
+            deliveryStatus={order.delivery_status}
             className="h-[350px]"
           />
 
@@ -156,12 +181,17 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> You</span>
           </div>
 
-          {nextStatus && (
+          {isWaitingConfirmation ? (
+            <div className="flex items-center gap-2 justify-center py-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+              <Clock className="h-4 w-4 animate-pulse" />
+              Waiting for buyer to confirm receipt...
+            </div>
+          ) : nextStatus ? (
             <Button onClick={handleStatusUpdate} disabled={updating} className="w-full" size="lg">
               {updating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : statusLabels[nextStatus].icon}
               <span className="ml-2">Mark as {statusLabels[nextStatus].label}</span>
             </Button>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>

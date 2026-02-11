@@ -17,7 +17,8 @@ const statusLabels: Record<string, string> = {
   accepted: 'Delivery person assigned',
   picked_up: 'Picked up from store',
   in_transit: 'On the way',
-  delivered: 'Delivered',
+  delivered: 'Delivered — awaiting your confirmation',
+  confirmed: 'Buyer confirmed receipt',
 };
 
 const DeliveryTracker = ({ orderId, storeLocation, buyerLocation, deliveryStatus: initialStatus }: DeliveryTrackerProps) => {
@@ -68,12 +69,14 @@ const DeliveryTracker = ({ orderId, storeLocation, buyerLocation, deliveryStatus
           </Badge>
         )}
       </div>
-      <DeliveryMap
-        deliveryLocation={deliveryLocation}
-        storeLocation={storeLocation}
-        buyerLocation={buyerLocation}
-        className="h-[250px]"
-      />
+      {deliveryStatus !== 'confirmed' && (
+        <DeliveryMap
+          deliveryLocation={deliveryLocation}
+          storeLocation={storeLocation}
+          buyerLocation={buyerLocation}
+          className="h-[250px]"
+        />
+      )}
       <div className="flex gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-blue-500" /> Store

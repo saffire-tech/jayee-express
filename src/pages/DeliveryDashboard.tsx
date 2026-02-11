@@ -38,7 +38,7 @@ const DeliveryDashboard = () => {
         .from('orders')
         .select('id')
         .eq('delivery_person_id', user.id)
-        .in('delivery_status', ['accepted', 'picked_up', 'in_transit'])
+        .in('delivery_status', ['accepted', 'picked_up', 'in_transit', 'delivered'])
         .limit(1)
         .maybeSingle();
       if (data) setActiveOrderId(data.id);
@@ -55,7 +55,7 @@ const DeliveryDashboard = () => {
         .from('orders')
         .select('id, total_amount, delivery_fee, delivery_status, created_at, store_id')
         .eq('delivery_person_id', user.id)
-        .eq('delivery_status', 'delivered')
+        .eq('delivery_status', 'confirmed')
         .order('created_at', { ascending: false });
 
       if (data) {

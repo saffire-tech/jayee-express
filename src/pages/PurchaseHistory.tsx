@@ -10,6 +10,38 @@ import { ArrowLeft, Loader2, Package, AlertTriangle, Calendar, Store, X, Clock, 
 import DeliveryTracker from "@/components/delivery/DeliveryTracker";
 import { format } from "date-fns";
 import { toast } from "sonner";
+
+const ConfirmReceivedButton = ({ orderId, onConfirmed }: { orderId: string; onConfirmed: () => void }) => {
+  const [loading, setLoading] = useState(false);
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ delivery_status: "confirmed", status: "delivered" })
+        .eq("id", orderId);
+      if (error) throw error;
+      toast.success("Delivery confirmed! Thank you.");
+      onConfirmed();
+    } catch {
+      toast.error("Failed to confirm. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-between">
+      <div className="text-sm">
+        <p className="font-medium text-green-700 dark:text-green-400">Your order has been delivered!</p>
+        <p className="text-muted-foreground text-xs">Please confirm you received the item.</p>
+      </div>
+      <Button size="sm" onClick={handleConfirm} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white">
+        {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+        Received
+      </Button>
+    </div>
+  );
+};
 import {
   AlertDialog,
   AlertDialogAction,
@@ -433,7 +465,7 @@ const PurchaseHistory = () => {
                 )}
 
                 {/* Delivery Tracking */}
-                {order.delivery_type === 'delivery' && order.delivery_status && order.delivery_status !== 'delivered' && (
+                {order.delivery_type === 'delivery' && order.delivery_status && order.delivery_status !== 'confirmed' && (
                   <div className="mb-4">
                     <DeliveryTracker
                       orderId={order.id}
@@ -442,6 +474,13 @@ const PurchaseHistory = () => {
                       deliveryStatus={order.delivery_status}
                     />
                   </div>
+                )}
+
+                {/* Buyer Confirm Received Button */}
+                {order.delivery_type === 'delivery' && order.delivery_status === 'delivered' && (
+                  <ConfirmReceivedButton orderId={order.id} onConfirmed={() => {
+                    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, delivery_status: 'confirmed', status: 'delivered' } : o));
+                  }} />
                 )}
 
                 {order.delivery_type === 'delivery' && (
