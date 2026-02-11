@@ -1,181 +1,97 @@
 
+# Delivery Directions + Buyer Confirmation Flow
 
-## Maps, Delivery System, and Delivery Role Integration
+## Overview
+Two features: (1) Show turn-by-turn route directions on the delivery map using the Mapbox Directions API, and (2) Add a buyer confirmation step where the buyer must click "Received" after the delivery person marks the order as delivered. Only after buyer confirmation does the delivery move to history and disappear from available deliveries.
 
-This is a large feature that touches many parts of the app. Here's the full implementation plan broken into phases.
+## Flow Changes
 
----
+**Current flow:**
+Delivery marks "Delivered" -> order immediately moves to history
 
-### Phase 1: Database Schema Changes
+**New flow:**
+Delivery marks "Delivered" -> delivery_status becomes `delivered` -> buyer sees "Confirm Received" button -> buyer clicks it -> delivery_status becomes `confirmed` -> order moves to delivery history and tracking ends
 
-**1.1 Add `delivery` to the `app_role` enum**
-- Add `'delivery'` as a new value in the existing `app_role` enum type
-- Admins assign this role via the admin panel (invite only)
+## 1. Database Migration
 
-**1.2 Add coordinates to the `stores` table**
-- Add `latitude` (DOUBLE PRECISION, nullable) and `longitude` (DOUBLE PRECISION, nullable) columns
+Add support for the new `confirmed` delivery status value. Currently `delivery_status` is a text column, so no enum change is needed -- we just need to use `confirmed` as a new status value in the code.
 
-**1.3 Create `delivery_zones` table**
-- Configurable zone-based pricing (admin-managed)
-- Columns: `id`, `name`, `min_distance_km`, `max_distance_km`, `fee`, `is_active`, `created_at`
-- Seed default zones (e.g. 0-2km = 5, 2-5km = 10, 5-10km = 20)
+No schema changes required since `delivery_status` is a plain text column.
 
-**1.4 Add delivery columns to `orders` table**
-- `delivery_type` (TEXT: 'pickup' or 'delivery', default 'pickup')
-- `delivery_fee` (NUMERIC, default 0)
-- `delivery_address` (TEXT, nullable)
-- `delivery_latitude` (DOUBLE PRECISION, nullable)
-- `delivery_longitude` (DOUBLE PRECISION, nullable)
-- `delivery_person_id` (UUID, nullable, references auth.users)
-- `delivery_status` (TEXT: 'pending', 'accepted', 'picked_up', 'in_transit', 'delivered', default null)
+## 2. DeliveryMap -- Add Route Directions
 
-**1.5 Create `delivery_locations` table (for real-time tracking)**
-- Columns: `id`, `user_id` (the delivery person), `order_id`, `latitude`, `longitude`, `updated_at`
-- Enable realtime on this table
-- RLS: delivery person can insert/update their own; buyer and seller of the related order can read
+**File: `src/components/maps/DeliveryMap.tsx`**
 
-**1.6 RLS Policies**
-- `delivery_zones`: Everyone can read active zones; admins can manage all
-- `delivery_locations`: Delivery person can manage their own; order buyer/seller can read
-- Update `orders` policies to allow delivery persons to update delivery status on their accepted orders
+- After the map loads, use the Mapbox Directions API (`https://api.mapbox.com/directions/v5/mapbox/driving/...`) to fetch a route between the delivery person's current location and the next destination (store if status is `accepted`, buyer location if `picked_up` or `in_transit`).
+- Add a new prop `routeFrom` and `routeTo` (or derive from delivery status) to determine the route endpoints.
+- Draw the route as a GeoJSON line layer on the map using `map.addSource` and `map.addLayer`.
+- Update the route whenever the delivery person's location changes.
+- Show route distance and estimated time on the map.
 
----
+New props added to `DeliveryMapProps`:
+- `showRoute?: boolean` -- whether to fetch and display a route
+- `deliveryStatus?: string` -- to determine route destination (store vs buyer)
 
-### Phase 2: Store Setup - Location Coordinates
+## 3. ActiveDelivery -- Pass Route Info to Map
 
-**2.1 Update Store Setup Wizard**
-- Add a new step (Step 5) with a Mapbox map for picking store location
-- Seller taps on the map to place a pin, which saves latitude/longitude
-- Show a search box to help find locations on the map
+**File: `src/components/delivery/ActiveDelivery.tsx`**
 
-**2.2 Update Store Settings**
-- Add a map picker in the Settings tab for existing stores to set/update coordinates
-- Display current coordinates on the map
+- Pass `showRoute={true}` and `deliveryStatus={order.delivery_status}` to `DeliveryMap`.
+- When delivery person marks as "Delivered", set `delivery_status` to `delivered` but do NOT set `status` to `delivered` yet. The main order `status` should only change to `delivered` when the buyer confirms.
+- After marking delivered, show a "Waiting for buyer confirmation" message instead of immediately calling `onComplete()`.
+- Subscribe to real-time updates on the order so that when the buyer confirms (setting `delivery_status` to `confirmed`), the delivery person sees the completion and `onComplete()` is called.
 
----
+## 4. DeliveryDashboard -- Update History Query
 
-### Phase 3: Checkout Flow - Delivery Option
+**File: `src/pages/DeliveryDashboard.tsx`**
 
-**3.1 Update Cart/Checkout page**
-- Before checkout, show a delivery option selector: "Pick up" or "Deliver to me"
-- If "Deliver to me" is selected:
-  - Show a Mapbox map for the buyer to set their delivery location
-  - Calculate distance from store to delivery location
-  - Look up the matching delivery zone and display the fee
-  - Add delivery fee to the order total
-- Save delivery details (type, fee, address, coordinates) with the order
+- Update the history fetch to include orders with `delivery_status = 'confirmed'` (instead of just `delivered`).
+- Update the active delivery check: keep showing `ActiveDelivery` for `delivered` status (waiting for buyer confirmation), only complete when `confirmed`.
 
-**3.2 Delivery Fee Calculation**
-- Use the Haversine formula to calculate straight-line distance between store and buyer coordinates
-- Match distance to the appropriate zone in `delivery_zones`
-- Display the fee dynamically as the buyer moves the delivery pin
+## 5. Buyer Confirmation -- "Received" Button
 
----
+**File: `src/pages/PurchaseHistory.tsx`**
 
-### Phase 4: Delivery Person Interface
+- When `delivery_status === 'delivered'`, show a prominent "Confirm Received" button on the order card.
+- Clicking it updates the order: `delivery_status = 'confirmed'` and `status = 'delivered'`.
+- Show appropriate UI states (loading, success).
 
-**4.1 Create Delivery Dashboard page (`/delivery`)**
-- Protected route: only users with `delivery` role can access
-- Tabs: "Available Orders", "My Deliveries", "History"
+## 6. DeliveryTracker -- Show Confirmed Status
 
-**4.2 Available Orders tab**
-- List orders with `delivery_type = 'delivery'` and `delivery_status = 'pending'`
-- Show order details: items, store name, pickup location, destination, estimated distance
-- "Accept" button to claim the delivery
+**File: `src/components/delivery/DeliveryTracker.tsx`**
 
-**4.3 Active Delivery view**
-- Full-screen Mapbox map in satellite view showing:
-  - Delivery person's current GPS location (real-time)
-  - Store location (pickup point)
-  - Buyer's delivery location (destination)
-  - Route line between the three points
-- Status progression buttons: "Picked Up" then "In Transit" then "Delivered"
-- Real-time location updates sent to `delivery_locations` table every few seconds
+- Add `confirmed` to the status labels: "Buyer confirmed receipt".
+- Hide the live tracking map once status is `confirmed`.
 
-**4.4 Navigation integration**
-- Add "My Deliveries" link in the navbar when user has delivery role
+## 7. AvailableOrders -- No Changes Needed
 
----
+The query already filters by `delivery_status = 'pending'` and `delivery_person_id IS NULL`, so confirmed/delivered orders won't appear.
 
-### Phase 5: Real-Time Tracking for Buyer and Seller
+## Technical Details
 
-**5.1 Order tracking component**
-- When an order has `delivery_type = 'delivery'` and a delivery person assigned:
-  - Show a Mapbox satellite map on the order detail/purchase history
-  - Subscribe to real-time changes on `delivery_locations` for that order
-  - Show delivery person's live position, store location, and destination
-  - Show delivery status progression
+### Mapbox Directions API Call
+```
+GET https://api.mapbox.com/directions/v5/mapbox/driving/{lng1},{lat1};{lng2},{lat2}?geometries=geojson&overview=full&access_token={token}
+```
+The response contains a `routes[0].geometry` GeoJSON LineString to draw on the map, plus `duration` and `distance`.
 
-**5.2 Real-time subscriptions**
-- Enable realtime on `delivery_locations` and `orders` tables
-- Buyer sees live delivery person location on their purchase detail
-- Seller sees live tracking on their order detail
+### Route Layer Drawing
+- Add a GeoJSON source `route` to the map
+- Add a line layer with a colored stroke (e.g., blue dashed line)
+- Update the source data when the delivery person moves or status changes
 
----
+### Status Flow Summary
+```
+pending -> accepted -> picked_up -> in_transit -> delivered -> confirmed
+                                                    ^              ^
+                                          delivery person     buyer confirms
+                                          marks delivered     receipt
+```
 
-### Phase 6: Admin Panel Updates
-
-**6.1 Delivery role management**
-- Add ability to assign/remove `delivery` role in Users Management page
-- Show delivery person badge on user cards
-
-**6.2 Delivery zones management**
-- New section or tab in Admin Dashboard to manage delivery zones
-- CRUD for zone-based pricing tiers
-
----
-
-### Technical Details
-
-**Mapbox Setup**
-- The Mapbox public access token will be stored in the codebase (it's a publishable key)
-- Use `mapbox-gl` npm package for maps
-- Satellite style: `mapbox://styles/mapbox/satellite-streets-v12`
-
-**Files to Create**
-| File | Purpose |
-|------|---------|
-| `src/pages/DeliveryDashboard.tsx` | Main delivery person page |
-| `src/components/delivery/AvailableOrders.tsx` | List of orders needing delivery |
-| `src/components/delivery/ActiveDelivery.tsx` | Active delivery map and controls |
-| `src/components/delivery/DeliveryTracker.tsx` | Tracking component for buyer/seller |
-| `src/components/maps/MapPicker.tsx` | Reusable map picker (store setup, delivery address) |
-| `src/components/maps/DeliveryMap.tsx` | Real-time delivery tracking map |
-| `src/components/checkout/DeliveryOption.tsx` | Pickup vs delivery selector |
-| `src/hooks/useDeliveryRole.ts` | Check if user has delivery role |
-| `src/hooks/useDeliveryTracking.ts` | Real-time location tracking hook |
-| `src/lib/distance.ts` | Haversine distance calculation |
-
-**Files to Modify**
-| File | Changes |
-|------|---------|
-| `src/App.tsx` | Add `/delivery` route |
-| `src/pages/Cart.tsx` | Add delivery option before checkout |
-| `src/components/seller/StoreSetupWizard.tsx` | Add map step for coordinates |
-| `src/pages/SellerDashboard.tsx` | Add map to store settings |
-| `src/components/seller/OrdersTable.tsx` | Show delivery info on orders |
-| `src/components/layout/Navbar.tsx` | Add delivery nav link |
-| `src/pages/PurchaseHistory.tsx` | Add tracking map for delivery orders |
-| `src/pages/admin/UsersManagement.tsx` | Add delivery role assignment |
-| Database migration | All schema changes above |
-
-**Recommended Implementation Order**
-1. Database migration (all schema changes at once)
-2. Mapbox setup + MapPicker component
-3. Store setup wizard update (coordinates)
-4. Distance calculation + delivery zones
-5. Checkout flow update (delivery option)
-6. Delivery dashboard + available orders
-7. Active delivery with real-time tracking
-8. Buyer/seller tracking view
-9. Admin panel updates
-
----
-
-### What You'll Need
-
-Before I start building, you'll need a **Mapbox access token**:
-1. Go to [mapbox.com](https://www.mapbox.com/) and create a free account
-2. Copy your **Default public token** from the dashboard
-3. Share it here so I can add it to the code (it's a public/publishable key, safe to store in code)
-
+### Files to Create/Modify
+1. **Modify** `src/components/maps/DeliveryMap.tsx` -- Add route directions layer
+2. **Modify** `src/components/delivery/ActiveDelivery.tsx` -- Pass route props, handle "waiting for confirmation" state
+3. **Modify** `src/pages/DeliveryDashboard.tsx` -- Update history query to use `confirmed`
+4. **Modify** `src/pages/PurchaseHistory.tsx` -- Add "Confirm Received" button
+5. **Modify** `src/components/delivery/DeliveryTracker.tsx` -- Add `confirmed` status label
+6. **Modify** `src/components/delivery/AvailableOrders.tsx` -- No changes needed (already correct)
