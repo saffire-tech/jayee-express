@@ -121,7 +121,7 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
             title: '📦 Your order has been delivered!',
             body: 'Please confirm you received the item by tapping here.',
             tag: `delivery-${orderId}`,
-            data: { type: 'order', url: '/purchase-history' },
+            data: { type: 'order', url: '/purchases' },
           });
         }
       } else {
