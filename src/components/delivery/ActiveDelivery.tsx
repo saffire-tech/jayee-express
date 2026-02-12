@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Navigation, Package, Truck, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { sendPushNotification } from '@/lib/pushNotifications';
 
 interface ActiveDeliveryProps {
   orderId: string;
@@ -114,6 +115,15 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
 
       if (nextStatus === 'delivered') {
         toast.success('Marked as delivered! Waiting for buyer to confirm receipt.');
+        // Send push notification to buyer
+        if (order.buyer_id) {
+          sendPushNotification(order.buyer_id, {
+            title: '📦 Your order has been delivered!',
+            body: 'Please confirm you received the item by tapping here.',
+            tag: `delivery-${orderId}`,
+            data: { type: 'order', url: '/purchase-history' },
+          });
+        }
       } else {
         toast.success(`Status updated to: ${statusLabels[nextStatus].label}`);
       }
