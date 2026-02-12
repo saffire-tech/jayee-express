@@ -61,6 +61,8 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   // Navigate based on notification type
   if (data.type === 'message') {
     targetUrl = '/messages';
+  } else if (data.type === 'order' && data.url) {
+    targetUrl = data.url;
   } else if (data.type === 'order') {
     targetUrl = '/seller';
   } else if (data.url) {

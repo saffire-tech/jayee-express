@@ -159,7 +159,7 @@ export const useNativePushNotifications = (): NativePushState => {
       } else if (data?.type === 'new_order') {
         window.location.href = '/seller';
       } else if (data?.type === 'order_update' && data?.order_id) {
-        window.location.href = '/purchase-history';
+        window.location.href = '/purchases';
       }
     });
 
