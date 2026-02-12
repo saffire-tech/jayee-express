@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Loader2, Package, AlertTriangle, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle, MapPin } from "lucide-react";
 import DeliveryTracker from "@/components/delivery/DeliveryTracker";
+import DeliveryContactCard from "@/components/delivery/DeliveryContactCard";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -77,6 +78,10 @@ interface Order {
   delivery_latitude?: number | null;
   delivery_longitude?: number | null;
   delivery_person_id?: string | null;
+  delivery_person?: {
+    full_name: string | null;
+    phone: string | null;
+  } | null;
   store?: {
     name: string;
     logo_url: string | null;
@@ -270,10 +275,23 @@ const PurchaseHistory = () => {
             })
           );
 
+          // Fetch delivery person profile if applicable
+          let deliveryPerson = null;
+          const activeStatuses = ['accepted', 'picked_up', 'in_transit', 'delivered'];
+          if (order.delivery_person_id && order.delivery_status && activeStatuses.includes(order.delivery_status)) {
+            const { data: dpData } = await supabase
+              .from('profiles')
+              .select('full_name, phone')
+              .eq('user_id', order.delivery_person_id)
+              .maybeSingle();
+            deliveryPerson = dpData;
+          }
+
           return {
             ...order,
             store: storeData,
             order_items: itemsWithProducts,
+            delivery_person: deliveryPerson,
           };
         })
       );
@@ -477,6 +495,18 @@ const PurchaseHistory = () => {
                       storeLocation={order.store?.latitude && order.store?.longitude ? { latitude: order.store.latitude, longitude: order.store.longitude } : null}
                       buyerLocation={order.delivery_latitude && order.delivery_longitude ? { latitude: order.delivery_latitude, longitude: order.delivery_longitude } : null}
                       deliveryStatus={order.delivery_status}
+                    />
+                  </div>
+                )}
+
+                {/* Delivery Person Contact */}
+                {order.delivery_person && order.delivery_person_id && (
+                  <div className="mb-4">
+                    <DeliveryContactCard
+                      label="Delivery Person"
+                      name={order.delivery_person.full_name}
+                      phone={order.delivery_person.phone}
+                      userId={order.delivery_person_id}
                     />
                   </div>
                 )}

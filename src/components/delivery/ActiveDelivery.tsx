@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Navigation, Package, Truck, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendPushNotification } from '@/lib/pushNotifications';
+import DeliveryContactCard from '@/components/delivery/DeliveryContactCard';
 
 interface ActiveDeliveryProps {
   orderId: string;
@@ -26,6 +27,7 @@ const statusLabels: Record<string, { label: string; icon: React.ReactNode }> = {
 const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
   const { user } = useAuth();
   const [order, setOrder] = useState<any>(null);
+  const [buyerProfile, setBuyerProfile] = useState<{ full_name: string | null; phone: string | null } | null>(null);
   const [currentPosition, setCurrentPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const [updating, setUpdating] = useState(false);
   const { startBroadcasting, stopBroadcasting } = useLocationBroadcast(orderId);
@@ -39,12 +41,12 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
         .maybeSingle();
 
       if (data) {
-        const { data: store } = await supabase
-          .from('stores')
-          .select('name, latitude, longitude, location')
-          .eq('id', data.store_id)
-          .maybeSingle();
+        const [{ data: store }, { data: profile }] = await Promise.all([
+          supabase.from('stores').select('name, latitude, longitude, location').eq('id', data.store_id).maybeSingle(),
+          supabase.from('profiles').select('full_name, phone').eq('user_id', data.buyer_id).maybeSingle(),
+        ]);
         setOrder({ ...data, store });
+        setBuyerProfile(profile);
       }
     };
     fetchOrder();
@@ -190,6 +192,15 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Destination</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> You</span>
           </div>
+
+          {buyerProfile && (
+            <DeliveryContactCard
+              label="Buyer"
+              name={buyerProfile.full_name}
+              phone={buyerProfile.phone}
+              userId={order.buyer_id}
+            />
+          )}
 
           {isWaitingConfirmation ? (
             <div className="flex items-center gap-2 justify-center py-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
