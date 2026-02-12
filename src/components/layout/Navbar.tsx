@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu, X, ShoppingBag, ShoppingCart, Store, User, LogOut, Shield, MessageCircle, Download, LogIn, Bell, Truck } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Store, User, LogOut, Shield, MessageCircle, Download, LogIn, Bell, Truck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -12,7 +11,6 @@ import GlobalSearch from "@/components/search/GlobalSearch";
 import uniplugLogo from "@/assets/uniplug-logo.png";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const {
     user,
     profile,
@@ -155,142 +153,11 @@ const Navbar = () => {
               </>}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button className="md:hidden p-2 text-foreground flex-shrink-0 relative" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            {!isMenuOpen && user && totalNotifications > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-destructive">
-                {totalNotifications > 9 ? "9+" : totalNotifications}
-              </Badge>
-            )}
-          </button>
-        </div>
-
-        {/* Mobile Menu - Scrollable */}
-        {isMenuOpen && (
-          <div className="md:hidden max-h-[calc(100vh-64px)] overflow-y-auto py-4 border-t border-border animate-fade-in">
-            <div className="flex flex-col gap-3">
-              {/* Mobile Search */}
-              <div className="px-1">
-                <GlobalSearch variant="navbar" />
-              </div>
-              
-              <hr className="border-border" />
-              
-              <Link to="/products" className="text-foreground font-medium py-2 px-1" onClick={() => setIsMenuOpen(false)}>
-                Browse Products
-              </Link>
-              <Link to="/stores" className="text-foreground font-medium py-2 px-1" onClick={() => setIsMenuOpen(false)}>
-                Browse Stores
-              </Link>
-              
-              <Link to="/download" className="text-foreground font-medium py-2 px-1 flex items-center gap-2" onClick={() => setIsMenuOpen(false)}>
-                <Download className="h-4 w-4" />
-                Get App
-              </Link>
-              
-              <hr className="border-border" />
-              
-              <Link to="/cart" onClick={() => setIsMenuOpen(false)}>
-                <Button variant="ghost" className="w-full justify-start gap-2">
-                  <ShoppingCart className="h-4 w-4" />
-                  Cart
-                  {totalItems > 0 && <Badge className="ml-2">{totalItems}</Badge>}
-                </Button>
-              </Link>
-              
-              <hr className="border-border" />
-              
-              {user ? (
-                <>
-                  {isDeliveryPerson && (
-                    <Link to="/delivery" onClick={() => setIsMenuOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start gap-2 border-primary text-primary">
-                        <Truck className="h-4 w-4" />
-                        My Deliveries
-                      </Button>
-                    </Link>
-                  )}
-                  {isModerator && (
-                    <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start gap-2 border-primary text-primary">
-                        <Shield className="h-4 w-4" />
-                        Admin Dashboard
-                      </Button>
-                    </Link>
-                  )}
-                  {profile?.current_mode === "seller" && (
-                    <Link to="/seller" onClick={() => setIsMenuOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start gap-2">
-                        <Store className="h-4 w-4" />
-                        My Store
-                        {pendingOrders > 0 && (
-                          <Badge className="ml-auto bg-destructive">{pendingOrders}</Badge>
-                        )}
-                      </Button>
-                    </Link>
-                  )}
-                  <Link to="/notifications" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start gap-2">
-                      <Bell className="h-4 w-4" />
-                      Notifications
-                      {unreadNotifications > 0 && (
-                        <Badge className="ml-auto bg-destructive">{unreadNotifications > 9 ? "9+" : unreadNotifications}</Badge>
-                      )}
-                    </Button>
-                  </Link>
-                  <Link to="/messages" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start gap-2">
-                      <MessageCircle className="h-4 w-4" />
-                      Messages
-                      {unreadMessages > 0 && (
-                        <Badge className="ml-auto bg-destructive">{unreadMessages}</Badge>
-                      )}
-                    </Button>
-                  </Link>
-                  <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start gap-2">
-                      <User className="h-4 w-4" />
-                      Profile
-                    </Button>
-                  </Link>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start gap-2" 
-                    onClick={() => {
-                      handleSignOut();
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start gap-2">
-                      <LogIn className="h-4 w-4" />
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-start gap-2">
-                      <Store className="h-4 w-4" />
-                      Open Store
-                    </Button>
-                  </Link>
-                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="hero" className="w-full justify-start gap-2">
-                      <ShoppingBag className="h-4 w-4" />
-                      Start Shopping
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
+          {/* Mobile Search */}
+          <div className="md:hidden flex-1 mx-2">
+            <GlobalSearch variant="navbar" />
           </div>
-        )}
+        </div>
       </div>
     </nav>;
 };
