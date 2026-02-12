@@ -1,97 +1,68 @@
 
-# Delivery Directions + Buyer Confirmation Flow
+# Mobile Bottom Tab Bar Navigation
 
 ## Overview
-Two features: (1) Show turn-by-turn route directions on the delivery map using the Mapbox Directions API, and (2) Add a buyer confirmation step where the buyer must click "Received" after the delivery person marks the order as delivered. Only after buyer confirmation does the delivery move to history and disappear from available deliveries.
+Replace the mobile hamburger menu with a fixed bottom tab bar containing 5 tabs: Home, Products, Stores, Cart (with badge), and a "More" hamburger button. The "More" button opens a slide-up sheet/drawer with the remaining navigation items (notifications, messages, profile, deliveries, admin, seller store, sign out, etc.). Desktop navigation remains unchanged.
 
-## Flow Changes
+## Changes
 
-**Current flow:**
-Delivery marks "Delivered" -> order immediately moves to history
+### 1. Create new component: `src/components/layout/MobileTabBar.tsx`
+A fixed bottom tab bar visible only on mobile (md:hidden):
+- **Home** (House icon) -- links to `/`
+- **Products** (ShoppingBag icon) -- links to `/products`
+- **Stores** (Store icon) -- links to `/stores`
+- **Cart** (ShoppingCart icon + badge) -- links to `/cart`
+- **More** (Menu icon + notification badge) -- opens a drawer/sheet with remaining items
 
-**New flow:**
-Delivery marks "Delivered" -> delivery_status becomes `delivered` -> buyer sees "Confirm Received" button -> buyer clicks it -> delivery_status becomes `confirmed` -> order moves to delivery history and tracking ends
+The active tab is highlighted based on current route using `useLocation()`.
 
-## 1. Database Migration
+The "More" drawer contains:
+- Search bar
+- Get App link
+- Notifications (with badge)
+- Messages (with badge)
+- Profile
+- My Deliveries (if delivery person)
+- My Store (if seller, with pending orders badge)
+- Admin Dashboard (if moderator)
+- Purchase History
+- Sign In / Open Store / Start Shopping (if not logged in)
+- Sign Out (if logged in)
 
-Add support for the new `confirmed` delivery status value. Currently `delivery_status` is a text column, so no enum change is needed -- we just need to use `confirmed` as a new status value in the code.
+### 2. Modify `src/components/layout/Navbar.tsx`
+- Remove the mobile hamburger button and mobile dropdown menu entirely
+- Keep all desktop navigation as-is
+- The top navbar on mobile will only show the logo and search bar (simplified)
 
-No schema changes required since `delivery_status` is a plain text column.
+### 3. Modify `src/pages/Index.tsx` and other pages
+- Add bottom padding (`pb-16`) on mobile to prevent content from being hidden behind the tab bar
+- Import and render `MobileTabBar` in the app layout (either in each page or globally)
 
-## 2. DeliveryMap -- Add Route Directions
-
-**File: `src/components/maps/DeliveryMap.tsx`**
-
-- After the map loads, use the Mapbox Directions API (`https://api.mapbox.com/directions/v5/mapbox/driving/...`) to fetch a route between the delivery person's current location and the next destination (store if status is `accepted`, buyer location if `picked_up` or `in_transit`).
-- Add a new prop `routeFrom` and `routeTo` (or derive from delivery status) to determine the route endpoints.
-- Draw the route as a GeoJSON line layer on the map using `map.addSource` and `map.addLayer`.
-- Update the route whenever the delivery person's location changes.
-- Show route distance and estimated time on the map.
-
-New props added to `DeliveryMapProps`:
-- `showRoute?: boolean` -- whether to fetch and display a route
-- `deliveryStatus?: string` -- to determine route destination (store vs buyer)
-
-## 3. ActiveDelivery -- Pass Route Info to Map
-
-**File: `src/components/delivery/ActiveDelivery.tsx`**
-
-- Pass `showRoute={true}` and `deliveryStatus={order.delivery_status}` to `DeliveryMap`.
-- When delivery person marks as "Delivered", set `delivery_status` to `delivered` but do NOT set `status` to `delivered` yet. The main order `status` should only change to `delivered` when the buyer confirms.
-- After marking delivered, show a "Waiting for buyer confirmation" message instead of immediately calling `onComplete()`.
-- Subscribe to real-time updates on the order so that when the buyer confirms (setting `delivery_status` to `confirmed`), the delivery person sees the completion and `onComplete()` is called.
-
-## 4. DeliveryDashboard -- Update History Query
-
-**File: `src/pages/DeliveryDashboard.tsx`**
-
-- Update the history fetch to include orders with `delivery_status = 'confirmed'` (instead of just `delivered`).
-- Update the active delivery check: keep showing `ActiveDelivery` for `delivered` status (waiting for buyer confirmation), only complete when `confirmed`.
-
-## 5. Buyer Confirmation -- "Received" Button
-
-**File: `src/pages/PurchaseHistory.tsx`**
-
-- When `delivery_status === 'delivered'`, show a prominent "Confirm Received" button on the order card.
-- Clicking it updates the order: `delivery_status = 'confirmed'` and `status = 'delivered'`.
-- Show appropriate UI states (loading, success).
-
-## 6. DeliveryTracker -- Show Confirmed Status
-
-**File: `src/components/delivery/DeliveryTracker.tsx`**
-
-- Add `confirmed` to the status labels: "Buyer confirmed receipt".
-- Hide the live tracking map once status is `confirmed`.
-
-## 7. AvailableOrders -- No Changes Needed
-
-The query already filters by `delivery_status = 'pending'` and `delivery_person_id IS NULL`, so confirmed/delivered orders won't appear.
+### 4. Add `MobileTabBar` globally
+Place the `MobileTabBar` component inside `App.tsx` (within the Router/Auth/Cart providers) so it appears on all pages on mobile without needing to add it to every page individually.
 
 ## Technical Details
 
-### Mapbox Directions API Call
-```
-GET https://api.mapbox.com/directions/v5/mapbox/driving/{lng1},{lat1};{lng2},{lat2}?geometries=geojson&overview=full&access_token={token}
-```
-The response contains a `routes[0].geometry` GeoJSON LineString to draw on the map, plus `duration` and `distance`.
+### MobileTabBar Component Structure
+- Uses `useLocation()` to determine active tab
+- Uses `useIsMobile()` hook to only render on mobile
+- Uses the Vaul `Drawer` component (already installed) for the "More" menu
+- Fixed positioning: `fixed bottom-0 left-0 right-0 z-50`
+- Height: `h-16` with `border-t` separator
+- Each tab: flex column with icon + label, active state uses primary color
+- Cart badge shows `totalItems` count
+- More button badge shows `totalNotifications` count
 
-### Route Layer Drawing
-- Add a GeoJSON source `route` to the map
-- Add a line layer with a colored stroke (e.g., blue dashed line)
-- Update the source data when the delivery person moves or status changes
+### Navbar Changes
+- Remove lines 158-293 (mobile hamburger button + mobile menu)
+- On mobile, navbar becomes just logo + search (compact top bar)
 
-### Status Flow Summary
-```
-pending -> accepted -> picked_up -> in_transit -> delivered -> confirmed
-                                                    ^              ^
-                                          delivery person     buyer confirms
-                                          marks delivered     receipt
-```
+### Global Padding
+- Add `pb-16 md:pb-0` to main content areas or use a CSS class on the body for mobile bottom spacing
+- This prevents the tab bar from covering content at the bottom of pages
 
-### Files to Create/Modify
-1. **Modify** `src/components/maps/DeliveryMap.tsx` -- Add route directions layer
-2. **Modify** `src/components/delivery/ActiveDelivery.tsx` -- Pass route props, handle "waiting for confirmation" state
-3. **Modify** `src/pages/DeliveryDashboard.tsx` -- Update history query to use `confirmed`
-4. **Modify** `src/pages/PurchaseHistory.tsx` -- Add "Confirm Received" button
-5. **Modify** `src/components/delivery/DeliveryTracker.tsx` -- Add `confirmed` status label
-6. **Modify** `src/components/delivery/AvailableOrders.tsx` -- No changes needed (already correct)
+### Files Summary
+1. **Create** `src/components/layout/MobileTabBar.tsx` -- new bottom tab bar component
+2. **Modify** `src/components/layout/Navbar.tsx` -- remove mobile hamburger, simplify mobile top bar
+3. **Modify** `src/App.tsx` -- add `MobileTabBar` globally inside router
+4. **Modify** `src/pages/Index.tsx` -- add bottom padding for mobile
