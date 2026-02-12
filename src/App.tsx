@@ -35,6 +35,7 @@ import Terms from "./pages/Terms";
 import PurchaseHistory from "./pages/PurchaseHistory";
 import NotificationCenter from "./pages/NotificationCenter";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
+import MobileTabBar from "./components/layout/MobileTabBar";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +97,7 @@ const App = () => {
                     <Route path="/terms" element={<Terms />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  <MobileTabBar />
                 </CartProvider>
               </AdminProvider>
             </AuthProvider>
