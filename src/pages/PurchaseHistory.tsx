@@ -18,7 +18,7 @@ const ConfirmReceivedButton = ({ orderId, onConfirmed }: { orderId: string; onCo
     try {
       const { error } = await supabase
         .from("orders")
-        .update({ delivery_status: "confirmed", status: "delivered" })
+        .update({ delivery_status: "confirmed", status: "completed" })
         .eq("id", orderId);
       if (error) throw error;
       toast.success("Delivery confirmed! Thank you.");
@@ -102,6 +102,11 @@ const statusConfig: Record<string, { label: string; className: string; icon: Rea
     className: "bg-purple-500/10 text-purple-600 border-purple-500/20",
     icon: <Package className="h-4 w-4" />
   },
+  completed: { 
+    label: "Completed", 
+    className: "bg-green-500/10 text-green-600 border-green-500/20",
+    icon: <Truck className="h-4 w-4" />
+  },
   delivered: { 
     label: "Completed", 
     className: "bg-green-500/10 text-green-600 border-green-500/20",
@@ -114,7 +119,7 @@ const statusConfig: Record<string, { label: string; className: string; icon: Rea
   },
 };
 
-const statusSteps = ["pending", "confirmed", "preparing", "delivered"];
+const statusSteps = ["pending", "confirmed", "preparing", "completed"];
 
 const OrderStatusTracker = ({ status }: { status: string }) => {
   if (status === "cancelled") {
@@ -479,7 +484,7 @@ const PurchaseHistory = () => {
                 {/* Buyer Confirm Received Button */}
                 {order.delivery_type === 'delivery' && order.delivery_status === 'delivered' && (
                   <ConfirmReceivedButton orderId={order.id} onConfirmed={() => {
-                    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, delivery_status: 'confirmed', status: 'delivered' } : o));
+                    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, delivery_status: 'confirmed', status: 'completed' } : o));
                   }} />
                 )}
 
