@@ -1,54 +1,51 @@
 
-# Show Contact Info Between Delivery Person and Buyer + Enable Messaging
+# Show Orders to Nearest Delivery People
 
 ## Overview
-When a delivery person accepts an order, both parties need to see each other's name and contact details, and be able to message each other directly within the app.
+Update the Available Orders view so delivery people see orders sorted by how close they are to the store. Each order card will show the distance from the delivery person's current location to the store, making it natural for the nearest delivery person to see and accept orders first.
+
+## How It Works
+1. When a delivery person opens the Available Orders tab, the app requests their current GPS location
+2. For each available order, the distance from the delivery person to the order's store is calculated
+3. Orders are sorted nearest-first, so the closest orders appear at the top
+4. Each order card shows "X km from you" so delivery people can judge proximity at a glance
+
+This way, delivery people naturally see the orders closest to them first and can accept them before others further away even scroll to them.
 
 ## Changes
 
-### 1. Modify `src/components/delivery/ActiveDelivery.tsx` (Delivery Person's View)
-- After fetching the order, also fetch the **buyer's profile** from the `profiles` table using `order.buyer_id`
-- Display a contact card showing the buyer's **name** and **phone number**
-- Add a "Message Buyer" button using the existing `ContactSellerDialog` component (repurposed for general messaging) or a direct link to `/messages?with={buyer_id}`
+### Modify `src/components/delivery/AvailableOrders.tsx`
+- Add a `navigator.geolocation.watchPosition` call to continuously track the delivery person's current location
+- After fetching orders and store details, calculate the distance from the delivery person's location to each store using the existing `haversineDistance` function
+- Sort the orders array by this distance (ascending -- nearest first)
+- Update the order card UI to show:
+  - **"X km from you"** (distance from delivery person to the store) prominently
+  - Keep the existing store-to-buyer distance as secondary info
+- Show a location permission prompt/status if geolocation is denied
 
-### 2. Modify `src/pages/PurchaseHistory.tsx` (Buyer's View)
-- When an order has `delivery_type === 'delivery'` and `delivery_person_id` is set (i.e., a delivery person has accepted), fetch the **delivery person's profile** from the `profiles` table
-- Display a contact card showing the delivery person's **name** and **phone number**
-- Add a "Message Delivery Person" button that links to `/messages?with={delivery_person_id}`
-- Show this info for active delivery statuses (`accepted`, `picked_up`, `in_transit`, `delivered`)
-
-### 3. Update data fetching
-
-**In `ActiveDelivery.tsx`:**
-- After fetching the order, make an additional query:
-  ```
-  profiles table -> where user_id = order.buyer_id -> select full_name, phone
-  ```
-- Render a card with the buyer's name, phone (clickable tel: link), and a "Message" button
-
-**In `PurchaseHistory.tsx` (`fetchOrders`):**
-- For orders with a `delivery_person_id`, fetch:
-  ```
-  profiles table -> where user_id = order.delivery_person_id -> select full_name, phone
-  ```
-- Add `delivery_person` profile data to the order object
-- Render a contact card in the order display when delivery is active
-
-### 4. No database changes needed
-- The `profiles` table already has `full_name` and `phone` columns
-- The `profiles` table has a public SELECT RLS policy (`true`), so both parties can read each other's profiles
-- The `messages` table already supports direct messaging between any two users
-- The messaging page (`/messages?with={userId}`) already handles opening a conversation with a specific user
+### No database or backend changes needed
+- The delivery person's GPS is obtained via the browser's Geolocation API (already used elsewhere in the app)
+- Store coordinates are already stored in the `stores` table and fetched with each order
+- The `haversineDistance` utility in `src/lib/distance.ts` handles the calculation
 
 ## Technical Details
 
-### Contact Card UI (shared pattern for both views)
-A small card/section within the order showing:
-- User avatar or icon
-- Full name
-- Phone number (as a clickable `tel:` link for mobile)
-- "Message" button linking to `/messages?with={userId}`
+### Location Tracking in AvailableOrders
+```
+- useState for deliveryPersonPosition { latitude, longitude }
+- useEffect with navigator.geolocation.watchPosition to keep it updated
+- After orders are fetched, compute distance from deliveryPersonPosition to each order.store
+- Sort orders by that distance ascending
+- Display distance on card as "X.X km from you"
+```
+
+### Updated Order Card Layout
+Each card will show:
+- Store name and location (existing)
+- **"X.X km from you"** with a navigation icon (new -- distance to store from delivery person)
+- Store-to-buyer distance (existing, relabeled as "Delivery distance")
+- Order amount and delivery fee badges (existing)
+- Accept button (existing)
 
 ### Files to modify
-1. **`src/components/delivery/ActiveDelivery.tsx`** -- fetch buyer profile, show buyer contact card with message button
-2. **`src/pages/PurchaseHistory.tsx`** -- fetch delivery person profile for each delivery order, show delivery person contact card with message button
+1. `src/components/delivery/AvailableOrders.tsx` -- add geolocation tracking, sort by proximity, update card UI
