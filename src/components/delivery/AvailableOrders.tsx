@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { haversineDistance } from '@/lib/distance';
-import { MapPin, Package, Loader2 } from 'lucide-react';
+import { MapPin, Package, Loader2, Navigation, LocateOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AvailableOrder {
@@ -33,6 +33,27 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
   const [orders, setOrders] = useState<AvailableOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState<string | null>(null);
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState(false);
+
+  // Track delivery person's GPS
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError(true);
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocationError(false);
+      },
+      () => setLocationError(true),
+      { enableHighAccuracy: true }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   const fetchOrders = async () => {
     const { data, error } = await supabase
@@ -48,7 +69,6 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
       return;
     }
 
-    // Fetch store details for each order
     const ordersWithStores = await Promise.all(
       (data || []).map(async (order) => {
         const { data: store } = await supabase
@@ -76,6 +96,20 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Sort orders by proximity to delivery person
+  const sortedOrders = useMemo(() => {
+    if (!userPos) return orders;
+    return [...orders].sort((a, b) => {
+      const distA = a.store?.latitude != null && a.store?.longitude != null
+        ? haversineDistance(userPos.lat, userPos.lng, a.store.latitude, a.store.longitude)
+        : Infinity;
+      const distB = b.store?.latitude != null && b.store?.longitude != null
+        ? haversineDistance(userPos.lat, userPos.lng, b.store.latitude, b.store.longitude)
+        : Infinity;
+      return distA - distB;
+    });
+  }, [orders, userPos]);
 
   const handleAccept = async (orderId: string) => {
     if (!user) return;
@@ -105,7 +139,17 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
 
-  if (orders.length === 0) {
+  if (locationError) {
+    return (
+      <div className="text-center py-12">
+        <LocateOff className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+        <h3 className="font-semibold">Location access needed</h3>
+        <p className="text-sm text-muted-foreground">Please enable location permissions to see nearby deliveries</p>
+      </div>
+    );
+  }
+
+  if (sortedOrders.length === 0) {
     return (
       <div className="text-center py-12">
         <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -117,8 +161,12 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
 
   return (
     <div className="space-y-3">
-      {orders.map((order) => {
-        const dist = order.store?.latitude && order.store?.longitude
+      {sortedOrders.map((order) => {
+        const distToStore = userPos && order.store?.latitude != null && order.store?.longitude != null
+          ? haversineDistance(userPos.lat, userPos.lng, order.store.latitude, order.store.longitude)
+          : null;
+
+        const deliveryDist = order.store?.latitude != null && order.store?.longitude != null
           ? haversineDistance(order.store.latitude, order.store.longitude, order.delivery_latitude, order.delivery_longitude)
           : null;
 
@@ -132,8 +180,14 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
                     <MapPin className="h-3 w-3" />
                     {order.store?.location || 'No location'}
                   </div>
-                  {dist !== null && (
-                    <p className="text-sm">Distance: <strong>{dist.toFixed(1)} km</strong></p>
+                  {distToStore !== null && (
+                    <div className="flex items-center gap-1 text-sm font-medium text-primary">
+                      <Navigation className="h-3 w-3" />
+                      {distToStore.toFixed(1)} km from you
+                    </div>
+                  )}
+                  {deliveryDist !== null && (
+                    <p className="text-sm text-muted-foreground">Delivery distance: {deliveryDist.toFixed(1)} km</p>
                   )}
                   <div className="flex gap-3 mt-2">
                     <Badge variant="secondary">Order: ₵{Number(order.total_amount).toLocaleString()}</Badge>
