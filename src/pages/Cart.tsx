@@ -23,6 +23,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { sendNewOrderEmailNotification } from '@/lib/emailNotifications';
 
+interface StoreInfo {
+  id: string;
+  name: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 const Cart = () => {
   const { user } = useAuth();
   const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
@@ -35,16 +42,26 @@ const Cart = () => {
     deliveryLongitude?: number;
     deliveryAddress?: string;
   }>({ deliveryType: 'pickup', deliveryFee: 0 });
-  const [storeCoords, setStoreCoords] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
+  const [cartStores, setCartStores] = useState<StoreInfo[]>([]);
 
-  // Fetch store coordinates for the cart items
+  // Fetch ALL unique store coordinates and names from cart items
   useEffect(() => {
-    if (items.length > 0) {
-      const storeId = items[0].product.store_id;
-      supabase.from('stores').select('latitude, longitude').eq('id', storeId).maybeSingle().then(({ data }) => {
-        if (data) setStoreCoords({ latitude: data.latitude, longitude: data.longitude });
-      });
+    if (items.length === 0) {
+      setCartStores([]);
+      return;
     }
+
+    const uniqueStoreIds = [...new Set(items.map((item) => item.product.store_id))];
+
+    supabase
+      .from('stores')
+      .select('id, name, latitude, longitude')
+      .in('id', uniqueStoreIds)
+      .then(({ data }) => {
+        if (data) {
+          setCartStores(data as StoreInfo[]);
+        }
+      });
   }, [items]);
 
   const handleCheckoutClick = () => {
@@ -76,12 +93,21 @@ const Cart = () => {
         .eq('user_id', user.id)
         .single();
 
+      const storeIds = Object.keys(storeGroups);
+      const totalDeliveryFee = deliveryData.deliveryFee;
+
       // Create an order for each store
-      for (const [storeId, storeItems] of Object.entries(storeGroups)) {
+      for (let i = 0; i < storeIds.length; i++) {
+        const storeId = storeIds[i];
+        const storeItems = storeGroups[storeId];
+
+        // Distribute delivery fee: full fee on first order, 0 on rest
+        const orderDeliveryFee = i === 0 ? totalDeliveryFee : 0;
+
         const orderTotal = storeItems.reduce(
           (sum, item) => sum + item.product.price * item.quantity, 
           0
-        ) + deliveryData.deliveryFee;
+        ) + orderDeliveryFee;
 
         // Get store owner ID for email notification
         const { data: storeData } = await supabase
@@ -99,7 +125,7 @@ const Cart = () => {
             total_amount: orderTotal,
             status: 'pending',
             delivery_type: deliveryData.deliveryType,
-            delivery_fee: deliveryData.deliveryFee,
+            delivery_fee: orderDeliveryFee,
             delivery_latitude: deliveryData.deliveryLatitude || null,
             delivery_longitude: deliveryData.deliveryLongitude || null,
             delivery_address: deliveryData.deliveryAddress || null,
@@ -292,8 +318,7 @@ const Cart = () => {
             <Card>
               <CardContent className="p-4">
                 <DeliveryOption
-                  storeLatitude={storeCoords.latitude}
-                  storeLongitude={storeCoords.longitude}
+                  stores={cartStores}
                   onDeliveryChange={setDeliveryData}
                 />
               </CardContent>

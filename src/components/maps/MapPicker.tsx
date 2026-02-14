@@ -7,17 +7,25 @@ import { MapPin, Search } from 'lucide-react';
 
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
+interface StoreMarker {
+  name: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface MapPickerProps {
   latitude?: number | null;
   longitude?: number | null;
   onLocationSelect: (lat: number, lng: number) => void;
+  storeMarkers?: StoreMarker[];
   className?: string;
 }
 
-const MapPicker = ({ latitude, longitude, onLocationSelect, className }: MapPickerProps) => {
+const MapPicker = ({ latitude, longitude, onLocationSelect, storeMarkers, className }: MapPickerProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
+  const storeMarkerRefs = useRef<mapboxgl.Marker[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const defaultLat = latitude || 5.6037;
@@ -67,6 +75,32 @@ const MapPicker = ({ latitude, longitude, onLocationSelect, className }: MapPick
       map.current = null;
     };
   }, []);
+
+  // Render store markers when provided
+  useEffect(() => {
+    if (!map.current) return;
+
+    // Clear existing store markers
+    storeMarkerRefs.current.forEach((m) => m.remove());
+    storeMarkerRefs.current = [];
+
+    if (!storeMarkers || storeMarkers.length === 0) return;
+
+    storeMarkers.forEach((store) => {
+      const m = new mapboxgl.Marker({ color: '#3b82f6' })
+        .setLngLat([store.longitude, store.latitude])
+        .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(store.name))
+        .addTo(map.current!);
+      storeMarkerRefs.current.push(m);
+    });
+
+    // Fit bounds to show all store markers
+    if (storeMarkers.length > 0 && !marker.current) {
+      const bounds = new mapboxgl.LngLatBounds();
+      storeMarkers.forEach((s) => bounds.extend([s.longitude, s.latitude]));
+      map.current.fitBounds(bounds, { padding: 60, maxZoom: 14 });
+    }
+  }, [storeMarkers]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim() || !map.current) return;
@@ -119,7 +153,7 @@ const MapPicker = ({ latitude, longitude, onLocationSelect, className }: MapPick
       />
       <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
         <MapPin className="h-3 w-3" />
-        Click on the map to set your location
+        Click on the map to set your delivery location
       </p>
     </div>
   );
