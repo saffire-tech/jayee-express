@@ -16,6 +16,12 @@ interface ActiveDeliveryProps {
   onComplete: () => void;
 }
 
+interface StoreLocation {
+  name: string;
+  latitude: number;
+  longitude: number;
+}
+
 const statusProgression = ['accepted', 'picked_up', 'in_transit', 'delivered'] as const;
 const statusLabels: Record<string, { label: string; icon: React.ReactNode }> = {
   accepted: { label: 'Head to Store', icon: <Navigation className="h-4 w-4" /> },
@@ -30,6 +36,7 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
   const [buyerProfile, setBuyerProfile] = useState<{ full_name: string | null; phone: string | null } | null>(null);
   const [currentPosition, setCurrentPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [allStoreLocations, setAllStoreLocations] = useState<StoreLocation[]>([]);
   const { startBroadcasting, stopBroadcasting } = useLocationBroadcast(orderId);
 
   useEffect(() => {
@@ -47,6 +54,36 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
         ]);
         setOrder({ ...data, store });
         setBuyerProfile(profile);
+
+        // Fetch related orders from the same buyer with same delivery coordinates (multi-store checkout)
+        if (data.delivery_latitude && data.delivery_longitude) {
+          const { data: relatedOrders } = await supabase
+            .from('orders')
+            .select('store_id')
+            .eq('buyer_id', data.buyer_id)
+            .eq('delivery_latitude', data.delivery_latitude)
+            .eq('delivery_longitude', data.delivery_longitude)
+            .eq('delivery_type', 'delivery');
+
+          if (relatedOrders && relatedOrders.length > 0) {
+            const storeIds = [...new Set(relatedOrders.map((o) => o.store_id))];
+            const { data: stores } = await supabase
+              .from('stores')
+              .select('name, latitude, longitude')
+              .in('id', storeIds);
+
+            if (stores) {
+              setAllStoreLocations(
+                stores
+                  .filter((s) => s.latitude && s.longitude)
+                  .map((s) => ({ name: s.name, latitude: s.latitude!, longitude: s.longitude! }))
+              );
+            }
+          }
+        } else if (store?.latitude && store?.longitude) {
+          // Single store fallback
+          setAllStoreLocations([{ name: store.name, latitude: store.latitude, longitude: store.longitude }]);
+        }
       }
     };
     fetchOrder();
@@ -106,7 +143,6 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
     setUpdating(true);
 
     try {
-      // Only update delivery_status; do NOT set main status to delivered yet
       const { error } = await supabase
         .from('orders')
         .update({ delivery_status: nextStatus })
@@ -117,7 +153,6 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
 
       if (nextStatus === 'delivered') {
         toast.success('Marked as delivered! Waiting for buyer to confirm receipt.');
-        // Send push notification to buyer
         if (order.buyer_id) {
           sendPushNotification(order.buyer_id, {
             title: '📦 Your order has been delivered!',
@@ -149,9 +184,18 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">{order.store?.name || 'Order'}</CardTitle>
+            <CardTitle className="text-lg">
+              {allStoreLocations.length > 1
+                ? `${allStoreLocations.length} Stores`
+                : order.store?.name || 'Order'}
+            </CardTitle>
             <Badge>{statusLabels[order.delivery_status]?.label || order.delivery_status}</Badge>
           </div>
+          {allStoreLocations.length > 1 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {allStoreLocations.map((s) => s.name).join(' → ')} → Buyer
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Status progression */}
@@ -180,7 +224,7 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
 
           <DeliveryMap
             deliveryLocation={currentPosition}
-            storeLocation={order.store?.latitude && order.store?.longitude ? { latitude: order.store.latitude, longitude: order.store.longitude } : null}
+            storeLocations={allStoreLocations}
             buyerLocation={order.delivery_latitude && order.delivery_longitude ? { latitude: order.delivery_latitude, longitude: order.delivery_longitude } : null}
             showRoute={!isWaitingConfirmation}
             deliveryStatus={order.delivery_status}
@@ -188,7 +232,7 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
           />
 
           <div className="flex gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Store</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Store{allStoreLocations.length > 1 ? 's' : ''}</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Destination</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> You</span>
           </div>
