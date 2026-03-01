@@ -16,15 +16,15 @@ const CTASection = () => {
           <div className="relative z-10 max-w-2xl mx-auto text-center">
             <div className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-primary-foreground/20 text-primary-foreground text-xs md:text-sm font-medium mb-4 md:mb-6">
               <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4" />
-              <span>Join 500+ Campus Entrepreneurs</span>
+              <span>Join 500+ Entrepreneurs</span>
             </div>
 
             <h2 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-primary-foreground mb-4 md:mb-6">
-              Ready to Start Your Campus Business?
+              Ready to Start Your Business?
             </h2>
             
             <p className="text-sm md:text-base lg:text-lg text-primary-foreground/80 mb-6 md:mb-8 max-w-lg mx-auto">
-              Create your store in minutes and start selling to thousands of students on your campus. No fees to get started.
+              Create your store in minutes and start selling to thousands of people in your community. No fees to get started.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">

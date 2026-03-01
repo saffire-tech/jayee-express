@@ -202,7 +202,7 @@ const ProductDetail = () => {
         <title>{product.name} - Uniplug</title>
         <meta name="description" content={product.description || `Buy ${product.name} on Uniplug`} />
         <meta property="og:title" content={`${product.name} - ₵${product.price.toLocaleString()}`} />
-        <meta property="og:description" content={product.description || `Buy ${product.name} on Uniplug - The campus marketplace`} />
+        <meta property="og:description" content={product.description || `Buy ${product.name} on Uniplug - The community marketplace`} />
         <meta property="og:image" content={productImage} />
         <meta property="og:url" content={productUrl} />
         <meta property="og:type" content="product" />
@@ -382,7 +382,7 @@ const ProductDetail = () => {
                   </Avatar>
                   <div className="flex-1">
                     <h3 className="font-semibold">{product.store?.name}</h3>
-                    <p className="text-sm text-muted-foreground">{product.store?.location || 'Campus Store'}</p>
+                    <p className="text-sm text-muted-foreground">{product.store?.location || 'Local Store'}</p>
                   </div>
                   <Link to={`/store/${product.store?.id}`}>
                     <Button variant="outline" size="sm">Visit Store</Button>

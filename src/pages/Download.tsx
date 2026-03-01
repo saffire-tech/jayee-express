@@ -45,7 +45,7 @@ const DownloadPage = () => {
               <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-2">
                 {isInstalled || isStandalone
                   ? "You're all set! The Uniplug app is ready to use on your device."
-                  : "Install our app for a better shopping and selling experience on campus. Works offline and loads instantly!"}
+                  : "Install our app for a better shopping and selling experience on the go. Works offline and loads instantly!"}
               </p>
             </div>
 

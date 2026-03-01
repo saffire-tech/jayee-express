@@ -14,7 +14,7 @@ import OrdersTable from "@/components/seller/OrdersTable";
 import StoreImageUpload from "@/components/seller/StoreImageUpload";
 import MapPicker from "@/components/maps/MapPicker";
 import WebServicesManager from "@/components/seller/WebServicesManager";
-import CampusSelector from "@/components/ui/CampusSelector";
+import LocationSelector from "@/components/ui/LocationSelector";
 import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe } from "lucide-react";
 import ShareButton from "@/components/ui/ShareButton";
 import { Button } from "@/components/ui/button";
@@ -258,21 +258,21 @@ const SellerDashboard = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="storeLocation">Location on Campus</Label>
+                    <Label htmlFor="storeLocation">Address</Label>
                     <Input
                       id="storeLocation"
                       value={storeSettings.location}
                       onChange={(e) => setStoreSettings({ ...storeSettings, location: e.target.value })}
                       className="mt-1"
-                      placeholder="e.g., Block A, Room 24"
+                      placeholder="e.g., 24 Oxford St, Osu"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="storeCampus">Campus</Label>
-                    <CampusSelector
+                    <Label htmlFor="storeCampus">Area</Label>
+                    <LocationSelector
                       value={storeSettings.campus}
                       onChange={(value) => setStoreSettings({ ...storeSettings, campus: value })}
-                      placeholder="Select campus"
+                      placeholder="Select area"
                       className="mt-1"
                     />
                   </div>

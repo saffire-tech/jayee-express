@@ -20,7 +20,7 @@ const HeroSection = () => {
       return {
         activeStores: storesRes.count || 0,
         productsListed: productsRes.count || 0,
-        happyStudents: usersRes.count || 0,
+        happyUsers: usersRes.count || 0,
       };
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -42,7 +42,7 @@ const HeroSection = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-8 animate-fade-up">
             <Zap className="h-4 w-4" />
-            <span>Your Campus Marketplace</span>
+            <span>Your Community Marketplace</span>
           </div>
 
           {/* Main Heading */}
@@ -57,7 +57,7 @@ const HeroSection = () => {
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{
             animationDelay: '0.2s'
           }}>
-            Buy and sell goods & services with fellow students. Set up your store, showcase your skills, and grow your hustle right where you are.
+            Buy and sell goods & services within your community. Set up your store, showcase your skills, and grow your hustle right where you are.
           </p>
 
           {/* Search Bar */}
@@ -113,10 +113,10 @@ const HeroSection = () => {
                 <Skeleton className="h-8 md:h-10 w-16 mx-auto mb-1" />
               ) : (
                 <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
-                  <CompactCounter value={stats?.happyStudents || 0} />
+                  <CompactCounter value={stats?.happyUsers || 0} />
                 </p>
               )}
-              <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-0.5 sm:mt-1">Happy Students</p>
+              <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-0.5 sm:mt-1">Happy Users</p>
             </div>
           </div>
         </div>
