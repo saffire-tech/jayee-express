@@ -1,81 +1,64 @@
 
-# Multi-Store Delivery: Route Planning, Map Labels, and Fair Pricing
+# Transition from Campus-Based to Community-Based Marketplace
 
-## The Problem
-When a buyer has items from multiple stores in their cart:
-1. Only the first store's coordinates are used for delivery -- the other stores are ignored
-2. The delivery fee is calculated based on a single store-to-buyer distance, which underpays the delivery person who must visit multiple stops
-3. The delivery person's map only shows one store, with no guidance for multi-stop routes
+## Overview
+Transform UniPlug from a campus/student-focused marketplace to a community-based marketplace serving Accra neighborhoods and city locations. This involves replacing all campus selection logic with community/area selection, updating all student-oriented copy, and adjusting the database constraint.
 
-## How It Will Work After This Change
+## What Changes
 
-**For the buyer (Cart / Checkout):**
-- The DeliveryOption component will accept ALL store locations from the cart, not just one
-- The map will show labeled markers for each store (by store name) so the buyer can see the pickup points
-- The delivery fee will be calculated as the **total route distance** (optimized path visiting all stores then the buyer), not just one store-to-buyer distance
-- The fee breakdown will show: "Total route: X.X km across N stores"
+### 1. Replace Location Data Configuration
+**File: `src/config/campuses.ts` -> rename to `src/config/locations.ts`**
+- Replace `CAMPUS_GROUPS` with `LOCATION_GROUPS` containing Accra communities and city areas
+- Groups will be organized by zones (e.g., "Greater Accra North", "Greater Accra South", "Tema & Surroundings", "Accra Central", "West Accra", "East Accra")
+- Locations will include neighborhoods like: East Legon, Madina, Adenta, Spintex, Tema, Ashaiman, Dansoman, Lapaz, Achimota, Kaneshie, Osu, Labadi, Teshie, Nungua, Kasoa, Weija, Ablekuma, Dome, Haatso, Taifa, Circle, Airport Residential, Cantonments, Ridge, Dzorwulu, Abelemkpe, Roman Ridge, Tesano, Darkuman, Odorkor, etc.
+- Rename all exported functions accordingly (e.g., `getGroupByCampus` -> `getGroupByLocation`)
 
-**For the delivery person (ActiveDelivery map):**
-- The map will show labeled markers for ALL stores involved in the buyer's order group
-- The route will guide the delivery person store-by-store, then to the buyer
-- Each store marker will display the store's name in a popup for easy identification
+### 2. Rebuild the Location Selector Component
+**File: `src/components/ui/CampusSelector.tsx` -> rename to `src/components/ui/LocationSelector.tsx`**
+- Replace `GraduationCap` icon with `MapPin` icon
+- Rename all props: `campus` -> `location`, labels say "Select area" / "All Areas"
+- Same two-step grouped selection UX, but with community groups instead of institution types
 
-**Pricing logic:**
-- Calculate the optimal route distance: delivery person location (or first store) -> store 1 -> store 2 -> ... -> buyer
-- Sum total route distance and look up the delivery zone fee for that total distance
-- This means the buyer pays a fair fee for the full multi-stop trip, and the delivery person earns accordingly
+### 3. Database Migration
+- **Drop** the `stores_campus_check` constraint (it restricts campus values to the old university list)
+- The `campus` column in `stores` and `profiles` tables will remain as-is (reusing the column for location/area) -- no column rename needed to avoid breaking existing data
+- Existing store data with old campus values will still work; they just won't appear in the new selector until updated by store owners
 
-## Technical Changes
+### 4. Update All UI Text and References
+Files with campus/student copy to update:
 
-### 1. Update `src/pages/Cart.tsx`
-- Instead of fetching coordinates for only `items[0].product.store_id`, collect ALL unique store IDs from the cart
-- Fetch coordinates + names for every store
-- Pass an array of store locations to the DeliveryOption component
+| File | What changes |
+|------|-------------|
+| `src/components/sections/HeroSection.tsx` | "Your Campus Marketplace" -> "Your Community Marketplace", "Happy Students" -> "Happy Users", "fellow students" -> "your community" |
+| `src/components/sections/HowItWorks.tsx` | "campus email" -> "email", "campus business" -> "business" |
+| `src/components/sections/CTASection.tsx` | "Campus Entrepreneurs" -> "Entrepreneurs", "Campus Business" -> "Business", "students on your campus" -> "people in your community" |
+| `src/pages/Products.tsx` | Import LocationSelector, "All Campuses" -> "All Areas", "campus sellers" -> "local sellers" |
+| `src/pages/Stores.tsx` | Same as Products - swap selector and labels |
+| `src/pages/Profile.tsx` | "Campus" label -> "Area", use LocationSelector |
+| `src/pages/SellerDashboard.tsx` | "Campus" -> "Area", "Location on Campus" -> "Address", use LocationSelector |
+| `src/components/seller/StoreSetupWizard.tsx` | "Select Your Campus" -> "Select Your Area", GraduationCap -> MapPin, use LocationSelector |
+| `src/pages/StorePage.tsx` | "campus marketplace" -> "community marketplace" in meta tags |
+| `src/pages/ProductDetail.tsx` | "campus marketplace" -> "community marketplace", "Campus Store" -> "Local Store" |
+| `src/pages/Download.tsx` | "on campus" -> "on the go" |
+| `src/components/sections/FeaturedProducts.tsx` | No campus references (already clean) |
+| `src/components/sections/RecommendedProducts.tsx` | `store.campus` display text unchanged (column still exists) |
+| `src/pages/Stores.tsx` | GraduationCap icon -> MapPin for store area display |
+| `supabase/functions/send-email-notification/index.ts` | "Campus Marketplace" -> "Community Marketplace" |
+| `supabase/functions/get-recommendations/index.ts` | "campus marketplace" -> "community marketplace", "campus preferences" -> "area preferences" |
 
-### 2. Rewrite `src/components/checkout/DeliveryOption.tsx`
-- Change props from single `storeLatitude/storeLongitude` to an array of stores: `stores: Array<{ id: string; name: string; latitude: number | null; longitude: number | null }>`
-- Enable the "Deliver to Me" option if **at least one** store has coordinates
-- When the buyer selects their location on the map:
-  - Also display labeled markers for each store on the MapPicker
-  - Calculate the total route distance: sum of distances along the chain (store 1 -> store 2 -> ... -> buyer), using a nearest-neighbor ordering to optimize the path
-  - Look up the delivery zone fee for the total route distance
-  - Show breakdown: "Route: Store A -> Store B -> You = X.X km total"
-- Pass the total fee back via `onDeliveryChange`
+### 5. Accra Community Locations List
+The new location groups:
 
-### 3. Update `src/components/maps/MapPicker.tsx`
-- Add an optional `storeMarkers` prop: `Array<{ name: string; latitude: number; longitude: number }>`
-- When provided, render a labeled marker (with store name popup) for each store on the map
-- These are display-only markers (not draggable) -- the buyer still clicks to set their own location
+- **Accra Central**: Osu, Labadi, Cantonments, Airport Residential, Ridge, Dzorwulu, Abelemkpe, Roman Ridge, Circle, Asylum Down, Adabraka
+- **North Accra**: Achimota, Lapaz, Dome, Haatso, Taifa, Agbogba, Kwabenya, Pokuase, Amasaman
+- **East Accra**: East Legon, Madina, Adenta, Teshie, Nungua, Spintex, Baatsonaa, Adjiriganor
+- **West Accra**: Dansoman, Darkuman, Odorkor, Kaneshie, Tesano, Ablekuma, Bubiashie, Abeka
+- **Tema & Surroundings**: Tema, Ashaiman, Sakumono, Kpone, Prampram, Dawhenya, Afienya
+- **Kasoa & Surroundings**: Kasoa, Weija, Gbawe, Mallam, McCarthy Hill, Bortianor, Kokrobite
 
-### 4. Update `src/components/delivery/ActiveDelivery.tsx`
-- When the delivery person accepts an order, also fetch all related orders from the same buyer's checkout session (orders created at the same time with the same buyer)
-- Show all store markers on the DeliveryMap with store name labels
-- The route will sequence through all stores then to the buyer
-
-### 5. Update `src/components/maps/DeliveryMap.tsx`
-- Change `storeLocation` prop from a single location to an array: `storeLocations: Array<{ name: string; latitude: number; longitude: number }>`
-- Render a labeled marker for each store (blue markers with name popups)
-- Update the route-fetching logic to build a multi-waypoint route through all stores then to the buyer using Mapbox Directions API waypoints
-- Update the bounds fitting to include all store points
-
-### 6. Update checkout logic in `Cart.tsx` (`handleConfirmCheckout`)
-- When creating orders for each store group, distribute the delivery fee proportionally across stores (or apply total fee to first order and 0 to others -- simpler approach)
-- Store the total route fee on each order so the delivery person sees the full earning
-
-## Route Distance Calculation (Pricing)
-The pricing will use a simple nearest-neighbor approach:
-1. Start from the first store
-2. Go to the nearest unvisited store
-3. Repeat until all stores are visited
-4. Finally go to the buyer's location
-5. Sum all leg distances to get the total route distance
-6. Look up the delivery zone fee for that total distance
-
-This ensures the delivery person is compensated for the full multi-stop trip.
-
-## Files to modify
-1. `src/pages/Cart.tsx` -- fetch all store coords, pass array to DeliveryOption, adjust fee distribution at checkout
-2. `src/components/checkout/DeliveryOption.tsx` -- accept multiple stores, calculate multi-stop route distance, show labeled stores on map
-3. `src/components/maps/MapPicker.tsx` -- add optional store markers with name labels
-4. `src/components/maps/DeliveryMap.tsx` -- support multiple store locations with name labels, multi-waypoint routing
-5. `src/components/delivery/ActiveDelivery.tsx` -- fetch related orders' stores for multi-stop map display
+### 6. Summary of Scope
+- ~15 files modified (UI components, pages, edge functions, config)
+- 1 database migration (drop check constraint)
+- 1 new config file (locations.ts replacing campuses.ts)
+- 1 new component file (LocationSelector.tsx replacing CampusSelector.tsx)
+- No breaking changes to database schema (reusing same `campus` column)
