@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import CampusSelector from "@/components/ui/CampusSelector";
+import LocationSelector from "@/components/ui/LocationSelector";
 import MapPicker from "@/components/maps/MapPicker";
-import { Store, MapPin, Phone, Loader2, ArrowRight, Check, GraduationCap, Navigation } from "lucide-react";
+import { Store, MapPin, Phone, Loader2, ArrowRight, Check, Navigation } from "lucide-react";
 
 interface StoreSetupWizardProps {
   onComplete: (data: { name: string; description: string; location: string; phone: string; campus: string; latitude?: number; longitude?: number }) => Promise<unknown>;
@@ -109,13 +109,13 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
       {step === 3 && (
         <div className="text-center animate-fade-up">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent mb-6">
-            <GraduationCap className="h-8 w-8 text-primary" />
+            <MapPin className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Select Your Campus</h2>
-          <p className="text-muted-foreground mb-8">Choose the campus where your store is located</p>
+          <h2 className="text-2xl font-bold mb-2">Select Your Area</h2>
+          <p className="text-muted-foreground mb-8">Choose the area where your store is located</p>
           <div className="text-left">
-            <Label htmlFor="campus">Campus</Label>
-            <CampusSelector value={formData.campus} onChange={(value) => setFormData({ ...formData, campus: value })} placeholder="Select your campus" className="mt-2" />
+            <Label htmlFor="campus">Area</Label>
+            <LocationSelector value={formData.campus} onChange={(value) => setFormData({ ...formData, campus: value })} placeholder="Select your area" className="mt-2" />
           </div>
         </div>
       )}
@@ -130,10 +130,10 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
           <p className="text-muted-foreground mb-8">Help customers find and reach you</p>
           <div className="space-y-4 text-left">
             <div>
-              <Label htmlFor="location">Location on Campus</Label>
+              <Label htmlFor="location">Address</Label>
               <div className="relative mt-2">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="e.g., Block A, Room 24" className="pl-10" />
+                <Input id="location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="e.g., 24 Oxford St, Osu" className="pl-10" />
               </div>
             </div>
             <div>

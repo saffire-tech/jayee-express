@@ -4,7 +4,7 @@ const steps = [
   {
     icon: UserPlus,
     title: "Sign Up",
-    description: "Create your free account in seconds using your campus email",
+    description: "Create your free account in seconds using your email",
     step: "01"
   },
   {
@@ -22,7 +22,7 @@ const steps = [
   {
     icon: CreditCard,
     title: "Get Paid",
-    description: "Receive payments securely and grow your campus business",
+    description: "Receive payments securely and grow your business",
     step: "04"
   }
 ];

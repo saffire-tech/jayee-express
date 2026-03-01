@@ -150,7 +150,7 @@ const StorePage = () => {
         <title>{store.name} - Uniplug</title>
         <meta name="description" content={store.description || `Shop at ${store.name} on Uniplug`} />
         <meta property="og:title" content={store.name} />
-        <meta property="og:description" content={store.description || `Shop at ${store.name} on Uniplug - The campus marketplace`} />
+        <meta property="og:description" content={store.description || `Shop at ${store.name} on Uniplug - The community marketplace`} />
         <meta property="og:image" content={storeImage} />
         <meta property="og:url" content={storeUrl} />
         <meta property="og:type" content="website" />

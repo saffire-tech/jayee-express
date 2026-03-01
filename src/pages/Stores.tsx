@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import CampusSelector from '@/components/ui/CampusSelector';
-import { Search, Store, MapPin, Verified, X, SlidersHorizontal, GraduationCap, Eye } from 'lucide-react';
+import LocationSelector from '@/components/ui/LocationSelector';
+import { Search, Store, MapPin, Verified, X, SlidersHorizontal, Eye } from 'lucide-react';
 import { StoreGridSkeleton } from '@/components/ui/skeletons';
 import {
   Pagination,
@@ -163,7 +163,7 @@ const Stores = () => {
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Browse Stores</h1>
           <p className="text-muted-foreground">
-            Discover amazing stores from campus sellers
+            Discover amazing stores from local sellers
           </p>
         </div>
 
@@ -193,11 +193,11 @@ const Stores = () => {
           {/* Desktop Filters */}
           <div className={`flex flex-wrap gap-4 ${showFilters ? 'block' : 'hidden md:flex'}`}>
             {/* Campus Filter */}
-            <CampusSelector
+            <LocationSelector
               value={selectedCampus}
               onChange={setSelectedCampus}
               showAllOption
-              allOptionLabel="All Campuses"
+              allOptionLabel="All Areas"
               className="w-full md:w-[200px]"
             />
 
@@ -326,7 +326,7 @@ const Stores = () => {
                     <div className="flex flex-col gap-1 mb-2">
                       {store.campus && (
                         <div className="flex items-center gap-1 text-xs text-primary font-medium">
-                          <GraduationCap className="h-3 w-3" />
+                          <MapPin className="h-3 w-3" />
                           <span>{store.campus}</span>
                         </div>
                       )}

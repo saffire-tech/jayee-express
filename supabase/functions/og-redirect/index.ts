@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     let title = 'UniPlug';
-    let description = 'Campus Marketplace';
+    let description = 'Community Marketplace';
     let imageUrl = 'https://uniplug.app/og-image.png';
 
     if (type === 'product') {

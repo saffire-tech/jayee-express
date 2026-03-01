@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import CampusSelector from '@/components/ui/CampusSelector';
+import LocationSelector from '@/components/ui/LocationSelector';
 import { Search, Package, Heart, ShoppingCart, X, SlidersHorizontal, Eye } from 'lucide-react';
 import { ProductGridSkeleton } from '@/components/ui/skeletons';
 import {
@@ -202,7 +202,7 @@ const Products = () => {
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Browse Products</h1>
           <p className="text-muted-foreground">
-            Discover amazing products and services from campus sellers
+            Discover amazing products and services from local sellers
           </p>
         </div>
 
@@ -232,11 +232,11 @@ const Products = () => {
           {/* Desktop Filters */}
           <div className={`flex flex-wrap gap-4 ${showFilters ? 'block' : 'hidden md:flex'}`}>
             {/* Campus Filter */}
-            <CampusSelector
+            <LocationSelector
               value={selectedCampus}
               onChange={setSelectedCampus}
               showAllOption
-              allOptionLabel="All Campuses"
+              allOptionLabel="All Areas"
               className="w-full md:w-[200px]"
             />
 

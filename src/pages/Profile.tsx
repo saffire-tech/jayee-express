@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { User, Phone, ArrowLeft, Loader2, Store, ShoppingBag, Bell, BellOff, History } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
-import CampusSelector from "@/components/ui/CampusSelector";
+import LocationSelector from "@/components/ui/LocationSelector";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const Profile = () => {
@@ -211,11 +211,11 @@ const Profile = () => {
             </div>
 
             <div>
-              <Label htmlFor="campus">Campus</Label>
-              <CampusSelector
+              <Label htmlFor="campus">Area</Label>
+              <LocationSelector
                 value={campus}
                 onChange={setCampus}
-                placeholder="Select your campus"
+                placeholder="Select your area"
                 className="mt-1"
               />
             </div>
