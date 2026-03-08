@@ -275,11 +275,14 @@ export type Database = {
           delivery_fee: number
           delivery_latitude: number | null
           delivery_longitude: number | null
+          delivery_payout_status: string | null
           delivery_person_id: string | null
           delivery_status: string | null
           delivery_type: string
           id: string
           notes: string | null
+          payment_reference: string | null
+          payment_status: string
           status: string
           store_id: string
           total_amount: number
@@ -292,11 +295,14 @@ export type Database = {
           delivery_fee?: number
           delivery_latitude?: number | null
           delivery_longitude?: number | null
+          delivery_payout_status?: string | null
           delivery_person_id?: string | null
           delivery_status?: string | null
           delivery_type?: string
           id?: string
           notes?: string | null
+          payment_reference?: string | null
+          payment_status?: string
           status?: string
           store_id: string
           total_amount: number
@@ -309,11 +315,14 @@ export type Database = {
           delivery_fee?: number
           delivery_latitude?: number | null
           delivery_longitude?: number | null
+          delivery_payout_status?: string | null
           delivery_person_id?: string | null
           delivery_status?: string | null
           delivery_type?: string
           id?: string
           notes?: string | null
+          payment_reference?: string | null
+          payment_status?: string
           status?: string
           store_id?: string
           total_amount?: number
@@ -328,6 +337,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -400,6 +433,8 @@ export type Database = {
           full_name: string | null
           id: string
           is_suspended: boolean | null
+          momo_number: string | null
+          momo_provider: string | null
           phone: string | null
           updated_at: string
           user_id: string
@@ -412,6 +447,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_suspended?: boolean | null
+          momo_number?: string | null
+          momo_provider?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -424,6 +461,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_suspended?: boolean | null
+          momo_number?: string | null
+          momo_provider?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -599,7 +638,10 @@ export type Database = {
           location: string | null
           logo_url: string | null
           longitude: number | null
+          momo_number: string | null
+          momo_provider: string | null
           name: string
+          paystack_subaccount_code: string | null
           phone: string | null
           total_sales: number | null
           total_views: number | null
@@ -620,7 +662,10 @@ export type Database = {
           location?: string | null
           logo_url?: string | null
           longitude?: number | null
+          momo_number?: string | null
+          momo_provider?: string | null
           name: string
+          paystack_subaccount_code?: string | null
           phone?: string | null
           total_sales?: number | null
           total_views?: number | null
@@ -641,7 +686,10 @@ export type Database = {
           location?: string | null
           logo_url?: string | null
           longitude?: number | null
+          momo_number?: string | null
+          momo_provider?: string | null
           name?: string
+          paystack_subaccount_code?: string | null
           phone?: string | null
           total_sales?: number | null
           total_views?: number | null
