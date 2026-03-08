@@ -116,8 +116,9 @@ const App = () => {
               </AdminProvider>
             </AuthProvider>
           </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </HelmetProvider>
   );
 };

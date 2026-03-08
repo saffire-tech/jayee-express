@@ -106,6 +106,10 @@ const MobileTabBar = () => {
                   <Download className="h-4 w-4 text-muted-foreground" />
                   Get App
                 </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                  {theme === "dark" ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                </Button>
 
                 {user ? (
                   <>

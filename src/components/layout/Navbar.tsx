@@ -152,6 +152,7 @@ const Navbar = () => {
                     Get Started
                   </Button>
                 </Link>
+                <ThemeToggle />
               </>
             )}
           </div>
