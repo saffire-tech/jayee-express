@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Mail } from "lucide-react";
-import uniplugLogo from "@/assets/uniplug-logo.png";
+import shodelLogo from "@/assets/shodel-logo.png";
 
 const Footer = () => {
   return (
