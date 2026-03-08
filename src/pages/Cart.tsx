@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { sendNewOrderEmailNotification } from '@/lib/emailNotifications';
+
 
 interface StoreInfo {
   id: string;
@@ -76,103 +76,35 @@ const Cart = () => {
     setCheckingOut(true);
     
     try {
-      // Group items by store
-      const storeGroups = items.reduce((acc, item) => {
-        const storeId = item.product.store_id;
-        if (!acc[storeId]) {
-          acc[storeId] = [];
-        }
-        acc[storeId].push(item);
-        return acc;
-      }, {} as Record<string, typeof items>);
-
-      // Get buyer's profile for name
-      const { data: buyerProfile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('user_id', user.id)
-        .single();
-
-      const storeIds = Object.keys(storeGroups);
-      const totalDeliveryFee = deliveryData.deliveryFee;
-
-      // Create an order for each store
-      for (let i = 0; i < storeIds.length; i++) {
-        const storeId = storeIds[i];
-        const storeItems = storeGroups[storeId];
-
-        // Distribute delivery fee: full fee on first order, 0 on rest
-        const orderDeliveryFee = i === 0 ? totalDeliveryFee : 0;
-
-        const orderTotal = storeItems.reduce(
-          (sum, item) => sum + item.product.price * item.quantity, 
-          0
-        ) + orderDeliveryFee;
-
-        // Get store owner ID for email notification
-        const { data: storeData } = await supabase
-          .from('stores')
-          .select('user_id, name')
-          .eq('id', storeId)
-          .single();
-
-        // Create the order
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            buyer_id: user.id,
-            store_id: storeId,
-            total_amount: orderTotal,
-            status: 'pending',
-            delivery_type: deliveryData.deliveryType,
-            delivery_fee: orderDeliveryFee,
-            delivery_latitude: deliveryData.deliveryLatitude || null,
-            delivery_longitude: deliveryData.deliveryLongitude || null,
-            delivery_address: deliveryData.deliveryAddress || null,
-            delivery_status: deliveryData.deliveryType === 'delivery' ? 'pending' : null,
-          })
-          .select()
-          .single();
-
-        if (orderError) throw orderError;
-
-        // Create order items
-        const orderItems = storeItems.map(item => ({
-          order_id: order.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.product.price
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('order_items')
-          .insert(orderItems);
-
-        if (itemsError) throw itemsError;
-
-        // Send email notification to store owner
-        if (storeData?.user_id) {
-          const emailItems = storeItems.map(item => ({
-            name: item.product.name,
+      // Call initialize-payment edge function
+      const { data, error } = await supabase.functions.invoke('initialize-payment', {
+        body: {
+          items: items.map(item => ({
+            product_id: item.product_id,
             quantity: item.quantity,
-            price: item.product.price * item.quantity
-          }));
-          
-          sendNewOrderEmailNotification(
-            storeData.user_id,
-            order.id,
-            orderTotal,
-            emailItems,
-            buyerProfile?.full_name || undefined
-          );
-        }
-      }
+            product: {
+              store_id: item.product.store_id,
+              price: item.product.price,
+              name: item.product.name,
+            },
+          })),
+          deliveryData,
+          email: user.email,
+        },
+      });
 
-      await clearCart();
-      toast.success('Order placed successfully!');
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error('Failed to place order. Please try again.');
+      if (error) throw new Error(error.message || 'Payment initialization failed');
+      if (data?.error) throw new Error(data.error);
+
+      // Redirect to Paystack payment page
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error('No payment URL returned');
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast.error(error.message || 'Failed to initialize payment. Please try again.');
     } finally {
       setCheckingOut(false);
     }
@@ -398,10 +330,10 @@ const Cart = () => {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-left space-y-3">
               <p>
-                <strong>Do not make any payments until you have received the goods or service you ordered</strong>, unless otherwise agreed with the seller.
+                You will be redirected to <strong>Paystack</strong> to securely complete your payment. The seller will receive your payment instantly, and delivery fees will be held until you confirm receipt.
               </p>
               <p className="text-muted-foreground">
-                Shodel will not be held responsible for any fraudulent acts. Always verify the product/service before completing payment.
+                Shodel takes a small platform fee to keep the service running. All transactions are secured by Paystack.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>

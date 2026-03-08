@@ -11,3 +11,15 @@ verify_jwt = false
 
 [functions.og-redirect]
 verify_jwt = false
+
+[functions.initialize-payment]
+verify_jwt = false
+
+[functions.paystack-webhook]
+verify_jwt = false
+
+[functions.payout-delivery]
+verify_jwt = false
+
+[functions.create-subaccount]
+verify_jwt = false

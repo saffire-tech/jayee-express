@@ -1,113 +1,64 @@
 
-
-# Paystack Payment Integration with Split Payments & MoMo Payouts
+# Transition from Campus-Based to Community-Based Marketplace
 
 ## Overview
-Integrate Paystack to handle buyer payments at checkout, with instant split payments to shop owners via Paystack subaccounts. Delivery persons get paid after delivery confirmation. All payouts go to mobile money (MoMo) accounts.
+Transform UniPlug from a campus/student-focused marketplace to a community-based marketplace serving Accra neighborhoods and city locations. This involves replacing all campus selection logic with community/area selection, updating all student-oriented copy, and adjusting the database constraint.
 
-## How It Works
+## What Changes
 
-1. **Buyer checks out** → Paystack payment popup collects payment (card, MoMo, etc.)
-2. **Paystack splits payment instantly** → Shop owner's subaccount receives item amount minus platform commission
-3. **Delivery fee is held** → After buyer confirms delivery, an edge function triggers payout to the delivery person's MoMo
-4. **Platform commission** → Shodel keeps a configurable % (e.g. 5%) from each transaction
+### 1. Replace Location Data Configuration
+**File: `src/config/campuses.ts` -> rename to `src/config/locations.ts`**
+- Replace `CAMPUS_GROUPS` with `LOCATION_GROUPS` containing Accra communities and city areas
+- Groups will be organized by zones (e.g., "Greater Accra North", "Greater Accra South", "Tema & Surroundings", "Accra Central", "West Accra", "East Accra")
+- Locations will include neighborhoods like: East Legon, Madina, Adenta, Spintex, Tema, Ashaiman, Dansoman, Lapaz, Achimota, Kaneshie, Osu, Labadi, Teshie, Nungua, Kasoa, Weija, Ablekuma, Dome, Haatso, Taifa, Circle, Airport Residential, Cantonments, Ridge, Dzorwulu, Abelemkpe, Roman Ridge, Tesano, Darkuman, Odorkor, etc.
+- Rename all exported functions accordingly (e.g., `getGroupByCampus` -> `getGroupByLocation`)
 
-## Architecture
+### 2. Rebuild the Location Selector Component
+**File: `src/components/ui/CampusSelector.tsx` -> rename to `src/components/ui/LocationSelector.tsx`**
+- Replace `GraduationCap` icon with `MapPin` icon
+- Rename all props: `campus` -> `location`, labels say "Select area" / "All Areas"
+- Same two-step grouped selection UX, but with community groups instead of institution types
 
-```text
-Buyer pays via Paystack popup
-        │
-        ▼
-Edge Function: initialize-payment
-  - Creates Paystack transaction with split config
-  - Shop owner subaccount gets item total minus commission
-  - Delivery fee held on platform account
-        │
-        ▼
-Edge Function: paystack-webhook
-  - Verifies payment via Paystack signature
-  - Creates order(s) in DB with payment_status = 'paid'
-  - Clears cart
-        │
-        ▼
-Buyer confirms delivery received
-        │
-        ▼
-Edge Function: payout-delivery
-  - Triggers Paystack Transfer to delivery person's MoMo
-```
+### 3. Database Migration
+- **Drop** the `stores_campus_check` constraint (it restricts campus values to the old university list)
+- The `campus` column in `stores` and `profiles` tables will remain as-is (reusing the column for location/area) -- no column rename needed to avoid breaking existing data
+- Existing store data with old campus values will still work; they just won't appear in the new selector until updated by store owners
 
-## Database Changes
+### 4. Update All UI Text and References
+Files with campus/student copy to update:
 
-### 1. Add columns to `profiles` table
-- `momo_number` (text, nullable) — Mobile money phone number
-- `momo_provider` (text, nullable) — Provider: MTN, Vodafone, AirtelTigo
+| File | What changes |
+|------|-------------|
+| `src/components/sections/HeroSection.tsx` | "Your Campus Marketplace" -> "Your Community Marketplace", "Happy Students" -> "Happy Users", "fellow students" -> "your community" |
+| `src/components/sections/HowItWorks.tsx` | "campus email" -> "email", "campus business" -> "business" |
+| `src/components/sections/CTASection.tsx` | "Campus Entrepreneurs" -> "Entrepreneurs", "Campus Business" -> "Business", "students on your campus" -> "people in your community" |
+| `src/pages/Products.tsx` | Import LocationSelector, "All Campuses" -> "All Areas", "campus sellers" -> "local sellers" |
+| `src/pages/Stores.tsx` | Same as Products - swap selector and labels |
+| `src/pages/Profile.tsx` | "Campus" label -> "Area", use LocationSelector |
+| `src/pages/SellerDashboard.tsx` | "Campus" -> "Area", "Location on Campus" -> "Address", use LocationSelector |
+| `src/components/seller/StoreSetupWizard.tsx` | "Select Your Campus" -> "Select Your Area", GraduationCap -> MapPin, use LocationSelector |
+| `src/pages/StorePage.tsx` | "campus marketplace" -> "community marketplace" in meta tags |
+| `src/pages/ProductDetail.tsx` | "campus marketplace" -> "community marketplace", "Campus Store" -> "Local Store" |
+| `src/pages/Download.tsx` | "on campus" -> "on the go" |
+| `src/components/sections/FeaturedProducts.tsx` | No campus references (already clean) |
+| `src/components/sections/RecommendedProducts.tsx` | `store.campus` display text unchanged (column still exists) |
+| `src/pages/Stores.tsx` | GraduationCap icon -> MapPin for store area display |
+| `supabase/functions/send-email-notification/index.ts` | "Campus Marketplace" -> "Community Marketplace" |
+| `supabase/functions/get-recommendations/index.ts` | "campus marketplace" -> "community marketplace", "campus preferences" -> "area preferences" |
 
-### 2. Add columns to `stores` table
-- `momo_number` (text, nullable) — Store owner's MoMo number
-- `momo_provider` (text, nullable) — Provider
-- `paystack_subaccount_code` (text, nullable) — Paystack subaccount ID for instant splits
+### 5. Accra Community Locations List
+The new location groups:
 
-### 3. Add columns to `orders` table
-- `payment_status` (text, default 'unpaid') — Values: unpaid, paid, failed
-- `payment_reference` (text, nullable) — Paystack transaction reference
-- `delivery_payout_status` (text, nullable) — Values: pending, paid, failed
+- **Accra Central**: Osu, Labadi, Cantonments, Airport Residential, Ridge, Dzorwulu, Abelemkpe, Roman Ridge, Circle, Asylum Down, Adabraka
+- **North Accra**: Achimota, Lapaz, Dome, Haatso, Taifa, Agbogba, Kwabenya, Pokuase, Amasaman
+- **East Accra**: East Legon, Madina, Adenta, Teshie, Nungua, Spintex, Baatsonaa, Adjiriganor
+- **West Accra**: Dansoman, Darkuman, Odorkor, Kaneshie, Tesano, Ablekuma, Bubiashie, Abeka
+- **Tema & Surroundings**: Tema, Ashaiman, Sakumono, Kpone, Prampram, Dawhenya, Afienya
+- **Kasoa & Surroundings**: Kasoa, Weija, Gbawe, Mallam, McCarthy Hill, Bortianor, Kokrobite
 
-### 4. Create `platform_settings` table
-- `id`, `key` (text, unique), `value` (text) — For storing commission percentage
-
-## Edge Functions
-
-### `initialize-payment`
-- Receives cart items, delivery data, buyer info
-- Groups items by store, looks up each store's `paystack_subaccount_code`
-- Creates Paystack transaction with `split` config for instant payouts
-- Returns Paystack authorization URL / access code
-
-### `paystack-webhook`
-- Receives Paystack webhook events (charge.success)
-- Verifies signature with Paystack secret key
-- Creates orders in DB, marks `payment_status = 'paid'`
-- Clears buyer's cart
-- Sends notifications to sellers
-
-### `payout-delivery`
-- Called when buyer confirms delivery
-- Creates a Paystack Transfer to delivery person's MoMo via Paystack Transfer API
-- Updates `delivery_payout_status` on the order
-
-## Frontend Changes
-
-### Profile Page (`src/pages/Profile.tsx`)
-- Add MoMo number and provider fields (MTN, Vodafone, AirtelTigo dropdown)
-- Both sellers and delivery persons set this here
-
-### Store Setup (`src/components/seller/StoreSetupWizard.tsx`)
-- Add optional MoMo step for receiving store payments
-- On save, create/update Paystack subaccount via edge function
-
-### Cart/Checkout (`src/pages/Cart.tsx`)
-- Replace direct order creation with Paystack payment flow
-- After payment notice acknowledgment, call `initialize-payment` edge function
-- Open Paystack popup with returned access code
-- On success callback, show success and redirect to purchases
-
-### Purchase History (`src/pages/PurchaseHistory.tsx`)
-- Show payment status badge on orders
-- "Confirm Received" button now also triggers delivery person payout
-
-## Secrets Needed
-- `PAYSTACK_SECRET_KEY` — For server-side API calls and webhook verification
-- `PAYSTACK_PUBLIC_KEY` — For client-side popup (this is public, stored in code)
-
-## Implementation Order
-1. Add Paystack secret key
-2. Run database migration (new columns + platform_settings table)
-3. Create `initialize-payment` edge function
-4. Create `paystack-webhook` edge function
-5. Create `payout-delivery` edge function
-6. Update Profile page with MoMo fields
-7. Update Store setup with MoMo + subaccount creation
-8. Update Cart checkout flow with Paystack popup
-9. Update delivery confirmation to trigger payout
-
+### 6. Summary of Scope
+- ~15 files modified (UI components, pages, edge functions, config)
+- 1 database migration (drop check constraint)
+- 1 new config file (locations.ts replacing campuses.ts)
+- 1 new component file (LocationSelector.tsx replacing CampusSelector.tsx)
+- No breaking changes to database schema (reusing same `campus` column)

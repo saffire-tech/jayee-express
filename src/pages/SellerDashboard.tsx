@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStore } from "@/hooks/useStore";
 import { useWebServices } from "@/hooks/useWebServices";
@@ -15,7 +17,8 @@ import StoreImageUpload from "@/components/seller/StoreImageUpload";
 import MapPicker from "@/components/maps/MapPicker";
 import WebServicesManager from "@/components/seller/WebServicesManager";
 import LocationSelector from "@/components/ui/LocationSelector";
-import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe } from "lucide-react";
+import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe, Smartphone } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareButton from "@/components/ui/ShareButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,8 +71,11 @@ const SellerDashboard = () => {
     cover_url: "",
     latitude: null as number | null,
     longitude: null as number | null,
+    momo_number: "",
+    momo_provider: "",
   });
   const [savingSettings, setSavingSettings] = useState(false);
+  const [savingMomo, setSavingMomo] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -89,6 +95,8 @@ const SellerDashboard = () => {
         cover_url: store.cover_url || "",
         latitude: (store as any).latitude || null,
         longitude: (store as any).longitude || null,
+        momo_number: (store as any).momo_number || "",
+        momo_provider: (store as any).momo_provider || "",
       });
     }
   }, [store]);
@@ -96,9 +104,37 @@ const SellerDashboard = () => {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      await updateStore(storeSettings);
+      const { momo_number, momo_provider, ...rest } = storeSettings;
+      await updateStore(rest);
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleSaveMomo = async () => {
+    if (!store || !storeSettings.momo_number || !storeSettings.momo_provider) {
+      return;
+    }
+    setSavingMomo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-subaccount', {
+        body: {
+          store_id: store.id,
+          business_name: store.name,
+          momo_number: storeSettings.momo_number,
+          momo_provider: storeSettings.momo_provider,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      // Update local state
+      setStoreSettings(prev => ({ ...prev, momo_number: storeSettings.momo_number, momo_provider: storeSettings.momo_provider }));
+      toast.success("MoMo payout set up! You'll receive payments directly to your mobile money.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to set up MoMo payout");
+    } finally {
+      setSavingMomo(false);
     }
   };
 
@@ -306,6 +342,52 @@ const SellerDashboard = () => {
                   {savingSettings && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   Save Changes
                 </Button>
+
+                {/* MoMo Payout Settings */}
+                <div className="pt-6 border-t border-border">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" />
+                    MoMo Payout Settings
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Set up your mobile money to receive instant payments when buyers purchase from your store.
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>MoMo Provider</Label>
+                      <Select 
+                        value={storeSettings.momo_provider} 
+                        onValueChange={(value) => setStoreSettings({ ...storeSettings, momo_provider: value })}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MTN">MTN Mobile Money</SelectItem>
+                          <SelectItem value="Vodafone">Vodafone Cash</SelectItem>
+                          <SelectItem value="AirtelTigo">AirtelTigo Money</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>MoMo Number</Label>
+                      <Input
+                        value={storeSettings.momo_number}
+                        onChange={(e) => setStoreSettings({ ...storeSettings, momo_number: e.target.value })}
+                        placeholder="e.g., 0241234567"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleSaveMomo} 
+                    disabled={savingMomo || !storeSettings.momo_number || !storeSettings.momo_provider}
+                    className="mt-4"
+                  >
+                    {savingMomo && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    {(store as any)?.paystack_subaccount_code ? 'Update MoMo' : 'Set Up MoMo Payout'}
+                  </Button>
+                </div>
               </div>
             </div>
           </TabsContent>

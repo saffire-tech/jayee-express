@@ -17,12 +17,23 @@ const ConfirmReceivedButton = ({ orderId, onConfirmed }: { orderId: string; onCo
   const handleConfirm = async () => {
     setLoading(true);
     try {
+      // Update order status
       const { error } = await supabase
         .from("orders")
         .update({ delivery_status: "confirmed", status: "completed" })
         .eq("id", orderId);
       if (error) throw error;
-      toast.success("Delivery confirmed! Thank you.");
+
+      // Trigger delivery person payout
+      try {
+        await supabase.functions.invoke('payout-delivery', {
+          body: { order_id: orderId },
+        });
+      } catch (payoutErr) {
+        console.error("Payout error (non-blocking):", payoutErr);
+      }
+
+      toast.success("Delivery confirmed! Payout sent to delivery person.");
       onConfirmed();
     } catch {
       toast.error("Failed to confirm. Please try again.");
@@ -34,7 +45,7 @@ const ConfirmReceivedButton = ({ orderId, onConfirmed }: { orderId: string; onCo
     <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-between">
       <div className="text-sm">
         <p className="font-medium text-green-700 dark:text-green-400">Your order has been delivered!</p>
-        <p className="text-muted-foreground text-xs">Please confirm you received the item.</p>
+        <p className="text-muted-foreground text-xs">Confirm receipt to release delivery payout.</p>
       </div>
       <Button size="sm" onClick={handleConfirm} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white">
         {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
