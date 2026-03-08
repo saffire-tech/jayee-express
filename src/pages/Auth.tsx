@@ -57,7 +57,7 @@ const Auth = () => {
           <p className="text-muted-foreground mb-8">
             {isLogin
               ? "Sign in to access your account and continue shopping"
-              : "Join Uniplug and start buying or selling on campus"}
+              : "Join Shodel and start buying or selling in your community"}
           </p>
 
           {error && (

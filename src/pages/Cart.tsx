@@ -401,7 +401,7 @@ const Cart = () => {
                 <strong>Do not make any payments until you have received the goods or service you ordered</strong>, unless otherwise agreed with the seller.
               </p>
               <p className="text-muted-foreground">
-                UniPlug will not be held responsible for any fraudulent acts. Always verify the product/service before completing payment.
+                Shodel will not be held responsible for any fraudulent acts. Always verify the product/service before completing payment.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>

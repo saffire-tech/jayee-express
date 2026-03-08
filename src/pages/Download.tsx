@@ -134,7 +134,7 @@ const DownloadPage = () => {
                       </div>
                       <h2 className="text-xl md:text-2xl font-bold mb-2">Add to Home Screen</h2>
                       <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
-                        Follow these simple steps to install Uniplug on your iPhone
+                        Follow these simple steps to install Shodel on your iPhone
                       </p>
                       
                       <div className="text-left space-y-4 bg-muted/50 rounded-xl p-4">
