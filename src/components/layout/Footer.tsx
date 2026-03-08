@@ -43,10 +43,10 @@ const Footer = () => {
 
           {/* Support */}
           <div>
-            <h4 className="font-semibold text-sm mb-3 text-background/90">Support</h4>
+            <h4 className="font-semibold text-sm mb-3 text-neutral-200">Support</h4>
             <ul className="space-y-2">
-              <li><Link to="/report-issue" className="text-background/50 hover:text-background transition-colors text-sm">Report an Issue</Link></li>
-              <li><Link to="/terms" className="text-background/50 hover:text-background transition-colors text-sm">Safety Guidelines</Link></li>
+              <li><Link to="/report-issue" className="text-neutral-400 hover:text-neutral-100 transition-colors text-sm">Report an Issue</Link></li>
+              <li><Link to="/terms" className="text-neutral-400 hover:text-neutral-100 transition-colors text-sm">Safety Guidelines</Link></li>
             </ul>
           </div>
 
