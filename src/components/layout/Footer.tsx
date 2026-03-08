@@ -33,7 +33,7 @@ const Footer = () => {
                 { to: "/download", label: "Download App" },
               ].map(link => (
                 <li key={link.to}>
-                  <Link to={link.to} className="text-background/50 hover:text-background transition-colors text-sm">
+                  <Link to={link.to} className="text-neutral-400 hover:text-neutral-100 transition-colors text-sm">
                     {link.label}
                   </Link>
                 </li>
