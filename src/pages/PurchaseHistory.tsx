@@ -372,7 +372,7 @@ const PurchaseHistory = () => {
           <AlertTitle className="text-yellow-600 font-semibold">Important Payment Notice</AlertTitle>
           <AlertDescription className="text-yellow-700 dark:text-yellow-500">
             Do not make any payments until you have received the goods or service you ordered, unless otherwise agreed with the seller. 
-            <strong className="block mt-2">Uniplug will not be held responsible for any fraudulent act.</strong>
+            <strong className="block mt-2">Shodel will not be held responsible for any fraudulent act.</strong>
           </AlertDescription>
         </Alert>
 

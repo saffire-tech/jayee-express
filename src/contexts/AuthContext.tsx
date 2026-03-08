@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     toast({
       title: "Account created!",
-      description: "Welcome to Uniplug. You can now start exploring.",
+      description: "Welcome to Shodel. You can now start exploring.",
     });
   };
 
