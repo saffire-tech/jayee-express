@@ -23,8 +23,8 @@ const DownloadPage = () => {
   return (
     <>
       <Helmet>
-        <title>Download Uniplug App | iOS & Android</title>
-        <meta name="description" content="Install the Uniplug app on your device. Shop and sell on campus with ease." />
+        <title>Download Shodel App | iOS & Android</title>
+        <meta name="description" content="Install the Shodel app on your device. Shop and sell on campus with ease." />
       </Helmet>
       
       <div className="min-h-screen flex flex-col bg-background">
