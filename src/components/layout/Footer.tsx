@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-10 md:mb-12">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 lg:col-span-1">
-            <img src={uniplugLogo} alt="Uniplug" className="h-10 md:h-12 w-auto mb-4 brightness-0 invert" />
+            <img src={uniplugLogo} alt="Shodel" className="h-10 md:h-12 w-auto mb-4 brightness-0 invert" />
             <p className="text-background/70 mb-6 text-sm md:text-base">
               Connecting local entrepreneurs with buyers in your community. Buy, sell, and grow your hustle.
             </p>
@@ -62,7 +62,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-6 md:pt-8 border-t border-background/10 text-center">
           <p className="text-background/50 text-xs md:text-sm">
-            © {new Date().getFullYear()} Uniplug. All rights reserved. Your Community Marketplace.
+            © {new Date().getFullYear()} Shodel. All rights reserved. Your Community Marketplace.
           </p>
         </div>
       </div>

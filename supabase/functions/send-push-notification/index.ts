@@ -162,7 +162,7 @@ async function sendWebPushNotification(
     const webPush = await import("https://esm.sh/web-push@3.6.7");
     
     webPush.setVapidDetails(
-      'mailto:support@uniplug.app',
+      'mailto:support@shodel.app',
       vapidPublicKey,
       vapidPrivateKey
     );

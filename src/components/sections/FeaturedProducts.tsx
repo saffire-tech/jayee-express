@@ -109,7 +109,7 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
             <p className="text-muted-foreground">
               {selectedCategory 
                 ? "Try selecting a different category"
-                : "Be the first to list your products on UniPlug!"}
+                : "Be the first to list your products on Shodel!"}
             </p>
           </div>
         </div>

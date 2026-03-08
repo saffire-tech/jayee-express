@@ -45,7 +45,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #f97316; margin: 0;">UniPlug</h1>
+              <h1 style="color: #f97316; margin: 0;">Shodel</h1>
               <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
             </div>
             
@@ -80,7 +80,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             <p style="color: #666; text-align: center;">Please check your seller dashboard to manage this order.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">UniPlug - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Shodel - Your Community Marketplace</p>
             </div>
           </div>
         `
@@ -105,7 +105,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #f97316; margin: 0;">UniPlug</h1>
+              <h1 style="color: #f97316; margin: 0;">Shodel</h1>
               <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
             </div>
             
@@ -122,7 +122,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             <p style="color: #666; text-align: center;">Check your purchase history for more details.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">UniPlug - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Shodel - Your Community Marketplace</p>
             </div>
           </div>
         `
@@ -134,7 +134,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #f97316; margin: 0;">UniPlug</h1>
+              <h1 style="color: #f97316; margin: 0;">Shodel</h1>
               <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
             </div>
             
@@ -147,10 +147,10 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
               <p style="margin: 0; color: #333; font-style: italic;">"${data.messagePreview?.slice(0, 150)}${(data.messagePreview?.length || 0) > 150 ? '...' : ''}"</p>
             </div>
             
-            <p style="color: #666; text-align: center;">Log in to UniPlug to reply to this message.</p>
+            <p style="color: #666; text-align: center;">Log in to Shodel to reply to this message.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">UniPlug - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Shodel - Your Community Marketplace</p>
             </div>
           </div>
         `
@@ -171,7 +171,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #f97316; margin: 0;">UniPlug</h1>
+              <h1 style="color: #f97316; margin: 0;">Shodel</h1>
               <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
             </div>
             
@@ -197,14 +197,14 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             <p style="color: #666; text-align: center;">Please restock these products to avoid missing sales.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">UniPlug - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Shodel - Your Community Marketplace</p>
             </div>
           </div>
         `
       };
 
     default:
-      return { subject: "Notification from UniPlug", html: "<p>You have a new notification.</p>" };
+      return { subject: "Notification from Shodel", html: "<p>You have a new notification.</p>" };
   }
 };
 
@@ -258,7 +258,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending ${type} email to ${recipientEmail}`);
 
     const emailResponse = await resend.emails.send({
-      from: "UniPlug <onboarding@resend.dev>",
+      from: "Shodel <onboarding@resend.dev>",
       to: [recipientEmail],
       subject: emailContent.subject,
       html: emailContent.html,

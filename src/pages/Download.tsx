@@ -23,8 +23,8 @@ const DownloadPage = () => {
   return (
     <>
       <Helmet>
-        <title>Download Uniplug App | iOS & Android</title>
-        <meta name="description" content="Install the Uniplug app on your device. Shop and sell on campus with ease." />
+        <title>Download Shodel App | iOS & Android</title>
+        <meta name="description" content="Install the Shodel app on your device. Shop and sell on campus with ease." />
       </Helmet>
       
       <div className="min-h-screen flex flex-col bg-background">
@@ -36,15 +36,15 @@ const DownloadPage = () => {
             <div className="text-center mb-10 md:mb-16">
               <img 
                 src={uniplugLogo} 
-                alt="Uniplug" 
+                alt="Shodel" 
                 className="h-16 md:h-20 w-auto mx-auto mb-4 md:mb-6" 
               />
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4">
-                {isInstalled || isStandalone ? "App Installed!" : "Get the Uniplug App"}
+                {isInstalled || isStandalone ? "App Installed!" : "Get the Shodel App"}
               </h1>
               <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-2">
                 {isInstalled || isStandalone
-                  ? "You're all set! The Uniplug app is ready to use on your device."
+                  ? "You're all set! The Shodel app is ready to use on your device."
                   : "Install our app for a better shopping and selling experience on the go. Works offline and loads instantly!"}
               </p>
             </div>
@@ -59,7 +59,7 @@ const DownloadPage = () => {
                     </div>
                     <h2 className="text-xl md:text-2xl font-bold mb-2">Already Installed</h2>
                     <p className="text-sm md:text-base text-muted-foreground">
-                      The Uniplug app is installed on your device. You can find it on your home screen.
+                      The Shodel app is installed on your device. You can find it on your home screen.
                     </p>
                   </CardContent>
                 </Card>
@@ -103,9 +103,9 @@ const DownloadPage = () => {
                       <div className="w-16 h-16 md:w-20 md:h-20 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6">
                         <Smartphone className="h-8 w-8 md:h-10 md:w-10 text-white" />
                       </div>
-                      <h2 className="text-xl md:text-2xl font-bold mb-2">Install Uniplug</h2>
+                      <h2 className="text-xl md:text-2xl font-bold mb-2">Install Shodel</h2>
                       <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
-                        Tap the button below to add Uniplug to your home screen
+                        Tap the button below to add Shodel to your home screen
                       </p>
                       {isInstallable ? (
                         <Button 
@@ -134,7 +134,7 @@ const DownloadPage = () => {
                       </div>
                       <h2 className="text-xl md:text-2xl font-bold mb-2">Add to Home Screen</h2>
                       <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
-                        Follow these simple steps to install Uniplug on your iPhone
+                        Follow these simple steps to install Shodel on your iPhone
                       </p>
                       
                       <div className="text-left space-y-4 bg-muted/50 rounded-xl p-4">
