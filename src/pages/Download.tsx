@@ -103,9 +103,9 @@ const DownloadPage = () => {
                       <div className="w-16 h-16 md:w-20 md:h-20 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6">
                         <Smartphone className="h-8 w-8 md:h-10 md:w-10 text-white" />
                       </div>
-                      <h2 className="text-xl md:text-2xl font-bold mb-2">Install Uniplug</h2>
+                      <h2 className="text-xl md:text-2xl font-bold mb-2">Install Shodel</h2>
                       <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
-                        Tap the button below to add Uniplug to your home screen
+                        Tap the button below to add Shodel to your home screen
                       </p>
                       {isInstallable ? (
                         <Button 
