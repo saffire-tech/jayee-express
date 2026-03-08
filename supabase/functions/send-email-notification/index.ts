@@ -258,7 +258,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending ${type} email to ${recipientEmail}`);
 
     const emailResponse = await resend.emails.send({
-      from: "UniPlug <onboarding@resend.dev>",
+      from: "Shodel <onboarding@resend.dev>",
       to: [recipientEmail],
       subject: emailContent.subject,
       html: emailContent.html,

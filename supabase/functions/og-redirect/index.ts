@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
       title = service.name;
       description = service.description 
         ? `${service.description.substring(0, 150)}${service.description.length > 150 ? '...' : ''}`
-        : `${service.name} - Available at ${storeName} on UniPlug`;
+        : `${service.name} - Available at ${storeName} on Shodel`;
       // Use service image, fall back to store image, then default
       imageUrl = service.image_url || storeImageUrl || imageUrl;
     }
