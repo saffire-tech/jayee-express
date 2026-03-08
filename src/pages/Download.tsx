@@ -35,7 +35,7 @@ const DownloadPage = () => {
             {/* Hero Section */}
             <div className="text-center mb-10 md:mb-16">
               <img 
-                src={uniplugLogo} 
+                src={shodelLogo} 
                 alt="Shodel" 
                 className="h-16 md:h-20 w-auto mx-auto mb-4 md:mb-6" 
               />
