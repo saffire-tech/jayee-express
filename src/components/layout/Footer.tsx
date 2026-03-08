@@ -10,7 +10,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1">
             <img src={shodelLogoWhite} alt="Shodel" className="h-9 w-auto mb-3" />
-            <p className="text-background/60 text-sm mb-5 max-w-xs leading-relaxed">
+            <p className="text-neutral-400 text-sm mb-5 max-w-xs leading-relaxed">
               Connecting local entrepreneurs with buyers in your community.
             </p>
             <div className="flex items-center gap-2">
