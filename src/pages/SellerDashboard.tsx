@@ -93,6 +93,8 @@ const SellerDashboard = () => {
         cover_url: store.cover_url || "",
         latitude: (store as any).latitude || null,
         longitude: (store as any).longitude || null,
+        momo_number: (store as any).momo_number || "",
+        momo_provider: (store as any).momo_provider || "",
       });
     }
   }, [store]);
