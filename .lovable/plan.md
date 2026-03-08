@@ -1,54 +1,64 @@
 
-
-# Optimize Storage, Cached Egress, and Performance
+# Transition from Campus-Based to Community-Based Marketplace
 
 ## Overview
-Reduce bandwidth, storage usage, and improve caching across the app. The main wins come from: compressing uploaded images, extending cache headers, lazy-loading routes, reducing over-fetching from the database, and tightening the service worker precache scope.
+Transform UniPlug from a campus/student-focused marketplace to a community-based marketplace serving Accra neighborhoods and city locations. This involves replacing all campus selection logic with community/area selection, updating all student-oriented copy, and adjusting the database constraint.
 
-## Changes
+## What Changes
 
-### 1. Compress Images on Upload (Biggest Storage/Egress Win)
-**Files**: `ImageUpload.tsx`, `MultiImageUpload.tsx`, `StoreImageUpload.tsx`
-- Add client-side image compression before uploading to storage using a canvas-based resize utility
-- Resize images to max 1200px width, convert to WebP where supported, target ~80% quality
-- This reduces stored file sizes by 60-80% and proportionally cuts egress on every image load
-- Create a shared `src/lib/imageCompression.ts` utility
+### 1. Replace Location Data Configuration
+**File: `src/config/campuses.ts` -> rename to `src/config/locations.ts`**
+- Replace `CAMPUS_GROUPS` with `LOCATION_GROUPS` containing Accra communities and city areas
+- Groups will be organized by zones (e.g., "Greater Accra North", "Greater Accra South", "Tema & Surroundings", "Accra Central", "West Accra", "East Accra")
+- Locations will include neighborhoods like: East Legon, Madina, Adenta, Spintex, Tema, Ashaiman, Dansoman, Lapaz, Achimota, Kaneshie, Osu, Labadi, Teshie, Nungua, Kasoa, Weija, Ablekuma, Dome, Haatso, Taifa, Circle, Airport Residential, Cantonments, Ridge, Dzorwulu, Abelemkpe, Roman Ridge, Tesano, Darkuman, Odorkor, etc.
+- Rename all exported functions accordingly (e.g., `getGroupByCampus` -> `getGroupByLocation`)
 
-### 2. Extend Storage Cache Headers
-**Files**: `ImageUpload.tsx`, `MultiImageUpload.tsx`, `StoreImageUpload.tsx`
-- Change `cacheControl` from `'3600'` (1 hour) to `'31536000'` (1 year)
-- Since filenames include timestamps, they are unique — long cache is safe and dramatically reduces repeated egress
+### 2. Rebuild the Location Selector Component
+**File: `src/components/ui/CampusSelector.tsx` -> rename to `src/components/ui/LocationSelector.tsx`**
+- Replace `GraduationCap` icon with `MapPin` icon
+- Rename all props: `campus` -> `location`, labels say "Select area" / "All Areas"
+- Same two-step grouped selection UX, but with community groups instead of institution types
 
-### 3. Lazy-Load Routes (Reduce Initial Bundle)
-**File**: `src/App.tsx`
-- Use `React.lazy()` + `Suspense` for all routes except `Index` and `Auth`
-- Splits the bundle so users only download code for pages they visit
-- Reduces initial JS payload significantly (admin pages, seller dashboard, messages, etc.)
+### 3. Database Migration
+- **Drop** the `stores_campus_check` constraint (it restricts campus values to the old university list)
+- The `campus` column in `stores` and `profiles` tables will remain as-is (reusing the column for location/area) -- no column rename needed to avoid breaking existing data
+- Existing store data with old campus values will still work; they just won't appear in the new selector until updated by store owners
 
-### 4. Narrow Database Selects (Reduce Egress)
-**Key files**: `Products.tsx`, `Stores.tsx`, `HeroSection.tsx`, `Messages.tsx`, `NotificationCenter.tsx`, and others
-- Replace `.select('*')` with explicit column lists where full rows aren't needed
-- For count-only queries (HeroSection stats), already using `head: true` — those are fine
-- Focus on the high-traffic pages: Products listing, Stores listing, Messages
+### 4. Update All UI Text and References
+Files with campus/student copy to update:
 
-### 5. Tighten Service Worker Precache
-**File**: `vite.config.ts`
-- Change glob pattern from `**/*.{js,css,html,ico,png,svg,woff2}` to `**/*.{js,css,html}`
-- Exclude icons and images from precache — they are rarely needed offline and inflate the cache
-- Reduce `maximumFileSizeToCacheInBytes` from 5MB to 3MB
+| File | What changes |
+|------|-------------|
+| `src/components/sections/HeroSection.tsx` | "Your Campus Marketplace" -> "Your Community Marketplace", "Happy Students" -> "Happy Users", "fellow students" -> "your community" |
+| `src/components/sections/HowItWorks.tsx` | "campus email" -> "email", "campus business" -> "business" |
+| `src/components/sections/CTASection.tsx` | "Campus Entrepreneurs" -> "Entrepreneurs", "Campus Business" -> "Business", "students on your campus" -> "people in your community" |
+| `src/pages/Products.tsx` | Import LocationSelector, "All Campuses" -> "All Areas", "campus sellers" -> "local sellers" |
+| `src/pages/Stores.tsx` | Same as Products - swap selector and labels |
+| `src/pages/Profile.tsx` | "Campus" label -> "Area", use LocationSelector |
+| `src/pages/SellerDashboard.tsx` | "Campus" -> "Area", "Location on Campus" -> "Address", use LocationSelector |
+| `src/components/seller/StoreSetupWizard.tsx` | "Select Your Campus" -> "Select Your Area", GraduationCap -> MapPin, use LocationSelector |
+| `src/pages/StorePage.tsx` | "campus marketplace" -> "community marketplace" in meta tags |
+| `src/pages/ProductDetail.tsx` | "campus marketplace" -> "community marketplace", "Campus Store" -> "Local Store" |
+| `src/pages/Download.tsx` | "on campus" -> "on the go" |
+| `src/components/sections/FeaturedProducts.tsx` | No campus references (already clean) |
+| `src/components/sections/RecommendedProducts.tsx` | `store.campus` display text unchanged (column still exists) |
+| `src/pages/Stores.tsx` | GraduationCap icon -> MapPin for store area display |
+| `supabase/functions/send-email-notification/index.ts` | "Campus Marketplace" -> "Community Marketplace" |
+| `supabase/functions/get-recommendations/index.ts` | "campus marketplace" -> "community marketplace", "campus preferences" -> "area preferences" |
 
-### 6. Add `loading="lazy"` to Remaining Images
-**Files**: `RecommendedProducts.tsx`, store/product cards across pages
-- Some images already have `loading="lazy"` but several components are missing it
-- Reduces initial page bandwidth
+### 5. Accra Community Locations List
+The new location groups:
 
-## Summary
-| Optimization | Impact |
-|---|---|
-| Image compression on upload | ~70% less storage + egress per image |
-| 1-year cache headers | Near-zero repeat egress for images |
-| Route lazy-loading | ~40-60% smaller initial JS bundle |
-| Narrow DB selects | Less data transferred per query |
-| Tighter precache | Smaller SW cache, faster installs |
-| Lazy image loading | Less bandwidth on page load |
+- **Accra Central**: Osu, Labadi, Cantonments, Airport Residential, Ridge, Dzorwulu, Abelemkpe, Roman Ridge, Circle, Asylum Down, Adabraka
+- **North Accra**: Achimota, Lapaz, Dome, Haatso, Taifa, Agbogba, Kwabenya, Pokuase, Amasaman
+- **East Accra**: East Legon, Madina, Adenta, Teshie, Nungua, Spintex, Baatsonaa, Adjiriganor
+- **West Accra**: Dansoman, Darkuman, Odorkor, Kaneshie, Tesano, Ablekuma, Bubiashie, Abeka
+- **Tema & Surroundings**: Tema, Ashaiman, Sakumono, Kpone, Prampram, Dawhenya, Afienya
+- **Kasoa & Surroundings**: Kasoa, Weija, Gbawe, Mallam, McCarthy Hill, Bortianor, Kokrobite
 
+### 6. Summary of Scope
+- ~15 files modified (UI components, pages, edge functions, config)
+- 1 database migration (drop check constraint)
+- 1 new config file (locations.ts replacing campuses.ts)
+- 1 new component file (LocationSelector.tsx replacing CampusSelector.tsx)
+- No breaking changes to database schema (reusing same `campus` column)

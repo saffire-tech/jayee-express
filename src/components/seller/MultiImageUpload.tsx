@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, ImageIcon, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/imageCompression";
 
 interface MultiImageUploadProps {
   currentImages: string[];
@@ -33,7 +34,6 @@ const MultiImageUpload = ({
 
     const filesToUpload = files.slice(0, remainingSlots);
 
-    // Validate files
     for (const file of filesToUpload) {
       if (!file.type.startsWith('image/')) {
         toast.error('Please select only image files');
@@ -51,14 +51,16 @@ const MultiImageUpload = ({
       const uploadedUrls: string[] = [];
 
       for (const file of filesToUpload) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        // Compress each image before upload
+        const { blob, extension } = await compressImage(file);
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
 
         const { error: uploadError } = await supabase.storage
           .from('product-images')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
+          .upload(fileName, blob, {
+            cacheControl: '31536000',
+            upsert: false,
+            contentType: blob.type,
           });
 
         if (uploadError) throw uploadError;
@@ -106,12 +108,12 @@ const MultiImageUpload = ({
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        {/* Existing Images */}
         {images.map((url, index) => (
           <div key={url} className="relative aspect-square group">
             <img
               src={url}
               alt={`Product image ${index + 1}`}
+              loading="lazy"
               className="w-full h-full object-cover rounded-lg border border-border"
             />
             <Button
@@ -131,7 +133,6 @@ const MultiImageUpload = ({
           </div>
         ))}
 
-        {/* Add More Button */}
         {canAddMore && (
           <button
             type="button"
@@ -151,7 +152,6 @@ const MultiImageUpload = ({
         )}
       </div>
 
-      {/* Empty State */}
       {images.length === 0 && !uploading && (
         <button
           type="button"
