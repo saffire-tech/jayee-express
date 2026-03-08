@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       }
 
       // Fetch store name separately
-      let storeName = 'UniPlug';
+      let storeName = 'Shodel';
       if (product.store_id) {
         const { data: store } = await supabase
           .from('stores')
