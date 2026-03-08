@@ -49,7 +49,7 @@ const Auth = () => {
             Back to home
           </button>
 
-          <img src={uniplugLogo} alt="Uniplug" className="h-12 w-auto mb-8" />
+          <img src={uniplugLogo} alt="Shodel" className="h-12 w-auto mb-8" />
 
           <h2 className="text-3xl font-bold text-foreground mb-2">
             {isLogin ? "Welcome back" : "Create your account"}
