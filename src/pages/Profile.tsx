@@ -17,6 +17,8 @@ const Profile = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [campus, setCampus] = useState("");
+  const [momoNumber, setMomoNumber] = useState("");
+  const [momoProvider, setMomoProvider] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { 
