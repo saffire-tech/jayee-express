@@ -35,7 +35,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           <h1 className="text-3xl font-bold text-white tracking-tight">
             Uniplug
           </h1>
-          <p className="text-white/80 text-sm mt-1">Connect to Commerce</p>
+          <p className="text-white/80 text-sm mt-1">Your Community Marketplace</p>
         </div>
       </div>
       
