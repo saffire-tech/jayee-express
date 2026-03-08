@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
-import uniplugLogo from "@/assets/uniplug-logo.png";
+import shodelLogo from "@/assets/shodel-logo.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -49,7 +49,7 @@ const Auth = () => {
             Back to home
           </button>
 
-          <img src={uniplugLogo} alt="Shodel" className="h-12 w-auto mb-8" />
+          <img src={shodelLogo} alt="Shodel" className="h-12 w-auto mb-8" />
 
           <h2 className="text-3xl font-bold text-foreground mb-2">
             {isLogin ? "Welcome back" : "Create your account"}
