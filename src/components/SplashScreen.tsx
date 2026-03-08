@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import shodelLogo from "@/assets/shodel-logo.png";
+import shodelIcon from "@/assets/shodel-icon.png";
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -26,7 +26,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       <div className="flex flex-col items-center gap-6 animate-scale-in">
         <div className="w-28 h-28 rounded-3xl bg-white/10 backdrop-blur-sm p-4 shadow-2xl">
           <img
-            src={shodelLogo}
+            src={shodelIcon}
             alt="Shodel"
             className="w-full h-full object-contain"
           />
