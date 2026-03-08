@@ -1,28 +1,20 @@
 import { useRef } from "react";
 import { 
-  Utensils, 
-  Shirt, 
-  Laptop, 
-  BookOpen, 
-  Scissors, 
-  Camera,
-  Briefcase,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight
+  Utensils, Shirt, Laptop, BookOpen, Scissors, Camera, Briefcase, Sparkles,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const categories = [
-  { name: "Food & Snacks", icon: Utensils, color: "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400" },
-  { name: "Fashion", icon: Shirt, color: "bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400" },
-  { name: "Electronics", icon: Laptop, color: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400" },
-  { name: "Books & Notes", icon: BookOpen, color: "bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-400" },
-  { name: "Beauty & Care", icon: Scissors, color: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400" },
-  { name: "Photography", icon: Camera, color: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400" },
-  { name: "Tutoring", icon: Briefcase, color: "bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400" },
-  { name: "Other Services", icon: Sparkles, color: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400" },
+  { name: "Food & Snacks", icon: Utensils },
+  { name: "Fashion", icon: Shirt },
+  { name: "Electronics", icon: Laptop },
+  { name: "Books & Notes", icon: BookOpen },
+  { name: "Beauty & Care", icon: Scissors },
+  { name: "Photography", icon: Camera },
+  { name: "Tutoring", icon: Briefcase },
+  { name: "Other Services", icon: Sparkles },
 ];
 
 interface CategoriesSectionProps {
@@ -35,76 +27,60 @@ const CategoriesSection = ({ selectedCategory, onCategorySelect }: CategoriesSec
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const scrollAmount = 200;
       scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
+        left: direction === "left" ? -200 : 200,
         behavior: "smooth",
       });
     }
   };
 
   const handleCategoryClick = (categoryName: string) => {
-    if (selectedCategory === categoryName) {
-      onCategorySelect(null);
-    } else {
-      onCategorySelect(categoryName);
-    }
+    onCategorySelect(selectedCategory === categoryName ? null : categoryName);
   };
 
   return (
-    <section id="categories" className="py-12 md:py-16 bg-background">
+    <section id="categories" className="py-8 md:py-12 bg-background">
       <div className="container px-4">
-        {/* Section Header */}
-        <div className="text-center mb-6 md:mb-8">
-          <p className="text-primary font-semibold mb-2 text-sm">CATEGORIES</p>
-          <h2 className="text-2xl md:text-3xl font-bold">
-            Browse by Category
-          </h2>
+        <div className="text-center mb-5">
+          <p className="text-xs font-semibold text-primary tracking-widest mb-1.5">CATEGORIES</p>
+          <h2 className="text-xl md:text-2xl font-bold">Browse by Category</h2>
         </div>
 
-        {/* Categories Carousel */}
         <div className="relative">
-          {/* Scroll Buttons - Hidden on mobile, visible on desktop */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex bg-background/90 backdrop-blur-sm shadow-md -ml-4"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex bg-background/90 backdrop-blur-sm shadow-sm rounded-full h-8 w-8 -ml-3"
             onClick={() => scroll("left")}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex bg-background/90 backdrop-blur-sm shadow-md -mr-4"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex bg-background/90 backdrop-blur-sm shadow-sm rounded-full h-8 w-8 -mr-3"
             onClick={() => scroll("right")}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
 
-          {/* Scrollable Container - Optimized for mobile touch scrolling */}
           <div
             ref={scrollContainerRef}
-            className="flex gap-2.5 overflow-x-auto pb-3 px-1 snap-x snap-mandatory touch-pan-x"
-            style={{ 
-              scrollbarWidth: "none", 
-              msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch",
-            }}
+            className="flex gap-2 overflow-x-auto pb-2 px-1 snap-x snap-mandatory touch-pan-x"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
           >
-            {/* All Categories Option */}
             <button
               onClick={() => onCategorySelect(null)}
               className={cn(
-                "flex-shrink-0 snap-center flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all duration-200 active:scale-95",
+                "flex-shrink-0 snap-center flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-200 active:scale-95 text-sm font-medium",
                 !selectedCategory
-                  ? "bg-primary text-primary-foreground border-primary shadow-md"
-                  : "bg-card border-border hover:border-primary/50 hover:bg-accent"
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-card border-border/60 hover:border-primary/30 hover:bg-accent"
               )}
             >
-              <Sparkles className="h-4 w-4" />
-              <span className="text-sm font-medium whitespace-nowrap">All</span>
+              <Sparkles className="h-3.5 w-3.5" />
+              All
             </button>
 
             {categories.map((category) => {
@@ -114,29 +90,17 @@ const CategoriesSection = ({ selectedCategory, onCategorySelect }: CategoriesSec
                   key={category.name}
                   onClick={() => handleCategoryClick(category.name)}
                   className={cn(
-                    "flex-shrink-0 snap-center flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all duration-200 active:scale-95",
+                    "flex-shrink-0 snap-center flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-200 active:scale-95 text-sm font-medium",
                     isSelected
-                      ? "bg-primary text-primary-foreground border-primary shadow-md"
-                      : "bg-card border-border hover:border-primary/50 hover:bg-accent"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-card border-border/60 hover:border-primary/30 hover:bg-accent"
                   )}
                 >
-                  <div className={cn(
-                    "flex items-center justify-center w-6 h-6 rounded-full transition-transform duration-200",
-                    isSelected ? "bg-primary-foreground/20" : category.color
-                  )}>
-                    <category.icon className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-sm font-medium whitespace-nowrap">{category.name}</span>
+                  <category.icon className="h-3.5 w-3.5" />
+                  <span className="whitespace-nowrap">{category.name}</span>
                 </button>
               );
             })}
-          </div>
-
-          {/* Scroll Indicator for mobile */}
-          <div className="flex justify-center gap-1 mt-2 md:hidden">
-            <div className="h-1 w-8 rounded-full bg-primary/30" />
-            <div className="h-1 w-2 rounded-full bg-muted" />
-            <div className="h-1 w-2 rounded-full bg-muted" />
           </div>
         </div>
       </div>
