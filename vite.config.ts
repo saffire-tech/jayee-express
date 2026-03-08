@@ -82,8 +82,8 @@ export default defineConfig(({ mode }) => ({
         categories: ["shopping", "lifestyle", "business"],
       },
     injectManifest: {
-      globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-      maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      globPatterns: ["**/*.{js,css,html}"],
+      maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
     },
       devOptions: {
         enabled: false,

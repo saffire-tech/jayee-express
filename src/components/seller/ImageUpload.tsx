@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/imageCompression";
 
 interface ImageUploadProps {
   currentImageUrl?: string | null;
@@ -21,13 +22,11 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }: Image
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Image must be less than 5MB');
       return;
@@ -36,21 +35,20 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }: Image
     setUploading(true);
 
     try {
-      // Create unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Compress image before upload
+      const { blob, extension } = await compressImage(file);
+      const fileName = `${user.id}/${Date.now()}.${extension}`;
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('product-images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
+        .upload(fileName, blob, {
+          cacheControl: '31536000',
+          upsert: false,
+          contentType: blob.type,
         });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('product-images')
         .getPublicUrl(fileName);
@@ -63,7 +61,6 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }: Image
       toast.error(error.message || 'Failed to upload image');
     } finally {
       setUploading(false);
-      // Reset input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -113,7 +110,7 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }: Image
           {uploading ? (
             <>
               <Loader2 className="h-10 w-10 text-muted-foreground animate-spin" />
-              <span className="text-sm text-muted-foreground">Uploading...</span>
+              <span className="text-sm text-muted-foreground">Compressing & uploading...</span>
             </>
           ) : (
             <>
