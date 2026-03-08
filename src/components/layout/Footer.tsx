@@ -24,7 +24,7 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-semibold text-sm mb-3 text-background/90">Quick Links</h4>
+            <h4 className="font-semibold text-sm mb-3 text-neutral-200">Quick Links</h4>
             <ul className="space-y-2">
               {[
                 { to: "/products", label: "Browse Products" },
