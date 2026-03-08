@@ -133,6 +133,7 @@ const Navbar = () => {
                     <User className="h-[18px] w-[18px]" />
                   </Button>
                 </Link>
+                <ThemeToggle />
                 <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9" onClick={handleSignOut}>
                   <LogOut className="h-[18px] w-[18px]" />
                 </Button>
