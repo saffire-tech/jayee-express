@@ -11,7 +11,7 @@ const Footer = () => {
           <div className="col-span-2 md:col-span-1 lg:col-span-1">
             <img src={uniplugLogo} alt="Uniplug" className="h-10 md:h-12 w-auto mb-4 brightness-0 invert" />
             <p className="text-background/70 mb-6 text-sm md:text-base">
-              Connecting campus entrepreneurs with students. Buy, sell, and grow your hustle.
+              Connecting local entrepreneurs with buyers in your community. Buy, sell, and grow your hustle.
             </p>
             <div className="flex items-center gap-3">
               <a href="#" className="p-2 rounded-lg bg-background/10 hover:bg-background/20 transition-colors">
