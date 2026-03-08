@@ -62,7 +62,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="pt-6 md:pt-8 border-t border-background/10 text-center">
           <p className="text-background/50 text-xs md:text-sm">
-            © {new Date().getFullYear()} Uniplug. All rights reserved. Your Community Marketplace.
+            © {new Date().getFullYear()} Shodel. All rights reserved. Your Community Marketplace.
           </p>
         </div>
       </div>

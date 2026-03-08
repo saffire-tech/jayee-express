@@ -27,13 +27,13 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         <div className="w-28 h-28 rounded-3xl bg-white/10 backdrop-blur-sm p-4 shadow-2xl">
           <img
             src={uniplugLogo}
-            alt="Uniplug"
+            alt="Shodel"
             className="w-full h-full object-contain"
           />
         </div>
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white tracking-tight">
-            Uniplug
+            Shodel
           </h1>
           <p className="text-white/80 text-sm mt-1">Your Community Marketplace</p>
         </div>

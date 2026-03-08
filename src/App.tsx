@@ -55,7 +55,7 @@ const App = () => {
   const [isFirstVisit, setIsFirstVisit] = useState(true);
 
   useEffect(() => {
-    const hasVisited = sessionStorage.getItem("uniplug_visited");
+    const hasVisited = sessionStorage.getItem("shodel_visited");
     if (hasVisited) {
       setIsFirstVisit(false);
       setShowSplash(false);
@@ -63,7 +63,7 @@ const App = () => {
   }, []);
 
   const handleSplashComplete = () => {
-    sessionStorage.setItem("uniplug_visited", "true");
+    sessionStorage.setItem("shodel_visited", "true");
     setShowSplash(false);
   };
 

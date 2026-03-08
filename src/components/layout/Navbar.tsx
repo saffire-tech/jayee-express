@@ -41,7 +41,7 @@ const Navbar = () => {
         <div className="h-16 md:h-20 flex-row gap-[10px] flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <img src={uniplugLogo} alt="Uniplug" className="h-10 md:h-12 w-auto" />
+            <img src={uniplugLogo} alt="Shodel" className="h-10 md:h-12 w-auto" />
           </Link>
 
           {/* Desktop Navigation - Scrollable */}
