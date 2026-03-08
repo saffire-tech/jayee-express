@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       title = store.name;
       description = store.description 
         ? `${store.description.substring(0, 150)}${store.description.length > 150 ? '...' : ''}`
-        : `Shop at ${store.name}${store.location ? ` - ${store.location}` : ''} on UniPlug`;
+        : `Shop at ${store.name}${store.location ? ` - ${store.location}` : ''} on Shodel`;
       // Prefer cover image for stores, fall back to logo
       imageUrl = store.cover_url || store.logo_url || imageUrl;
     } else if (type === 'service') {
