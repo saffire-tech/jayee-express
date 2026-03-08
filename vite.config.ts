@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => ({
             purpose: "maskable any",
           },
         ],
-        categories: ["shopping", "lifestyle", "education"],
+        categories: ["shopping", "lifestyle", "business"],
       },
     injectManifest: {
       globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
