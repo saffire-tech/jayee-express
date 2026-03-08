@@ -15,7 +15,7 @@ const Footer = () => {
             </p>
             <div className="flex items-center gap-2">
               {[Facebook, Twitter, Instagram, Mail].map((Icon, i) => (
-                <a key={i} href="#" className="p-2 rounded-lg bg-background/8 hover:bg-background/15 transition-colors">
+                <a key={i} href="#" className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
                   <Icon className="h-4 w-4" />
                 </a>
               ))}
