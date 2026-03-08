@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
-import uniplugLogo from "@/assets/uniplug-logo.png";
+import shodelLogo from "@/assets/shodel-logo.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
