@@ -147,7 +147,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
               <p style="margin: 0; color: #333; font-style: italic;">"${data.messagePreview?.slice(0, 150)}${(data.messagePreview?.length || 0) > 150 ? '...' : ''}"</p>
             </div>
             
-            <p style="color: #666; text-align: center;">Log in to UniPlug to reply to this message.</p>
+            <p style="color: #666; text-align: center;">Log in to Shodel to reply to this message.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
               <p style="color: #999; font-size: 12px;">UniPlug - Your Community Marketplace</p>
