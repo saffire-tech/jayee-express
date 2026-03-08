@@ -204,7 +204,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
       };
 
     default:
-      return { subject: "Notification from UniPlug", html: "<p>You have a new notification.</p>" };
+      return { subject: "Notification from Shodel", html: "<p>You have a new notification.</p>" };
   }
 };
 
