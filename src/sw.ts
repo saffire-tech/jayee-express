@@ -42,7 +42,7 @@ self.addEventListener('push', (event: PushEvent) => {
     } as NotificationOptions;
 
     event.waitUntil(
-      self.registration.showNotification(data.title || 'Uniplug', options)
+      self.registration.showNotification(data.title || 'Shodel', options)
     );
   } catch (error) {
     console.error('[SW] Error handling push event:', error);

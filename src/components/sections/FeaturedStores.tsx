@@ -86,7 +86,7 @@ const FeaturedStores = () => {
             <Store className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-semibold text-lg mb-2">No stores yet</h3>
             <p className="text-muted-foreground">
-              Be the first to create your store on UniPlug!
+              Be the first to create your store on Shodel!
             </p>
           </div>
         </div>
