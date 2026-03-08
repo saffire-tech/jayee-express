@@ -70,8 +70,9 @@ const App = () => {
 
   return (
     <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
           {showSplash && isFirstVisit && (
             <SplashScreen onComplete={handleSplashComplete} />
           )}
