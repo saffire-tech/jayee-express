@@ -8,7 +8,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { useNotificationCounts } from "@/hooks/useNotificationCounts";
 import { useDeliveryRole } from "@/hooks/useDeliveryRole";
 import GlobalSearch from "@/components/search/GlobalSearch";
-import uniplugLogo from "@/assets/uniplug-logo.png";
+import shodelLogo from "@/assets/shodel-logo.png";
 
 const Navbar = () => {
   const {
