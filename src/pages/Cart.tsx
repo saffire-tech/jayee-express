@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { sendNewOrderEmailNotification } from '@/lib/emailNotifications';
+
 
 interface StoreInfo {
   id: string;
