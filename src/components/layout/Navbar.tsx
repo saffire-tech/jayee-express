@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingBag, ShoppingCart, Store, User, LogOut, Shield, MessageCircle, Download, LogIn, Bell, Truck } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -132,6 +133,7 @@ const Navbar = () => {
                     <User className="h-[18px] w-[18px]" />
                   </Button>
                 </Link>
+                <ThemeToggle />
                 <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9" onClick={handleSignOut}>
                   <LogOut className="h-[18px] w-[18px]" />
                 </Button>
@@ -150,6 +152,7 @@ const Navbar = () => {
                     Get Started
                   </Button>
                 </Link>
+                <ThemeToggle />
               </>
             )}
           </div>

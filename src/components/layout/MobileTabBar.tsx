@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, ShoppingBag, Store, ShoppingCart, Menu, Bell, MessageCircle, User, LogOut, Shield, Truck, Download, LogIn, History } from "lucide-react";
+import { Home, ShoppingBag, Store, ShoppingCart, Menu, Bell, MessageCircle, User, LogOut, Shield, Truck, Download, LogIn, History, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,7 @@ const MobileTabBar = () => {
   const { unreadMessages, pendingOrders, unreadNotifications, totalNotifications } = useNotificationCounts();
   const { isDeliveryPerson } = useDeliveryRole();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   if (!isMobile) return null;
 
@@ -103,6 +105,10 @@ const MobileTabBar = () => {
                 <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => closeAndNavigate("/download")}>
                   <Download className="h-4 w-4 text-muted-foreground" />
                   Get App
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                  {theme === "dark" ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
                 </Button>
 
                 {user ? (

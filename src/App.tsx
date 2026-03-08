@@ -11,6 +11,7 @@ import { AdminProvider } from "@/contexts/AdminContext";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { PWABadgeManager } from "@/components/PWABadgeManager";
 import SplashScreen from "@/components/SplashScreen";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Loader2 } from "lucide-react";
 
 // Eagerly loaded (critical path)
@@ -69,8 +70,9 @@ const App = () => {
 
   return (
     <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
           {showSplash && isFirstVisit && (
             <SplashScreen onComplete={handleSplashComplete} />
           )}
@@ -114,8 +116,9 @@ const App = () => {
               </AdminProvider>
             </AuthProvider>
           </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </HelmetProvider>
   );
 };
