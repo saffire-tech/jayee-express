@@ -33,7 +33,7 @@ function generateOGHtml(
   url: string,
   type: 'product' | 'store' | 'service'
 ): string {
-  const siteName = 'UniPlug';
+  const siteName = 'Shodel';
   const safeTitle = title.replace(/"/g, '&quot;');
   const safeDescription = description.replace(/"/g, '&quot;');
   
