@@ -330,10 +330,10 @@ const Cart = () => {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-left space-y-3">
               <p>
-                <strong>Do not make any payments until you have received the goods or service you ordered</strong>, unless otherwise agreed with the seller.
+                You will be redirected to <strong>Paystack</strong> to securely complete your payment. The seller will receive your payment instantly, and delivery fees will be held until you confirm receipt.
               </p>
               <p className="text-muted-foreground">
-                Shodel will not be held responsible for any fraudulent acts. Always verify the product/service before completing payment.
+                Shodel takes a small platform fee to keep the service running. All transactions are secured by Paystack.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
