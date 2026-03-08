@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Mail } from "lucide-react";
-import shodelLogo from "@/assets/shodel-logo.png";
+import shodelLogoWhite from "@/assets/shodel-logo-white.png";
 
 const Footer = () => {
   return (
