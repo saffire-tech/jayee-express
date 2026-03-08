@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
       }
 
       // Fetch store info for the redirect URL and fallback image
-      let storeName = 'UniPlug';
+      let storeName = 'Shodel';
       let storeImageUrl = '';
       if (service.store_id) {
         const { data: store } = await supabase
