@@ -122,7 +122,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             <p style="color: #666; text-align: center;">Check your purchase history for more details.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">UniPlug - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Shodel - Your Community Marketplace</p>
             </div>
           </div>
         `
