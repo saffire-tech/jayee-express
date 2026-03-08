@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import uniplugLogo from "@/assets/uniplug-logo.png";
+import shodelLogo from "@/assets/shodel-logo.png";
 
 interface SplashScreenProps {
   onComplete: () => void;
