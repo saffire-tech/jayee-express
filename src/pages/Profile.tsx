@@ -54,7 +54,9 @@ const Profile = () => {
         full_name: fullName,
         phone,
         campus,
-      });
+        momo_number: momoNumber || null,
+        momo_provider: momoProvider || null,
+      } as any);
     } finally {
       setSaving(false);
     }
