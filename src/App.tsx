@@ -11,6 +11,7 @@ import { AdminProvider } from "@/contexts/AdminContext";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { PWABadgeManager } from "@/components/PWABadgeManager";
 import SplashScreen from "@/components/SplashScreen";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Loader2 } from "lucide-react";
 
 // Eagerly loaded (critical path)
