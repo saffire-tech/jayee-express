@@ -65,11 +65,14 @@ Deno.serve(async (req) => {
         const storeTotal = storeGroups[storeId].reduce(
           (sum: number, item: any) => sum + item.product.price * item.quantity, 0
         );
-        // Store gets their share (total minus commission), Paystack handles the split
-        subaccounts.push({
-          subaccount: store.paystack_subaccount_code,
-          share: Math.round(storeTotal * 100), // in pesewas
-        });
+        // Store gets their share minus platform commission
+        const storeShare = Math.round(storeTotal * (1 - commissionPercent / 100) * 100); // in pesewas
+        if (storeShare > 0) {
+          subaccounts.push({
+            subaccount: store.paystack_subaccount_code,
+            share: storeShare,
+          });
+        }
       }
     }
 
