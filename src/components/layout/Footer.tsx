@@ -4,7 +4,7 @@ import shodelLogoWhite from "@/assets/shodel-logo-white.png";
 
 const Footer = () => {
   return (
-    <footer className="bg-foreground text-background py-10 md:py-14">
+    <footer className="bg-neutral-900 dark:bg-neutral-950 text-neutral-100 py-10 md:py-14">
       <div className="container px-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           {/* Brand */}
