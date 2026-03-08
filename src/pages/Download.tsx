@@ -40,11 +40,11 @@ const DownloadPage = () => {
                 className="h-16 md:h-20 w-auto mx-auto mb-4 md:mb-6" 
               />
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4">
-                {isInstalled || isStandalone ? "App Installed!" : "Get the Uniplug App"}
+                {isInstalled || isStandalone ? "App Installed!" : "Get the Shodel App"}
               </h1>
               <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto px-2">
                 {isInstalled || isStandalone
-                  ? "You're all set! The Uniplug app is ready to use on your device."
+                  ? "You're all set! The Shodel app is ready to use on your device."
                   : "Install our app for a better shopping and selling experience on the go. Works offline and loads instantly!"}
               </p>
             </div>
