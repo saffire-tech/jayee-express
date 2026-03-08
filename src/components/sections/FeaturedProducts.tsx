@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import { ProductGridSkeleton } from "@/components/ui/skeletons";
+import { motion } from "framer-motion";
 
 interface Product {
   id: string;
@@ -25,18 +26,9 @@ interface FeaturedProductsProps {
 const fetchFeaturedProducts = async (category: string | null): Promise<Product[]> => {
   let query = supabase
     .from('products')
-    .select(`
-      id,
-      name,
-      price,
-      image_url,
-      category,
-      views,
-      store:stores(name)
-    `)
+    .select(`id, name, price, image_url, category, views, store:stores(name)`)
     .eq('is_active', true);
 
-  // If category is selected, filter by category; otherwise show featured
   if (category) {
     query = query.eq('category', category);
   } else {
@@ -45,7 +37,7 @@ const fetchFeaturedProducts = async (category: string | null): Promise<Product[]
 
   const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(8);
 
   if (error) throw error;
   
@@ -61,7 +53,7 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['featured-products', selectedCategory],
     queryFn: () => fetchFeaturedProducts(selectedCategory ?? null),
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   const handleAddToCart = async (productId: string) => {
@@ -73,17 +65,15 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
 
   if (isLoading) {
     return (
-      <section className="py-20 md:py-28 bg-secondary/30">
+      <section className="py-12 md:py-20">
         <div className="container px-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
-              <p className="text-primary font-semibold mb-3">{sectionLabel}</p>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-                {sectionTitle}
-              </h2>
+              <p className="text-xs font-semibold text-primary tracking-widest mb-2">{sectionLabel}</p>
+              <h2 className="text-2xl md:text-3xl font-bold">{sectionTitle}</h2>
             </div>
           </div>
-          <ProductGridSkeleton count={6} />
+          <ProductGridSkeleton count={8} />
         </div>
       </section>
     );
@@ -91,22 +81,20 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
 
   if (products.length === 0) {
     return (
-      <section className="py-20 md:py-28 bg-secondary/30">
+      <section className="py-12 md:py-20">
         <div className="container px-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
-              <p className="text-primary font-semibold mb-3">{sectionLabel}</p>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-                {sectionTitle}
-              </h2>
+              <p className="text-xs font-semibold text-primary tracking-widest mb-2">{sectionLabel}</p>
+              <h2 className="text-2xl md:text-3xl font-bold">{sectionTitle}</h2>
             </div>
           </div>
-          <div className="text-center py-12 bg-card border border-border rounded-xl">
-            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2">
+          <div className="text-center py-12 bg-card border border-border rounded-2xl">
+            <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <h3 className="font-semibold text-base mb-1">
               {selectedCategory ? `No products in ${selectedCategory}` : "No products yet"}
             </h3>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {selectedCategory 
                 ? "Try selecting a different category"
                 : "Be the first to list your products on Shodel!"}
@@ -118,33 +106,34 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
   }
 
   return (
-    <section className="py-20 md:py-28 bg-secondary/30">
+    <section className="py-12 md:py-20">
       <div className="container px-4">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <p className="text-primary font-semibold mb-3">{sectionLabel}</p>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-              {sectionTitle}
-            </h2>
+            <p className="text-xs font-semibold text-primary tracking-widest mb-2">{sectionLabel}</p>
+            <h2 className="text-2xl md:text-3xl font-bold">{sectionTitle}</h2>
           </div>
           <Link to={selectedCategory ? `/products?category=${encodeURIComponent(selectedCategory)}` : "/products"}>
-            <Button variant="outline" className="w-fit">
+            <Button variant="outline" size="sm" className="rounded-xl">
               View All {selectedCategory ? `in ${selectedCategory}` : "Products"}
             </Button>
           </Link>
         </div>
 
-        {/* Products Grid - consistent 2-col mobile, scales up */}
+        {/* Products Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-          {products.map((product) => (
-            <div
+          {products.map((product, i) => (
+            <motion.div
               key={product.id}
-              className="group bg-card rounded-xl overflow-hidden border border-border hover:border-primary/30 transition-all duration-300 hover:shadow-card-hover"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04, duration: 0.3 }}
+              className="group bg-card rounded-2xl overflow-hidden border border-border/60 hover:border-primary/20 transition-all duration-300 hover:shadow-lg"
             >
               {/* Image */}
               <Link to={`/product/${product.id}`}>
-                <div className="relative aspect-square overflow-hidden">
+                <div className="relative aspect-square overflow-hidden bg-muted">
                   {product.image_url && !product.image_url.startsWith('data:') ? (
                     <img
                       src={product.image_url}
@@ -153,19 +142,19 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted">
-                      <Package className="h-8 w-8 text-muted-foreground" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="h-8 w-8 text-muted-foreground/50" />
                     </div>
                   )}
-                  <button className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background transition-colors">
+                  <button className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-background">
                     <Heart className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive transition-colors" />
                   </button>
                   <div className="absolute bottom-2 left-2">
-                    <span className="px-1.5 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-[10px] font-medium">
+                    <span className="px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-[10px] font-medium">
                       {product.category}
                     </span>
                   </div>
-                  {(product.views ?? 0) > 0 && (
+                  {(product.views ?? 0) > 10 && (
                     <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-[10px] font-medium text-muted-foreground">
                       <Eye className="h-3 w-3" />
                       {product.views}
@@ -181,21 +170,25 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
                     {product.name}
                   </h3>
                 </Link>
-                <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
-                  by {product.store?.name || 'Unknown Seller'}
+                <p className="text-[11px] text-muted-foreground mb-2 line-clamp-1">
+                  {product.store?.name || 'Unknown Seller'}
                 </p>
                 
                 <div className="flex items-center justify-between gap-1">
                   <p className="text-sm font-bold text-foreground">
                     ₵{product.price.toFixed(2)}
                   </p>
-                  <Button size="sm" className="gap-1 h-7 px-2 text-xs" onClick={() => handleAddToCart(product.id)}>
+                  <Button 
+                    size="sm" 
+                    className="gap-1 h-7 px-2.5 text-[11px] rounded-lg" 
+                    onClick={() => handleAddToCart(product.id)}
+                  >
                     <ShoppingCart className="h-3 w-3" />
                     Add
                   </Button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

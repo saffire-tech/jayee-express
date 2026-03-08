@@ -11,6 +11,7 @@ import { useDeliveryRole } from "@/hooks/useDeliveryRole";
 import { useIsMobile } from "@/hooks/use-mobile";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { motion } from "framer-motion";
 
 const MobileTabBar = () => {
   const isMobile = useIsMobile();
@@ -30,11 +31,6 @@ const MobileTabBar = () => {
     return location.pathname.startsWith(path);
   };
 
-  const tabClass = (path: string) =>
-    `flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-colors ${
-      isActive(path) ? "text-primary" : "text-muted-foreground"
-    }`;
-
   const handleSignOut = async () => {
     setDrawerOpen(false);
     try {
@@ -50,131 +46,133 @@ const MobileTabBar = () => {
     navigate(path);
   };
 
+  const tabs = [
+    { path: "/", icon: Home, label: "Home" },
+    { path: "/products", icon: ShoppingBag, label: "Products" },
+    { path: "/stores", icon: Store, label: "Stores" },
+    { path: "/cart", icon: ShoppingCart, label: "Cart", badge: totalItems },
+  ];
+
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border h-16 flex items-center safe-area-bottom">
-      <Link to="/" className={tabClass("/")}>
-        <Home className="h-5 w-5" />
-        <span className="text-[10px] font-medium">Home</span>
-      </Link>
-
-      <Link to="/products" className={tabClass("/products")}>
-        <ShoppingBag className="h-5 w-5" />
-        <span className="text-[10px] font-medium">Products</span>
-      </Link>
-
-      <Link to="/stores" className={tabClass("/stores")}>
-        <Store className="h-5 w-5" />
-        <span className="text-[10px] font-medium">Stores</span>
-      </Link>
-
-      <Link to="/cart" className={`${tabClass("/cart")} relative`}>
-        <div className="relative">
-          <ShoppingCart className="h-5 w-5" />
-          {totalItems > 0 && (
-            <Badge className="absolute -top-2 -right-3 h-4 w-4 flex items-center justify-center p-0 text-[9px]">
-              {totalItems}
-            </Badge>
-          )}
-        </div>
-        <span className="text-[10px] font-medium">Cart</span>
-      </Link>
-
-      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DrawerTrigger asChild>
-          <button className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-muted-foreground relative`}>
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border/50 supports-[backdrop-filter]:bg-background/60 safe-area-bottom">
+      <div className="flex items-center h-14">
+        {tabs.map(tab => (
+          <Link key={tab.path} to={tab.path} className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 relative">
             <div className="relative">
-              <Menu className="h-5 w-5" />
-              {user && totalNotifications > 0 && (
-                <Badge className="absolute -top-2 -right-3 h-4 w-4 flex items-center justify-center p-0 text-[9px] bg-destructive">
-                  {totalNotifications > 9 ? "9+" : totalNotifications}
+              {isActive(tab.path) && (
+                <motion.div
+                  layoutId="tab-indicator"
+                  className="absolute -inset-1.5 rounded-xl bg-primary/10"
+                  transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                />
+              )}
+              <tab.icon className={`h-5 w-5 relative z-10 transition-colors ${isActive(tab.path) ? "text-primary" : "text-muted-foreground"}`} />
+              {tab.badge && tab.badge > 0 && (
+                <Badge className="absolute -top-2 -right-3 h-4 min-w-4 flex items-center justify-center p-0 px-1 text-[9px] rounded-full">
+                  {tab.badge}
                 </Badge>
               )}
             </div>
-            <span className="text-[10px] font-medium">More</span>
-          </button>
-        </DrawerTrigger>
-        <DrawerContent className="pb-safe">
-          <div className="px-4 py-3 max-h-[70vh] overflow-y-auto">
-            <div className="mb-3">
-              <GlobalSearch variant="navbar" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/download")}>
-                <Download className="h-4 w-4" />
-                Get App
-              </Button>
+            <span className={`text-[10px] font-medium transition-colors ${isActive(tab.path) ? "text-primary" : "text-muted-foreground"}`}>
+              {tab.label}
+            </span>
+          </Link>
+        ))}
 
-              {user ? (
-                <>
-                  <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/notifications")}>
-                    <Bell className="h-4 w-4" />
-                    Notifications
-                    {unreadNotifications > 0 && (
-                      <Badge className="ml-auto bg-destructive">{unreadNotifications > 9 ? "9+" : unreadNotifications}</Badge>
-                    )}
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/messages")}>
-                    <MessageCircle className="h-4 w-4" />
-                    Messages
-                    {unreadMessages > 0 && (
-                      <Badge className="ml-auto bg-destructive">{unreadMessages}</Badge>
-                    )}
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/profile")}>
-                    <User className="h-4 w-4" />
-                    Profile
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/purchases")}>
-                    <History className="h-4 w-4" />
-                    Purchase History
-                  </Button>
-                  {isDeliveryPerson && (
-                    <Button variant="outline" className="w-full justify-start gap-3 border-primary text-primary" onClick={() => closeAndNavigate("/delivery")}>
-                      <Truck className="h-4 w-4" />
-                      My Deliveries
-                    </Button>
-                  )}
-                  {profile?.current_mode === "seller" && (
-                    <Button variant="outline" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/seller")}>
-                      <Store className="h-4 w-4" />
-                      My Store
-                      {pendingOrders > 0 && (
-                        <Badge className="ml-auto bg-destructive">{pendingOrders}</Badge>
+        <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+          <DrawerTrigger asChild>
+            <button className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 relative">
+              <div className="relative">
+                <Menu className="h-5 w-5 text-muted-foreground" />
+                {user && totalNotifications > 0 && (
+                  <Badge className="absolute -top-2 -right-3 h-4 min-w-4 flex items-center justify-center p-0 px-1 text-[9px] bg-destructive rounded-full">
+                    {totalNotifications > 9 ? "9+" : totalNotifications}
+                  </Badge>
+                )}
+              </div>
+              <span className="text-[10px] font-medium text-muted-foreground">More</span>
+            </button>
+          </DrawerTrigger>
+          <DrawerContent className="pb-safe">
+            <div className="px-4 pt-2 pb-4 max-h-[70vh] overflow-y-auto">
+              <div className="w-10 h-1 rounded-full bg-muted mx-auto mb-4" />
+              <div className="mb-3">
+                <GlobalSearch variant="navbar" />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => closeAndNavigate("/download")}>
+                  <Download className="h-4 w-4 text-muted-foreground" />
+                  Get App
+                </Button>
+
+                {user ? (
+                  <>
+                    <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => closeAndNavigate("/notifications")}>
+                      <Bell className="h-4 w-4 text-muted-foreground" />
+                      Notifications
+                      {unreadNotifications > 0 && (
+                        <Badge className="ml-auto bg-destructive text-[10px] px-1.5">{unreadNotifications > 9 ? "9+" : unreadNotifications}</Badge>
                       )}
                     </Button>
-                  )}
-                  {isModerator && (
-                    <Button variant="outline" className="w-full justify-start gap-3 border-primary text-primary" onClick={() => closeAndNavigate("/admin")}>
-                      <Shield className="h-4 w-4" />
-                      Admin Dashboard
+                    <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => closeAndNavigate("/messages")}>
+                      <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                      Messages
+                      {unreadMessages > 0 && (
+                        <Badge className="ml-auto bg-destructive text-[10px] px-1.5">{unreadMessages}</Badge>
+                      )}
                     </Button>
-                  )}
-                  <hr className="my-1 border-border" />
-                  <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleSignOut}>
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/auth")}>
-                    <LogIn className="h-4 w-4" />
-                    Sign In
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/auth")}>
-                    <Store className="h-4 w-4" />
-                    Open Store
-                  </Button>
-                  <Button variant="hero" className="w-full justify-start gap-3" onClick={() => closeAndNavigate("/auth")}>
-                    <ShoppingBag className="h-4 w-4" />
-                    Start Shopping
-                  </Button>
-                </>
-              )}
+                    <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => closeAndNavigate("/profile")}>
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      Profile
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => closeAndNavigate("/purchases")}>
+                      <History className="h-4 w-4 text-muted-foreground" />
+                      Purchase History
+                    </Button>
+                    {isDeliveryPerson && (
+                      <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11 text-primary" onClick={() => closeAndNavigate("/delivery")}>
+                        <Truck className="h-4 w-4" />
+                        My Deliveries
+                      </Button>
+                    )}
+                    {profile?.current_mode === "seller" && (
+                      <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => closeAndNavigate("/seller")}>
+                        <Store className="h-4 w-4 text-muted-foreground" />
+                        My Store
+                        {pendingOrders > 0 && (
+                          <Badge className="ml-auto bg-destructive text-[10px] px-1.5">{pendingOrders}</Badge>
+                        )}
+                      </Button>
+                    )}
+                    {isModerator && (
+                      <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11 text-primary" onClick={() => closeAndNavigate("/admin")}>
+                        <Shield className="h-4 w-4" />
+                        Admin Dashboard
+                      </Button>
+                    )}
+                    <div className="h-px bg-border my-1" />
+                    <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11 text-destructive hover:text-destructive" onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => closeAndNavigate("/auth")}>
+                      <LogIn className="h-4 w-4 text-muted-foreground" />
+                      Sign In
+                    </Button>
+                    <Button variant="hero" className="w-full justify-center gap-2 rounded-xl h-11 mt-1" onClick={() => closeAndNavigate("/auth")}>
+                      <ShoppingBag className="h-4 w-4" />
+                      Get Started
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
+          </DrawerContent>
+        </Drawer>
+      </div>
     </div>
   );
 };

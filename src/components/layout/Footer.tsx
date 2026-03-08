@@ -4,65 +4,65 @@ import shodelLogoWhite from "@/assets/shodel-logo-white.png";
 
 const Footer = () => {
   return (
-    <footer className="bg-foreground text-background py-10 md:py-16">
+    <footer className="bg-foreground text-background py-10 md:py-14">
       <div className="container px-4">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-10 md:mb-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           {/* Brand */}
-          <div className="col-span-2 md:col-span-1 lg:col-span-1">
-            <img src={shodelLogoWhite} alt="Shodel" className="h-10 md:h-12 w-auto mb-4" />
-            <p className="text-background/70 mb-6 text-sm md:text-base">
-              Connecting local entrepreneurs with buyers in your community. Buy, sell, and grow your hustle.
+          <div className="col-span-2 lg:col-span-1">
+            <img src={shodelLogoWhite} alt="Shodel" className="h-9 w-auto mb-3" />
+            <p className="text-background/60 text-sm mb-5 max-w-xs leading-relaxed">
+              Connecting local entrepreneurs with buyers in your community.
             </p>
-            <div className="flex items-center gap-3">
-              <a href="#" className="p-2 rounded-lg bg-background/10 hover:bg-background/20 transition-colors">
-                <Facebook className="h-4 w-4 md:h-5 md:w-5" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-background/10 hover:bg-background/20 transition-colors">
-                <Twitter className="h-4 w-4 md:h-5 md:w-5" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-background/10 hover:bg-background/20 transition-colors">
-                <Instagram className="h-4 w-4 md:h-5 md:w-5" />
-              </a>
-              <a href="#" className="p-2 rounded-lg bg-background/10 hover:bg-background/20 transition-colors">
-                <Mail className="h-4 w-4 md:h-5 md:w-5" />
-              </a>
+            <div className="flex items-center gap-2">
+              {[Facebook, Twitter, Instagram, Mail].map((Icon, i) => (
+                <a key={i} href="#" className="p-2 rounded-lg bg-background/8 hover:bg-background/15 transition-colors">
+                  <Icon className="h-4 w-4" />
+                </a>
+              ))}
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-semibold text-base md:text-lg mb-3 md:mb-4">Quick Links</h4>
-            <ul className="space-y-2 md:space-y-3">
-              <li><Link to="/products" className="text-background/70 hover:text-background transition-colors text-sm md:text-base">Browse Products</Link></li>
-              <li><Link to="/stores" className="text-background/70 hover:text-background transition-colors text-sm md:text-base">Featured Stores</Link></li>
-              <li><Link to="/seller" className="text-background/70 hover:text-background transition-colors text-sm md:text-base">Become a Seller</Link></li>
-              <li><Link to="/download" className="text-background/70 hover:text-background transition-colors text-sm md:text-base">Download App</Link></li>
+            <h4 className="font-semibold text-sm mb-3 text-background/90">Quick Links</h4>
+            <ul className="space-y-2">
+              {[
+                { to: "/products", label: "Browse Products" },
+                { to: "/stores", label: "Featured Stores" },
+                { to: "/seller", label: "Become a Seller" },
+                { to: "/download", label: "Download App" },
+              ].map(link => (
+                <li key={link.to}>
+                  <Link to={link.to} className="text-background/50 hover:text-background transition-colors text-sm">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Support */}
           <div>
-            <h4 className="font-semibold text-base md:text-lg mb-3 md:mb-4">Support</h4>
-            <ul className="space-y-2 md:space-y-3">
-              <li><Link to="/report-issue" className="text-background/70 hover:text-background transition-colors text-sm md:text-base">Report an Issue</Link></li>
-              <li><Link to="/terms" className="text-background/70 hover:text-background transition-colors text-sm md:text-base">Safety Guidelines</Link></li>
+            <h4 className="font-semibold text-sm mb-3 text-background/90">Support</h4>
+            <ul className="space-y-2">
+              <li><Link to="/report-issue" className="text-background/50 hover:text-background transition-colors text-sm">Report an Issue</Link></li>
+              <li><Link to="/terms" className="text-background/50 hover:text-background transition-colors text-sm">Safety Guidelines</Link></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-base md:text-lg mb-3 md:mb-4">Legal</h4>
-            <ul className="space-y-2 md:space-y-3">
-              <li><Link to="/terms" className="text-background/70 hover:text-background transition-colors text-sm md:text-base">Terms of Service</Link></li>
-              <li><Link to="/privacy-policy" className="text-background/70 hover:text-background transition-colors text-sm md:text-base">Privacy Policy</Link></li>
+            <h4 className="font-semibold text-sm mb-3 text-background/90">Legal</h4>
+            <ul className="space-y-2">
+              <li><Link to="/terms" className="text-background/50 hover:text-background transition-colors text-sm">Terms of Service</Link></li>
+              <li><Link to="/privacy-policy" className="text-background/50 hover:text-background transition-colors text-sm">Privacy Policy</Link></li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-6 md:pt-8 border-t border-background/10 text-center">
-          <p className="text-background/50 text-xs md:text-sm">
-            © {new Date().getFullYear()} Shodel. All rights reserved. Your Community Marketplace.
+        <div className="pt-6 border-t border-background/10 text-center">
+          <p className="text-background/40 text-xs">
+            © {new Date().getFullYear()} Shodel. All rights reserved.
           </p>
         </div>
       </div>
