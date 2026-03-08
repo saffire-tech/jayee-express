@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, ShoppingBag, Store, ShoppingCart, Menu, Bell, MessageCircle, User, LogOut, Shield, Truck, Download, LogIn, History } from "lucide-react";
+import { Home, ShoppingBag, Store, ShoppingCart, Menu, Bell, MessageCircle, User, LogOut, Shield, Truck, Download, LogIn, History, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
