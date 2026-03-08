@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: "Uniplug",
         short_name: "Uniplug",
-        description: "Connect to Commerce - The campus marketplace for students",
+        description: "Connect to Commerce - The community marketplace for Accra",
         start_url: "/",
         display: "standalone",
         background_color: "#f97316",
