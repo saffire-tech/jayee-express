@@ -102,9 +102,37 @@ const SellerDashboard = () => {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      await updateStore(storeSettings);
+      const { momo_number, momo_provider, ...rest } = storeSettings;
+      await updateStore(rest);
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleSaveMomo = async () => {
+    if (!store || !storeSettings.momo_number || !storeSettings.momo_provider) {
+      return;
+    }
+    setSavingMomo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-subaccount', {
+        body: {
+          store_id: store.id,
+          business_name: store.name,
+          momo_number: storeSettings.momo_number,
+          momo_provider: storeSettings.momo_provider,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      // Update local state
+      setStoreSettings(prev => ({ ...prev, momo_number: storeSettings.momo_number, momo_provider: storeSettings.momo_provider }));
+      toast({ title: "MoMo payout set up!", description: "You'll receive payments directly to your mobile money." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to set up MoMo payout", variant: "destructive" });
+    } finally {
+      setSavingMomo(false);
     }
   };
 
