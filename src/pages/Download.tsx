@@ -59,7 +59,7 @@ const DownloadPage = () => {
                     </div>
                     <h2 className="text-xl md:text-2xl font-bold mb-2">Already Installed</h2>
                     <p className="text-sm md:text-base text-muted-foreground">
-                      The Uniplug app is installed on your device. You can find it on your home screen.
+                      The Shodel app is installed on your device. You can find it on your home screen.
                     </p>
                   </CardContent>
                 </Card>
