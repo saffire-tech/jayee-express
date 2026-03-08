@@ -157,9 +157,12 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Search */}
+          {/* Mobile Search + Theme Toggle */}
           <div className="md:hidden flex-1 mx-2">
             <GlobalSearch variant="navbar" />
+          </div>
+          <div className="md:hidden flex-shrink-0">
+            <ThemeToggle />
           </div>
         </div>
       </div>
