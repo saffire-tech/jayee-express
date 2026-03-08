@@ -105,7 +105,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #f97316; margin: 0;">UniPlug</h1>
+              <h1 style="color: #f97316; margin: 0;">Shodel</h1>
               <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
             </div>
             
