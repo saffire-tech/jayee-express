@@ -41,6 +41,8 @@ const Profile = () => {
       setFullName(profile.full_name || "");
       setPhone(profile.phone || "");
       setCampus(profile.campus || "");
+      setMomoNumber((profile as any).momo_number || "");
+      setMomoProvider((profile as any).momo_provider || "");
     }
   }, [profile]);
 
