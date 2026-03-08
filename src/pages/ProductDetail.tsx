@@ -310,7 +310,7 @@ const ProductDetail = () => {
             {!product.is_service && (
               <p className="text-sm">
                 <span className="text-muted-foreground">Stock: </span>
-                <span className={product.stock && product.stock > 0 ? 'text-green-600' : 'text-destructive'}>
+                <span className={product.stock && product.stock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}>
                   {product.stock && product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
                 </span>
               </p>
