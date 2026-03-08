@@ -36,7 +36,7 @@ const DownloadPage = () => {
             <div className="text-center mb-10 md:mb-16">
               <img 
                 src={uniplugLogo} 
-                alt="Uniplug" 
+                alt="Shodel" 
                 className="h-16 md:h-20 w-auto mx-auto mb-4 md:mb-6" 
               />
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4">
