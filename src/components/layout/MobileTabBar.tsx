@@ -24,6 +24,7 @@ const MobileTabBar = () => {
   const { unreadMessages, pendingOrders, unreadNotifications, totalNotifications } = useNotificationCounts();
   const { isDeliveryPerson } = useDeliveryRole();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   if (!isMobile) return null;
 
