@@ -130,9 +130,9 @@ const SellerDashboard = () => {
       
       // Update local state
       setStoreSettings(prev => ({ ...prev, momo_number: storeSettings.momo_number, momo_provider: storeSettings.momo_provider }));
-      toast({ title: "MoMo payout set up!", description: "You'll receive payments directly to your mobile money." });
+      toast.success("MoMo payout set up! You'll receive payments directly to your mobile money.");
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to set up MoMo payout", variant: "destructive" });
+      toast.error(err.message || "Failed to set up MoMo payout");
     } finally {
       setSavingMomo(false);
     }
