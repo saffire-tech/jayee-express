@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-10 md:mb-12">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 lg:col-span-1">
-            <img src={shodelLogo} alt="Shodel" className="h-10 md:h-12 w-auto mb-4" />
+            <img src={shodelLogoWhite} alt="Shodel" className="h-10 md:h-12 w-auto mb-4" />
             <p className="text-background/70 mb-6 text-sm md:text-base">
               Connecting local entrepreneurs with buyers in your community. Buy, sell, and grow your hustle.
             </p>
