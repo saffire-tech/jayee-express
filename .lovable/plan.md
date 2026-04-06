@@ -1,64 +1,58 @@
 
-# Transition from Campus-Based to Community-Based Marketplace
 
-## Overview
-Transform UniPlug from a campus/student-focused marketplace to a community-based marketplace serving Accra neighborhoods and city locations. This involves replacing all campus selection logic with community/area selection, updating all student-oriented copy, and adjusting the database constraint.
+## Problem Analysis
 
-## What Changes
+**Issue 1: Orders not created after payment**
+The `paystack-webhook` edge function has zero logs, meaning Paystack is never calling it. The webhook URL must be configured in the Paystack dashboard (pointing to `https://brqzedcxzjqwzpkwrmow.supabase.co/functions/v1/paystack-webhook`). However, since you may not have dashboard access or the webhook may fail silently, the robust fix is to add a **client-side payment verification fallback**: when the user returns from Paystack to the callback URL, verify the payment via Paystack's API and create orders if the webhook hasn't already done so.
 
-### 1. Replace Location Data Configuration
-**File: `src/config/campuses.ts` -> rename to `src/config/locations.ts`**
-- Replace `CAMPUS_GROUPS` with `LOCATION_GROUPS` containing Accra communities and city areas
-- Groups will be organized by zones (e.g., "Greater Accra North", "Greater Accra South", "Tema & Surroundings", "Accra Central", "West Accra", "East Accra")
-- Locations will include neighborhoods like: East Legon, Madina, Adenta, Spintex, Tema, Ashaiman, Dansoman, Lapaz, Achimota, Kaneshie, Osu, Labadi, Teshie, Nungua, Kasoa, Weija, Ablekuma, Dome, Haatso, Taifa, Circle, Airport Residential, Cantonments, Ridge, Dzorwulu, Abelemkpe, Roman Ridge, Tesano, Darkuman, Odorkor, etc.
-- Rename all exported functions accordingly (e.g., `getGroupByCampus` -> `getGroupByLocation`)
+**Issue 2: Remove "do not pay" notices**
+The app now handles payments natively via Paystack, so the old fraud-prevention notices are no longer needed. These appear in:
+- Cart.tsx: The `AlertDialog` payment notice shown before checkout
+- PurchaseHistory.tsx: The yellow "Important Payment Notice" alert banner
 
-### 2. Rebuild the Location Selector Component
-**File: `src/components/ui/CampusSelector.tsx` -> rename to `src/components/ui/LocationSelector.tsx`**
-- Replace `GraduationCap` icon with `MapPin` icon
-- Rename all props: `campus` -> `location`, labels say "Select area" / "All Areas"
-- Same two-step grouped selection UX, but with community groups instead of institution types
+---
 
-### 3. Database Migration
-- **Drop** the `stores_campus_check` constraint (it restricts campus values to the old university list)
-- The `campus` column in `stores` and `profiles` tables will remain as-is (reusing the column for location/area) -- no column rename needed to avoid breaking existing data
-- Existing store data with old campus values will still work; they just won't appear in the new selector until updated by store owners
+## Plan
 
-### 4. Update All UI Text and References
-Files with campus/student copy to update:
+### Step 1: Create a `verify-payment` edge function
+A new edge function that:
+- Accepts a Paystack `reference` from the client
+- Calls Paystack's `/transaction/verify/:reference` API
+- If payment is verified as successful AND no orders exist for that reference, creates the orders + order items (same logic as the webhook)
+- If orders already exist (webhook already ran), just returns success
+- Clears the cart
 
-| File | What changes |
-|------|-------------|
-| `src/components/sections/HeroSection.tsx` | "Your Campus Marketplace" -> "Your Community Marketplace", "Happy Students" -> "Happy Users", "fellow students" -> "your community" |
-| `src/components/sections/HowItWorks.tsx` | "campus email" -> "email", "campus business" -> "business" |
-| `src/components/sections/CTASection.tsx` | "Campus Entrepreneurs" -> "Entrepreneurs", "Campus Business" -> "Business", "students on your campus" -> "people in your community" |
-| `src/pages/Products.tsx` | Import LocationSelector, "All Campuses" -> "All Areas", "campus sellers" -> "local sellers" |
-| `src/pages/Stores.tsx` | Same as Products - swap selector and labels |
-| `src/pages/Profile.tsx` | "Campus" label -> "Area", use LocationSelector |
-| `src/pages/SellerDashboard.tsx` | "Campus" -> "Area", "Location on Campus" -> "Address", use LocationSelector |
-| `src/components/seller/StoreSetupWizard.tsx` | "Select Your Campus" -> "Select Your Area", GraduationCap -> MapPin, use LocationSelector |
-| `src/pages/StorePage.tsx` | "campus marketplace" -> "community marketplace" in meta tags |
-| `src/pages/ProductDetail.tsx` | "campus marketplace" -> "community marketplace", "Campus Store" -> "Local Store" |
-| `src/pages/Download.tsx` | "on campus" -> "on the go" |
-| `src/components/sections/FeaturedProducts.tsx` | No campus references (already clean) |
-| `src/components/sections/RecommendedProducts.tsx` | `store.campus` display text unchanged (column still exists) |
-| `src/pages/Stores.tsx` | GraduationCap icon -> MapPin for store area display |
-| `supabase/functions/send-email-notification/index.ts` | "Campus Marketplace" -> "Community Marketplace" |
-| `supabase/functions/get-recommendations/index.ts` | "campus marketplace" -> "community marketplace", "campus preferences" -> "area preferences" |
+### Step 2: Add payment verification on callback
+In the Purchase History page (the callback URL target `/purchases?payment=success`):
+- Detect the `payment=success` query param (note: Paystack also appends `?reference=xxx` to the callback URL)
+- Extract the `reference` param from the URL
+- Call the `verify-payment` edge function with the reference
+- Show a toast on success/failure
+- Clear the query params from the URL
 
-### 5. Accra Community Locations List
-The new location groups:
+### Step 3: Remove payment notices
+- **Cart.tsx**: Remove the `AlertDialog` for the payment notice. Change `handleCheckoutClick` to call `handleConfirmCheckout` directly (skip the notice dialog). Remove `showPaymentNotice` state, the `AlertTriangle` import, and the `AlertDialog` component imports.
+- **PurchaseHistory.tsx**: Remove the yellow "Important Payment Notice" `Alert` block (lines 380-388). Remove unused `AlertTriangle` if no longer needed.
 
-- **Accra Central**: Osu, Labadi, Cantonments, Airport Residential, Ridge, Dzorwulu, Abelemkpe, Roman Ridge, Circle, Asylum Down, Adabraka
-- **North Accra**: Achimota, Lapaz, Dome, Haatso, Taifa, Agbogba, Kwabenya, Pokuase, Amasaman
-- **East Accra**: East Legon, Madina, Adenta, Teshie, Nungua, Spintex, Baatsonaa, Adjiriganor
-- **West Accra**: Dansoman, Darkuman, Odorkor, Kaneshie, Tesano, Ablekuma, Bubiashie, Abeka
-- **Tema & Surroundings**: Tema, Ashaiman, Sakumono, Kpone, Prampram, Dawhenya, Afienya
-- **Kasoa & Surroundings**: Kasoa, Weija, Gbawe, Mallam, McCarthy Hill, Bortianor, Kokrobite
+### Step 4: Update callback URL in initialize-payment
+Change the callback URL from `/purchases?payment=success` to include the reference:
+```
+callback_url: `${origin}/purchases?payment=success&reference=${reference}`
+```
+However, since Paystack appends `?reference=xxx` automatically, we just need to keep the base callback as `/purchases` and handle the params.
 
-### 6. Summary of Scope
-- ~15 files modified (UI components, pages, edge functions, config)
-- 1 database migration (drop check constraint)
-- 1 new config file (locations.ts replacing campuses.ts)
-- 1 new component file (LocationSelector.tsx replacing CampusSelector.tsx)
-- No breaking changes to database schema (reusing same `campus` column)
+---
+
+### Technical Details
+
+**New file**: `supabase/functions/verify-payment/index.ts`
+- Uses `PAYSTACK_SECRET_KEY` to call `https://api.paystack.co/transaction/verify/:reference`
+- Uses service role client to check if orders with that `payment_reference` already exist
+- If not, creates orders from the transaction metadata (same logic as webhook)
+- Returns `{ verified: true, orders_created: boolean }`
+
+**Modified files**:
+- `src/pages/PurchaseHistory.tsx` — Add `useEffect` to detect `reference` query param, call `verify-payment`, show toast, remove payment notice alert
+- `src/pages/Cart.tsx` — Remove payment notice dialog, go straight to checkout on button click
+- `supabase/config.toml` — Add `verify-payment` function config
+
