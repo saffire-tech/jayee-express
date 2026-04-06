@@ -10,6 +10,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AdminProvider } from "@/contexts/AdminContext";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { PWABadgeManager } from "@/components/PWABadgeManager";
+import { PushNotificationManager } from "@/components/PushNotificationManager";
 import SplashScreen from "@/components/SplashScreen";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Loader2 } from "lucide-react";
