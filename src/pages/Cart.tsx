@@ -266,7 +266,7 @@ const Cart = () => {
                 <Button 
                   className="w-full" 
                   size="lg" 
-                  onClick={handleCheckoutClick}
+                  onClick={handleCheckout}
                   disabled={checkingOut}
                 >
                   {checkingOut ? (
