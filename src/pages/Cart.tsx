@@ -53,13 +53,7 @@ const Cart = () => {
       });
   }, [items]);
 
-  const handleCheckoutClick = () => {
-    if (!user || items.length === 0) return;
-    setShowPaymentNotice(true);
-  };
-
-  const handleConfirmCheckout = async () => {
-    setShowPaymentNotice(false);
+  const handleCheckout = async () => {
     if (!user || items.length === 0) return;
     
     setCheckingOut(true);
