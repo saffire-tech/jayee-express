@@ -188,17 +188,51 @@ const OrderStatusTracker = ({ status }: { status: string }) => {
 const PurchaseHistory = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+
+  // Verify payment on redirect from Paystack
+  useEffect(() => {
+    const reference = searchParams.get("reference");
+    if (!reference || !user) return;
+
+    const verifyPayment = async () => {
+      setVerifying(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("verify-payment", {
+          body: { reference },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        if (data?.verified) {
+          toast.success(data.orders_created ? "Payment verified! Your orders have been placed." : "Payment verified! Orders are being processed.");
+          fetchOrders();
+        }
+      } catch (err: any) {
+        console.error("Payment verification error:", err);
+        toast.error("Could not verify payment. Your order may still be processing.");
+      } finally {
+        setVerifying(false);
+        // Clear query params
+        setSearchParams({}, { replace: true });
+      }
+    };
+
+    verifyPayment();
+  }, [searchParams, user]);
 
   useEffect(() => {
     if (user) {
