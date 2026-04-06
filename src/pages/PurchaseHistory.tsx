@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Loader2, Package, AlertTriangle, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, Package, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle, MapPin } from "lucide-react";
 import DeliveryTracker from "@/components/delivery/DeliveryTracker";
 import DeliveryContactCard from "@/components/delivery/DeliveryContactCard";
 import { format } from "date-fns";
