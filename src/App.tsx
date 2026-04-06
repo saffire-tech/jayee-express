@@ -82,6 +82,7 @@ const App = () => {
           <BrowserRouter>
             <AuthProvider>
               <PWABadgeManager />
+              <PushNotificationManager />
               <AdminProvider>
                 <CartProvider>
                   <Suspense fallback={<PageLoader />}>
