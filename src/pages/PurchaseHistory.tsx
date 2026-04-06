@@ -410,15 +410,12 @@ const PurchaseHistory = () => {
         <h1 className="text-3xl font-bold mb-2">Purchase History</h1>
         <p className="text-muted-foreground mb-6">View all your past orders</p>
 
-        {/* Payment Warning Alert */}
-        <Alert className="mb-8 border-yellow-500/50 bg-yellow-500/10">
-          <AlertTriangle className="h-5 w-5 text-yellow-600" />
-          <AlertTitle className="text-yellow-600 font-semibold">Important Payment Notice</AlertTitle>
-          <AlertDescription className="text-yellow-700 dark:text-yellow-500">
-            Do not make any payments until you have received the goods or service you ordered, unless otherwise agreed with the seller. 
-            <strong className="block mt-2">Shodel will not be held responsible for any fraudulent act.</strong>
-          </AlertDescription>
-        </Alert>
+        {verifying && (
+          <div className="mb-6 flex items-center gap-3 p-4 bg-primary/10 rounded-lg border border-primary/20">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="text-sm font-medium">Verifying your payment...</span>
+          </div>
+        )}
 
         {orders.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border p-12 text-center">

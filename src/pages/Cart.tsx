@@ -302,32 +302,6 @@ const Cart = () => {
       </main>
 
       <Footer />
-
-      {/* Payment Notice Dialog */}
-      <AlertDialog open={showPaymentNotice} onOpenChange={setShowPaymentNotice}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-5 w-5" />
-              Important Payment Notice
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-left space-y-3">
-              <p>
-                You will be redirected to <strong>Paystack</strong> to securely complete your payment. The seller will receive your payment instantly, and delivery fees will be held until you confirm receipt.
-              </p>
-              <p className="text-muted-foreground">
-                Shodel takes a small platform fee to keep the service running. All transactions are secured by Paystack.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCheckout}>
-              I Understand, Proceed
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
