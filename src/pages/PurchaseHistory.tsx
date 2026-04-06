@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Loader2, Package, AlertTriangle, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, Package, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle, MapPin } from "lucide-react";
 import DeliveryTracker from "@/components/delivery/DeliveryTracker";
 import DeliveryContactCard from "@/components/delivery/DeliveryContactCard";
 import { format } from "date-fns";
@@ -189,17 +188,51 @@ const OrderStatusTracker = ({ status }: { status: string }) => {
 const PurchaseHistory = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+
+  // Verify payment on redirect from Paystack
+  useEffect(() => {
+    const reference = searchParams.get("reference");
+    if (!reference || !user) return;
+
+    const verifyPayment = async () => {
+      setVerifying(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("verify-payment", {
+          body: { reference },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        if (data?.verified) {
+          toast.success(data.orders_created ? "Payment verified! Your orders have been placed." : "Payment verified! Orders are being processed.");
+          fetchOrders();
+        }
+      } catch (err: any) {
+        console.error("Payment verification error:", err);
+        toast.error("Could not verify payment. Your order may still be processing.");
+      } finally {
+        setVerifying(false);
+        // Clear query params
+        setSearchParams({}, { replace: true });
+      }
+    };
+
+    verifyPayment();
+  }, [searchParams, user]);
 
   useEffect(() => {
     if (user) {
@@ -377,15 +410,12 @@ const PurchaseHistory = () => {
         <h1 className="text-3xl font-bold mb-2">Purchase History</h1>
         <p className="text-muted-foreground mb-6">View all your past orders</p>
 
-        {/* Payment Warning Alert */}
-        <Alert className="mb-8 border-yellow-500/50 bg-yellow-500/10">
-          <AlertTriangle className="h-5 w-5 text-yellow-600" />
-          <AlertTitle className="text-yellow-600 font-semibold">Important Payment Notice</AlertTitle>
-          <AlertDescription className="text-yellow-700 dark:text-yellow-500">
-            Do not make any payments until you have received the goods or service you ordered, unless otherwise agreed with the seller. 
-            <strong className="block mt-2">Shodel will not be held responsible for any fraudulent act.</strong>
-          </AlertDescription>
-        </Alert>
+        {verifying && (
+          <div className="mb-6 flex items-center gap-3 p-4 bg-primary/10 rounded-lg border border-primary/20">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="text-sm font-medium">Verifying your payment...</span>
+          </div>
+        )}
 
         {orders.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border p-12 text-center">

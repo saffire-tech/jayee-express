@@ -9,18 +9,8 @@ import DeliveryOption from '@/components/checkout/DeliveryOption';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, History, AlertTriangle } from 'lucide-react';
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, History } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 
 interface StoreInfo {
@@ -34,7 +24,6 @@ const Cart = () => {
   const { user } = useAuth();
   const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
-  const [showPaymentNotice, setShowPaymentNotice] = useState(false);
   const [deliveryData, setDeliveryData] = useState<{
     deliveryType: 'pickup' | 'delivery';
     deliveryFee: number;
@@ -64,13 +53,7 @@ const Cart = () => {
       });
   }, [items]);
 
-  const handleCheckoutClick = () => {
-    if (!user || items.length === 0) return;
-    setShowPaymentNotice(true);
-  };
-
-  const handleConfirmCheckout = async () => {
-    setShowPaymentNotice(false);
+  const handleCheckout = async () => {
     if (!user || items.length === 0) return;
     
     setCheckingOut(true);
@@ -283,7 +266,7 @@ const Cart = () => {
                 <Button 
                   className="w-full" 
                   size="lg" 
-                  onClick={handleCheckoutClick}
+                  onClick={handleCheckout}
                   disabled={checkingOut}
                 >
                   {checkingOut ? (
@@ -319,32 +302,6 @@ const Cart = () => {
       </main>
 
       <Footer />
-
-      {/* Payment Notice Dialog */}
-      <AlertDialog open={showPaymentNotice} onOpenChange={setShowPaymentNotice}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-5 w-5" />
-              Important Payment Notice
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-left space-y-3">
-              <p>
-                You will be redirected to <strong>Paystack</strong> to securely complete your payment. The seller will receive your payment instantly, and delivery fees will be held until you confirm receipt.
-              </p>
-              <p className="text-muted-foreground">
-                Shodel takes a small platform fee to keep the service running. All transactions are secured by Paystack.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCheckout}>
-              I Understand, Proceed
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
