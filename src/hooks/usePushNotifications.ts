@@ -238,13 +238,24 @@ export const usePushNotifications = (): PushNotificationState => {
   const isNative = Capacitor.isNativePlatform();
   const nativePush = useNativePushNotifications();
   const webPush = useWebPushNotifications();
+  const { user } = useAuth();
 
-  // Return native push for Capacitor apps, web push for browsers
-  if (isNative) {
-    console.log('[Push] Using native push notifications');
-    return nativePush;
-  }
+  const push = isNative ? nativePush : webPush;
 
-  console.log('[Push] Using web push notifications');
-  return webPush;
+  // Auto-subscribe when user is authenticated and not yet subscribed
+  useEffect(() => {
+    if (!user || !push.isSupported || push.isSubscribed || push.isLoading) return;
+
+    // Small delay to let the app settle
+    const timer = setTimeout(() => {
+      console.log(`[Push] Auto-subscribing (${isNative ? 'native' : 'web'}) for user:`, user.id);
+      push.subscribe();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+    // Only run when user/subscription status changes, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, push.isSupported, push.isSubscribed]);
+
+  return push;
 };
