@@ -24,7 +24,6 @@ const Cart = () => {
   const { user } = useAuth();
   const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
-  const [showPaymentNotice, setShowPaymentNotice] = useState(false);
   const [deliveryData, setDeliveryData] = useState<{
     deliveryType: 'pickup' | 'delivery';
     deliveryFee: number;
