@@ -529,7 +529,7 @@ const PurchaseHistory = () => {
                 )}
 
                 {/* Delivery Tracking */}
-                {order.delivery_type === 'delivery' && order.delivery_status && order.delivery_status !== 'confirmed' && (
+                {order.delivery_type === 'delivery' && order.delivery_status && order.delivery_status !== 'confirmed' && order.delivery_status !== 'delivered' && (
                   <div className="mb-4">
                     <DeliveryTracker
                       orderId={order.id}
