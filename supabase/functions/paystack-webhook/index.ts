@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     );
 
     const storeGroups = metadata.store_groups;
-    const totalDeliveryFee = metadata.delivery_fee || 0;
+    const totalDeliveryFee = parseFloat(metadata.delivery_fee) || 0;
 
     // Get buyer profile for notifications
     const { data: buyerProfile } = await supabase

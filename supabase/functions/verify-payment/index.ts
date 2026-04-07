@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     // Create orders (same logic as webhook)
     const storeGroups = metadata.store_groups;
-    const totalDeliveryFee = metadata.delivery_fee || 0;
+    const totalDeliveryFee = parseFloat(metadata.delivery_fee) || 0;
 
     const { data: buyerProfile } = await supabase
       .from("profiles")
