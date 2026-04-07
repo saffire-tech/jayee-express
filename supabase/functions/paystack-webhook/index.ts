@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < storeGroups.length; i++) {
       const group = storeGroups[i];
       const orderDeliveryFee = i === 0 ? totalDeliveryFee : 0;
-      const itemsTotal = group.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+      const itemsTotal = group.items.reduce((sum: number, item: any) => sum + parseFloat(item.price) * parseInt(item.quantity), 0);
       const orderTotal = itemsTotal + orderDeliveryFee;
 
       const deliveryLat = metadata.delivery_latitude ? parseFloat(metadata.delivery_latitude) : null;
