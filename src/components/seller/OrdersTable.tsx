@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, Clock, CheckCircle, XCircle, Truck } from "lucide-react";
 import type { Order } from "@/hooks/useStore";
 import DeliveryTracker from "@/components/delivery/DeliveryTracker";
+import OrderDetailDialog from "./OrderDetailDialog";
 
 interface OrdersTableProps {
   orders: Order[];
