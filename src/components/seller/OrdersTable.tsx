@@ -103,7 +103,7 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                 <Select
                   value={order.status}
                   onValueChange={(value) => onUpdateStatus(order.id, value as Order["status"])}
@@ -123,6 +123,12 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
           </div>
         );
       })}
+
+      <OrderDetailDialog
+        order={selectedOrder}
+        open={!!selectedOrder}
+        onOpenChange={(open) => !open && setSelectedOrder(null)}
+      />
     </div>
   );
 };
