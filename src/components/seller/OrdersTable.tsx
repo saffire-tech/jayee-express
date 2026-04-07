@@ -44,7 +44,8 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
         return (
           <div
             key={order.id}
-            className="bg-card border border-border rounded-xl p-4 md:p-6"
+            className="bg-card border border-border rounded-xl p-4 md:p-6 cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => setSelectedOrder(order)}
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex-1">
