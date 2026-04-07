@@ -63,6 +63,9 @@ Deno.serve(async (req) => {
       const itemsTotal = group.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
       const orderTotal = itemsTotal + orderDeliveryFee;
 
+      const deliveryLat = metadata.delivery_latitude ? parseFloat(metadata.delivery_latitude) : null;
+      const deliveryLng = metadata.delivery_longitude ? parseFloat(metadata.delivery_longitude) : null;
+
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -72,11 +75,11 @@ Deno.serve(async (req) => {
           status: "pending",
           payment_status: "paid",
           payment_reference: reference,
-          delivery_type: metadata.delivery_type,
+          delivery_type: metadata.delivery_type || "pickup",
           delivery_fee: orderDeliveryFee,
-          delivery_latitude: metadata.delivery_latitude,
-          delivery_longitude: metadata.delivery_longitude,
-          delivery_address: metadata.delivery_address,
+          delivery_latitude: isNaN(deliveryLat) ? null : deliveryLat,
+          delivery_longitude: isNaN(deliveryLng) ? null : deliveryLng,
+          delivery_address: metadata.delivery_address || null,
           delivery_status: metadata.delivery_type === "delivery" ? "pending" : null,
           delivery_payout_status: metadata.delivery_type === "delivery" ? "pending" : null,
         })
