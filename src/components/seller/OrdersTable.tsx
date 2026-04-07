@@ -21,6 +21,8 @@ const statusConfig = {
 };
 
 const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps) => {
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
   if (orders.length === 0) {
     return (
       <div className="text-center py-12">
