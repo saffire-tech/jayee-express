@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     );
 
     const storeGroups = metadata.store_groups;
-    const totalDeliveryFee = metadata.delivery_fee || 0;
+    const totalDeliveryFee = parseFloat(metadata.delivery_fee) || 0;
 
     // Get buyer profile for notifications
     const { data: buyerProfile } = await supabase
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < storeGroups.length; i++) {
       const group = storeGroups[i];
       const orderDeliveryFee = i === 0 ? totalDeliveryFee : 0;
-      const itemsTotal = group.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+      const itemsTotal = group.items.reduce((sum: number, item: any) => sum + parseFloat(item.price) * parseInt(item.quantity), 0);
       const orderTotal = itemsTotal + orderDeliveryFee;
 
       const deliveryLat = metadata.delivery_latitude ? parseFloat(metadata.delivery_latitude) : null;
@@ -95,8 +95,8 @@ Deno.serve(async (req) => {
       const orderItems = group.items.map((item: any) => ({
         order_id: order.id,
         product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.price,
+        quantity: parseInt(item.quantity) || 1,
+        price: parseFloat(item.price),
       }));
 
       await supabase.from("order_items").insert(orderItems);
