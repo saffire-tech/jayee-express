@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, Clock, CheckCircle, XCircle, Truck } from "lucide-react";
 import type { Order } from "@/hooks/useStore";
 import DeliveryTracker from "@/components/delivery/DeliveryTracker";
+import OrderDetailDialog from "./OrderDetailDialog";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -19,6 +21,8 @@ const statusConfig = {
 };
 
 const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps) => {
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
   if (orders.length === 0) {
     return (
       <div className="text-center py-12">
@@ -40,7 +44,8 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
         return (
           <div
             key={order.id}
-            className="bg-card border border-border rounded-xl p-4 md:p-6"
+            className="bg-card border border-border rounded-xl p-4 md:p-6 cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => setSelectedOrder(order)}
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex-1">
@@ -98,7 +103,7 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                 <Select
                   value={order.status}
                   onValueChange={(value) => onUpdateStatus(order.id, value as Order["status"])}
@@ -118,6 +123,12 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
           </div>
         );
       })}
+
+      <OrderDetailDialog
+        order={selectedOrder}
+        open={!!selectedOrder}
+        onOpenChange={(open) => !open && setSelectedOrder(null)}
+      />
     </div>
   );
 };
