@@ -95,8 +95,8 @@ Deno.serve(async (req) => {
       const orderItems = group.items.map((item: any) => ({
         order_id: order.id,
         product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.price,
+        quantity: parseInt(item.quantity) || 1,
+        price: parseFloat(item.price),
       }));
 
       await supabase.from("order_items").insert(orderItems);
