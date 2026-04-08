@@ -278,7 +278,6 @@ export const useStore = () => {
     const previousStatus = order?.status;
 
     // If confirming a delivery order, also set delivery_status to 'pending'
-    const order = orders.find(o => o.id === orderId);
     const isDeliveryConfirm = status === 'confirmed' && (order as any)?.delivery_type === 'delivery';
     
     const updatePayload: Record<string, any> = { status };
