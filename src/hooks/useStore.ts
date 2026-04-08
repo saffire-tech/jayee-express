@@ -277,14 +277,22 @@ export const useStore = () => {
     const order = orders.find(o => o.id === orderId);
     const previousStatus = order?.status;
 
+    // If confirming a delivery order, also set delivery_status to 'pending'
+    const isDeliveryConfirm = status === 'confirmed' && (order as any)?.delivery_type === 'delivery';
+    
+    const updatePayload: Record<string, any> = { status };
+    if (isDeliveryConfirm) {
+      updatePayload.delivery_status = 'pending';
+    }
+
     const { error } = await supabase
       .from("orders")
-      .update({ status })
+      .update(updatePayload)
       .eq("id", orderId);
 
     if (error) throw error;
     
-    setOrders(orders.map(o => o.id === orderId ? { ...o, status } : o));
+    setOrders(orders.map(o => o.id === orderId ? { ...o, ...updatePayload } : o));
     toast({ title: "Order status updated!" });
 
     // Send email notification to buyer about status change

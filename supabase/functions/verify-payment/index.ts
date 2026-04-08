@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
           delivery_latitude: isNaN(deliveryLat) ? null : deliveryLat,
           delivery_longitude: isNaN(deliveryLng) ? null : deliveryLng,
           delivery_address: metadata.delivery_address || null,
-          delivery_status: metadata.delivery_type === "delivery" ? "pending" : null,
+          delivery_status: null,
           delivery_payout_status: metadata.delivery_type === "delivery" ? "pending" : null,
         })
         .select()
