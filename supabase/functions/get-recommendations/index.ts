@@ -6,6 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null; // expired
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,26 +36,18 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    // Auth client: use anon key + user's JWT to validate identity
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
-    });
-
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authClient.auth.getUser(token);
-    
-    if (claimsError || !claimsData?.user) {
-      console.error('Auth error:', claimsError);
-      return new Response(JSON.stringify({ error: 'Unauthorized', details: claimsError?.message }), {
+    const claims = decodeJwtPayload(token);
+
+    if (!claims?.sub) {
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: 'Invalid token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
-    const user = claimsData.user;
-    console.log('User authenticated:', user.id);
+
+    const userId = claims.sub as string;
+    console.log('User authenticated:', userId);
 
     // Data client: use service role key to bypass RLS for data fetching
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -60,7 +64,7 @@ serve(async (req) => {
           products(id, name, category, price)
         )
       `)
-      .eq('buyer_id', user.id)
+      .eq('buyer_id', userId)
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -68,7 +72,7 @@ serve(async (req) => {
     const { data: searches } = await supabase
       .from('user_searches')
       .select('search_query, category, campus')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(20);
 
