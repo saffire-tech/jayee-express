@@ -43,6 +43,7 @@ export const useNotificationCounts = () => {
         const { count: unreadNotifications, error: notificationsError } = await supabase
           .from("notifications")
           .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
           .eq("is_read", false);
 
         if (notificationsError) {
@@ -129,6 +130,7 @@ export const useNotificationCounts = () => {
           event: "*",
           schema: "public",
           table: "notifications",
+          filter: `user_id=eq.${user.id}`,
         },
         () => {
           fetchCounts();
