@@ -24,7 +24,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    // Auth client: use anon key + user's JWT to validate identity
+    // Validate user identity via getClaims
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -32,18 +32,18 @@ serve(async (req) => {
     });
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authClient.auth.getUser(token);
-    
-    if (claimsError || !claimsData?.user) {
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims?.sub) {
       console.error('Auth error:', claimsError);
-      return new Response(JSON.stringify({ error: 'Unauthorized', details: claimsError?.message }), {
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: 'Auth session missing!' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
-    const user = claimsData.user;
-    console.log('User authenticated:', user.id);
+
+    const userId = claimsData.claims.sub;
+    console.log('User authenticated:', userId);
 
     // Data client: use service role key to bypass RLS for data fetching
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
