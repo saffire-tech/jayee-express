@@ -60,7 +60,7 @@ serve(async (req) => {
           products(id, name, category, price)
         )
       `)
-      .eq('buyer_id', user.id)
+      .eq('buyer_id', userId)
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -68,7 +68,7 @@ serve(async (req) => {
     const { data: searches } = await supabase
       .from('user_searches')
       .select('search_query, category, campus')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(20);
 
