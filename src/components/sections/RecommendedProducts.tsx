@@ -40,7 +40,8 @@ const RecommendedProducts = () => {
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000,
-    retry: 1,
+    retry: false,
+    meta: { suppressError: true },
   });
 
   // Fallback: fetch featured products when recommendations fail or empty

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/layout/Navbar";
-import HeroSection from "@/components/sections/HeroSection";
+import AdvertisementCarousel from "@/components/sections/AdvertisementCarousel";
 import CategoriesSection from "@/components/sections/CategoriesSection";
 import FeaturedProducts from "@/components/sections/FeaturedProducts";
 import RecommendedProducts from "@/components/sections/RecommendedProducts";
@@ -29,7 +29,7 @@ const Index = () => {
 
   const content = (
     <>
-      <HeroSection />
+      <AdvertisementCarousel />
       <RecommendedProducts />
       <CategoriesSection 
         selectedCategory={selectedCategory} 
