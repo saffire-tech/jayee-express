@@ -45,8 +45,8 @@ const HeroSection = () => {
   });
 
   // Determine the store button link and text
-  const storeButtonLink = user && store ? "/seller" : "/seller";
-  const storeButtonText = user && store ? "My Store" : "Create Your Store";
+  const storeButtonLink = user && userStore ? "/seller" : "/seller";
+  const storeButtonText = user && userStore ? "My Store" : "Create Your Store";
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden gradient-hero">
