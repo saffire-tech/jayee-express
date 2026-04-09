@@ -114,12 +114,15 @@ async function sendFCMNotification(
         notification: {
           title: payload.title,
           body: payload.body,
+          image: payload.icon,
         },
         android: {
           notification: {
-            icon: 'ic_notification',
-            color: '#f97316', // Orange accent color
-            click_action: 'FLUTTER_NOTIFICATION_CLICK',
+            icon: 'ic_stat_notification',
+            default_sound: true,
+            notification_priority: 'PRIORITY_HIGH' as const,
+            color: '#f97316',
+            channel_id: 'default',
           },
         },
         data: payload.data ? Object.fromEntries(
