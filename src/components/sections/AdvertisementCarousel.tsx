@@ -68,7 +68,7 @@ const AdvertisementCarousel = () => {
   if (products.length === 0) return null;
 
   return (
-    <section className="w-full relative">
+    <section className="w-full relative pt-14 md:pt-16">
       <div ref={emblaRef} className="overflow-hidden">
         <div className="flex">
           {products.map((product) => (
