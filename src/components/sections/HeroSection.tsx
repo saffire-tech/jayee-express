@@ -7,11 +7,24 @@ import GlobalSearch from "@/components/search/GlobalSearch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompactCounter } from "@/components/ui/AnimatedCounter";
 import { useAuth } from "@/contexts/AuthContext";
-import { useStore } from "@/hooks/useStore";
 
 const HeroSection = () => {
   const { user } = useAuth();
-  const { store } = useStore();
+
+  const { data: userStore } = useQuery({
+    queryKey: ['user-store-exists', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000,
+  });
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['homepage-stats'],
