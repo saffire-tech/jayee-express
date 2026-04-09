@@ -6,8 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompactCounter } from "@/components/ui/AnimatedCounter";
+import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/hooks/useStore";
 
 const HeroSection = () => {
+  const { user } = useAuth();
+  const { store } = useStore();
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['homepage-stats'],
     queryFn: async () => {
@@ -25,6 +30,10 @@ const HeroSection = () => {
     },
     staleTime: 5 * 60 * 1000 // Cache for 5 minutes
   });
+
+  // Determine the store button link and text
+  const storeButtonLink = user && store ? "/seller" : "/seller";
+  const storeButtonText = user && store ? "My Store" : "Create Your Store";
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden gradient-hero">
@@ -76,10 +85,10 @@ const HeroSection = () => {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/seller">
+            <Link to={storeButtonLink}>
               <Button variant="heroOutline" size="xl" className="w-full sm:w-auto gap-2">
                 <Store className="h-5 w-5" />
-                Create Your Store
+                {storeButtonText}
               </Button>
             </Link>
           </div>
