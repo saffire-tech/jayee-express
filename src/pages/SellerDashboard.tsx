@@ -17,7 +17,8 @@ import StoreImageUpload from "@/components/seller/StoreImageUpload";
 import MapPicker from "@/components/maps/MapPicker";
 import WebServicesManager from "@/components/seller/WebServicesManager";
 import LocationSelector from "@/components/ui/LocationSelector";
-import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe, Smartphone } from "lucide-react";
+import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe, Smartphone, Wallet } from "lucide-react";
+import WalletCard from "@/components/wallet/WalletCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareButton from "@/components/ui/ShareButton";
 import { Button } from "@/components/ui/button";
@@ -214,6 +215,10 @@ const SellerDashboard = () => {
               <Globe className="h-4 w-4" />
               <span className="hidden sm:inline">Services</span>
             </TabsTrigger>
+            <TabsTrigger value="wallet" className="gap-2 flex-1 md:flex-initial min-w-fit">
+              <Wallet className="h-4 w-4" />
+              <span className="hidden sm:inline">Wallet</span>
+            </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2 flex-1 md:flex-initial min-w-fit">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -245,6 +250,10 @@ const SellerDashboard = () => {
                 onDelete={deleteWebService}
               />
             </div>
+          </TabsContent>
+
+          <TabsContent value="wallet">
+            <WalletCard role="seller" storeId={store.id} />
           </TabsContent>
 
           <TabsContent value="settings">
