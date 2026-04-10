@@ -112,6 +112,7 @@ const CancelCountdown = ({ createdAt, orderId, cancellingOrderId, onCancel }: {
   );
 };
 
+interface OrderItem {
   id: string;
   product_id: string;
   quantity: number;
