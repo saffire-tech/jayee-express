@@ -64,7 +64,54 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface OrderItem {
+const CancelCountdown = ({ createdAt, orderId, cancellingOrderId, onCancel }: { 
+  createdAt: string; orderId: string; cancellingOrderId: string | null; onCancel: (id: string) => void 
+}) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const update = () => {
+      const created = new Date(createdAt).getTime();
+      const deadline = created + 15 * 60 * 1000;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        setTimeLeft('');
+        return;
+      }
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      setTimeLeft(`${m}:${s.toString().padStart(2, '0')}`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">{timeLeft}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2"
+        onClick={() => onCancel(orderId)}
+        disabled={cancellingOrderId === orderId}
+      >
+        {cancellingOrderId === orderId ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <>
+            <X className="h-3 w-3 mr-1" />
+            Cancel
+          </>
+        )}
+      </Button>
+    </div>
+  );
+};
+
   id: string;
   product_id: string;
   quantity: number;
