@@ -9,7 +9,13 @@ import ActiveDelivery from '@/components/delivery/ActiveDelivery';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Package, History } from 'lucide-react';
+import { Loader2, Truck, Package, History, Wallet, Smartphone } from 'lucide-react';
+import WalletCard from '@/components/wallet/WalletCard';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 const DeliveryDashboard = () => {
@@ -19,6 +25,43 @@ const DeliveryDashboard = () => {
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [momoNumber, setMomoNumber] = useState('');
+  const [momoProvider, setMomoProvider] = useState('');
+  const [savingMomo, setSavingMomo] = useState(false);
+
+  // Load existing MoMo details
+  useEffect(() => {
+    if (!user) return;
+    const loadMomo = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('momo_number, momo_provider')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data) {
+        setMomoNumber(data.momo_number || '');
+        setMomoProvider(data.momo_provider || '');
+      }
+    };
+    loadMomo();
+  }, [user]);
+
+  const handleSaveMomo = async () => {
+    if (!momoNumber || !momoProvider) return;
+    setSavingMomo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-subaccount', {
+        body: { momo_number: momoNumber, momo_provider: momoProvider },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('MoMo details saved for withdrawals!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save MoMo');
+    } finally {
+      setSavingMomo(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -101,6 +144,10 @@ const DeliveryDashboard = () => {
                 <Package className="h-4 w-4" />
                 Available
               </TabsTrigger>
+              <TabsTrigger value="wallet" className="flex-1 gap-2">
+                <Wallet className="h-4 w-4" />
+                Wallet
+              </TabsTrigger>
               <TabsTrigger value="history" className="flex-1 gap-2">
                 <History className="h-4 w-4" />
                 History
@@ -109,6 +156,42 @@ const DeliveryDashboard = () => {
 
             <TabsContent value="available" className="mt-4">
               <AvailableOrders onAccept={(id) => setActiveOrderId(id)} />
+            </TabsContent>
+
+            <TabsContent value="wallet" className="mt-4">
+              <WalletCard role="delivery" />
+              <Card className="mt-6">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" />
+                    MoMo Withdrawal Details
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Set up your mobile money to receive withdrawals from your wallet.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label>MoMo Provider</Label>
+                      <Select value={momoProvider} onValueChange={setMomoProvider}>
+                        <SelectTrigger className="mt-1"><SelectValue placeholder="Select provider" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MTN">MTN Mobile Money</SelectItem>
+                          <SelectItem value="Vodafone">Vodafone Cash</SelectItem>
+                          <SelectItem value="AirtelTigo">AirtelTigo Money</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>MoMo Number</Label>
+                      <Input value={momoNumber} onChange={(e) => setMomoNumber(e.target.value)} placeholder="e.g., 0241234567" className="mt-1" />
+                    </div>
+                  </div>
+                  <Button onClick={handleSaveMomo} disabled={savingMomo || !momoNumber || !momoProvider} className="mt-4">
+                    {savingMomo && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Save MoMo Details
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="history" className="mt-4">

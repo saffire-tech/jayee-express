@@ -64,6 +64,54 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const CancelCountdown = ({ createdAt, orderId, cancellingOrderId, onCancel }: { 
+  createdAt: string; orderId: string; cancellingOrderId: string | null; onCancel: (id: string) => void 
+}) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const update = () => {
+      const created = new Date(createdAt).getTime();
+      const deadline = created + 15 * 60 * 1000;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        setTimeLeft('');
+        return;
+      }
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      setTimeLeft(`${m}:${s.toString().padStart(2, '0')}`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">{timeLeft}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2"
+        onClick={() => onCancel(orderId)}
+        disabled={cancellingOrderId === orderId}
+      >
+        {cancellingOrderId === orderId ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <>
+            <X className="h-3 w-3 mr-1" />
+            Cancel
+          </>
+        )}
+      </Button>
+    </div>
+  );
+};
+
 interface OrderItem {
   id: string;
   product_id: string;
@@ -355,14 +403,12 @@ const PurchaseHistory = () => {
     setShowCancelDialog(false);
     
     try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ status: "cancelled" })
-        .eq("id", orderToCancel)
-        .eq("buyer_id", user?.id)
-        .eq("status", "pending");
+      const { data, error } = await supabase.functions.invoke("cancel-order-refund", {
+        body: { order_id: orderToCancel },
+      });
       
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       
       setOrders(prev => 
         prev.map(order => 
@@ -372,14 +418,30 @@ const PurchaseHistory = () => {
         )
       );
       
-      toast.success("Order cancelled successfully");
-    } catch (error) {
+      toast.success("Order cancelled. Your refund is being processed.");
+    } catch (error: any) {
       console.error("Error cancelling order:", error);
-      toast.error("Failed to cancel order. Please try again.");
+      toast.error(error.message || "Failed to cancel order. Please try again.");
     } finally {
       setCancellingOrderId(null);
       setOrderToCancel(null);
     }
+  };
+
+  const isWithinCancelWindow = (createdAt: string) => {
+    const created = new Date(createdAt).getTime();
+    const now = Date.now();
+    return now - created < 15 * 60 * 1000;
+  };
+
+  const getCancelTimeRemaining = (createdAt: string) => {
+    const created = new Date(createdAt).getTime();
+    const deadline = created + 15 * 60 * 1000;
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return null;
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const openCancelDialog = (orderId: string) => {
@@ -466,23 +528,13 @@ const PurchaseHistory = () => {
                       {statusConfig[order.status]?.icon}
                       <span className="ml-1">{statusConfig[order.status]?.label || order.status}</span>
                     </Badge>
-                    {order.status === "pending" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-500/10 h-7 px-2"
-                        onClick={() => openCancelDialog(order.id)}
-                        disabled={cancellingOrderId === order.id}
-                      >
-                        {cancellingOrderId === order.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <>
-                            <X className="h-3 w-3 mr-1" />
-                            Cancel
-                          </>
-                        )}
-                      </Button>
+                    {order.status === "pending" && isWithinCancelWindow(order.created_at) && (
+                      <CancelCountdown 
+                        createdAt={order.created_at} 
+                        orderId={order.id}
+                        cancellingOrderId={cancellingOrderId}
+                        onCancel={openCancelDialog}
+                      />
                     )}
                   </div>
                 </div>
@@ -585,9 +637,9 @@ const PurchaseHistory = () => {
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
+            <AlertDialogTitle>Cancel Order & Request Refund?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel this order? This action cannot be undone. The seller will be notified of the cancellation.
+              Are you sure you want to cancel this order? A full refund will be initiated to your payment method. The seller will be notified.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

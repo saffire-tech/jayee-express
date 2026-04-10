@@ -270,6 +270,7 @@ export type Database = {
       orders: {
         Row: {
           buyer_id: string
+          cancelled_at: string | null
           created_at: string
           delivery_address: string | null
           delivery_fee: number
@@ -290,6 +291,7 @@ export type Database = {
         }
         Insert: {
           buyer_id: string
+          cancelled_at?: string | null
           created_at?: string
           delivery_address?: string | null
           delivery_fee?: number
@@ -310,6 +312,7 @@ export type Database = {
         }
         Update: {
           buyer_id?: string
+          cancelled_at?: string | null
           created_at?: string
           delivery_address?: string | null
           delivery_fee?: number
@@ -746,6 +749,99 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string
+          id: string
+          reference_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description: string
+          id?: string
+          reference_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string
+          id?: string
+          reference_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawal_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          momo_number: string
+          momo_provider: string
+          paystack_transfer_code: string | null
+          processed_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          momo_number: string
+          momo_provider: string
+          paystack_transfer_code?: string | null
+          processed_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          momo_number?: string
+          momo_provider?: string
+          paystack_transfer_code?: string | null
+          processed_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -763,6 +859,16 @@ export type Database = {
         Returns: undefined
       }
       increment_store_views: { Args: { store_id: string }; Returns: undefined }
+      update_wallet_balance: {
+        Args: {
+          _amount: number
+          _description: string
+          _reference_id?: string
+          _type: string
+          _user_id: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "delivery"

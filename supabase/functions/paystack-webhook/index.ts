@@ -17,7 +17,6 @@ Deno.serve(async (req) => {
 
     const body = await req.text();
     
-    // Verify Paystack signature
     const signature = req.headers.get("x-paystack-signature");
     if (signature) {
       const hash = createHmac("sha512", PAYSTACK_SECRET_KEY).update(body).digest("hex");
@@ -40,23 +39,28 @@ Deno.serve(async (req) => {
       return new Response("Missing metadata", { status: 400 });
     }
 
-    // Use service role to bypass RLS
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Get commission percentage
+    const { data: commissionSetting } = await supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "commission_percentage")
+      .single();
+    const commissionPercent = commissionSetting ? parseFloat(commissionSetting.value) : 5;
+
     const storeGroups = metadata.store_groups;
     const totalDeliveryFee = parseFloat(metadata.delivery_fee) || 0;
 
-    // Get buyer profile for notifications
     const { data: buyerProfile } = await supabase
       .from("profiles")
       .select("full_name")
       .eq("user_id", metadata.buyer_id)
       .single();
 
-    // Create orders for each store
     for (let i = 0; i < storeGroups.length; i++) {
       const group = storeGroups[i];
       const orderDeliveryFee = i === 0 ? totalDeliveryFee : 0;
@@ -91,7 +95,6 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Create order items
       const orderItems = group.items.map((item: any) => ({
         order_id: order.id,
         product_id: item.product_id,
@@ -101,7 +104,7 @@ Deno.serve(async (req) => {
 
       await supabase.from("order_items").insert(orderItems);
 
-      // Notify seller
+      // Credit seller's wallet (items total minus commission)
       const { data: storeData } = await supabase
         .from("stores")
         .select("user_id, name")
@@ -109,6 +112,21 @@ Deno.serve(async (req) => {
         .single();
 
       if (storeData?.user_id) {
+        const sellerShare = itemsTotal * (1 - commissionPercent / 100);
+        if (sellerShare > 0) {
+          try {
+            await supabase.rpc("update_wallet_balance", {
+              _user_id: storeData.user_id,
+              _amount: sellerShare,
+              _type: "credit",
+              _description: `Sale from order #${order.id.slice(0, 8)}`,
+              _reference_id: order.id,
+            });
+          } catch (e) {
+            console.error("Wallet credit error for seller:", e);
+          }
+        }
+
         await supabase.from("notifications").insert({
           user_id: storeData.user_id,
           type: "order",
