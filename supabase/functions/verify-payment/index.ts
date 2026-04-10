@@ -11,13 +11,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY not set");
-
     const { reference } = await req.json();
     if (!reference) throw new Error("No reference provided");
 
-    // Verify transaction with Paystack
+    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
+    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY not set");
+
     const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
       headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
     });
@@ -40,13 +39,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role to bypass RLS
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if orders already exist for this reference
+    // Check if orders already exist
     const { data: existingOrders } = await supabase
       .from("orders")
       .select("id")
@@ -54,13 +52,19 @@ Deno.serve(async (req) => {
       .limit(1);
 
     if (existingOrders && existingOrders.length > 0) {
-      // Orders already created (webhook beat us)
       return new Response(JSON.stringify({ verified: true, orders_created: false, message: "Orders already exist" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Create orders (same logic as webhook)
+    // Get commission
+    const { data: commissionSetting } = await supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "commission_percentage")
+      .single();
+    const commissionPercent = commissionSetting ? parseFloat(commissionSetting.value) : 5;
+
     const storeGroups = metadata.store_groups;
     const totalDeliveryFee = parseFloat(metadata.delivery_fee) || 0;
 
@@ -113,7 +117,7 @@ Deno.serve(async (req) => {
 
       await supabase.from("order_items").insert(orderItems);
 
-      // Notify seller
+      // Credit seller's wallet
       const { data: storeData } = await supabase
         .from("stores")
         .select("user_id, name")
@@ -121,6 +125,21 @@ Deno.serve(async (req) => {
         .single();
 
       if (storeData?.user_id) {
+        const sellerShare = itemsTotal * (1 - commissionPercent / 100);
+        if (sellerShare > 0) {
+          try {
+            await supabase.rpc("update_wallet_balance", {
+              _user_id: storeData.user_id,
+              _amount: sellerShare,
+              _type: "credit",
+              _description: `Sale from order #${order.id.slice(0, 8)}`,
+              _reference_id: order.id,
+            });
+          } catch (e) {
+            console.error("Wallet credit error for seller:", e);
+          }
+        }
+
         await supabase.from("notifications").insert({
           user_id: storeData.user_id,
           type: "order",
@@ -131,7 +150,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Clear buyer's cart
     await supabase.from("cart_items").delete().eq("user_id", metadata.buyer_id);
 
     return new Response(JSON.stringify({ verified: true, orders_created: true }), {

@@ -28,7 +28,12 @@ Deno.serve(async (req) => {
 
     const { items, deliveryData, email } = await req.json();
 
-    // Group items by store
+    // Calculate total amount — all money goes to platform
+    const subtotal = items.reduce((sum: number, item: any) => sum + item.product.price * item.quantity, 0);
+    const deliveryFee = deliveryData?.deliveryFee || 0;
+    const totalAmount = Math.round((subtotal + deliveryFee) * 100); // pesewas
+
+    // Group items by store for metadata
     const storeGroups: Record<string, any[]> = {};
     for (const item of items) {
       const storeId = item.product.store_id;
@@ -36,47 +41,6 @@ Deno.serve(async (req) => {
       storeGroups[storeId].push(item);
     }
 
-    // Get commission percentage
-    const { data: commissionSetting } = await supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "commission_percentage")
-      .single();
-    
-    const commissionPercent = commissionSetting ? parseFloat(commissionSetting.value) : 5;
-
-    // Calculate total amount
-    const subtotal = items.reduce((sum: number, item: any) => sum + item.product.price * item.quantity, 0);
-    const deliveryFee = deliveryData?.deliveryFee || 0;
-    const totalAmount = Math.round((subtotal + deliveryFee) * 100); // Paystack uses pesewas
-
-    // Build split config for stores with subaccounts
-    const subaccounts: any[] = [];
-    const storeIds = Object.keys(storeGroups);
-
-    for (const storeId of storeIds) {
-      const { data: store } = await supabase
-        .from("stores")
-        .select("paystack_subaccount_code, name")
-        .eq("id", storeId)
-        .single();
-
-      if (store?.paystack_subaccount_code) {
-        const storeTotal = storeGroups[storeId].reduce(
-          (sum: number, item: any) => sum + item.product.price * item.quantity, 0
-        );
-        // Store gets their share minus platform commission
-        const storeShare = Math.round(storeTotal * (1 - commissionPercent / 100) * 100); // in pesewas
-        if (storeShare > 0) {
-          subaccounts.push({
-            subaccount: store.paystack_subaccount_code,
-            share: storeShare,
-          });
-        }
-      }
-    }
-
-    // Build metadata for webhook to create orders
     const metadata = {
       buyer_id: user.id,
       delivery_type: deliveryData?.deliveryType || "pickup",
@@ -95,7 +59,7 @@ Deno.serve(async (req) => {
       })),
     };
 
-    // Initialize Paystack transaction
+    // Initialize Paystack transaction — no splits, all to platform
     const paystackPayload: any = {
       email,
       amount: totalAmount,
@@ -103,16 +67,6 @@ Deno.serve(async (req) => {
       metadata,
       callback_url: `${req.headers.get("origin") || ""}/purchases?payment=success`,
     };
-
-    // Add split if there are subaccounts
-    if (subaccounts.length > 0) {
-      paystackPayload.split = {
-        type: "flat",
-        currency: "GHS",
-        subaccounts,
-        bearer_type: "account", // platform bears Paystack fees
-      };
-    }
 
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
