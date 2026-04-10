@@ -62,7 +62,6 @@ const DeliveryDashboard = () => {
       setSavingMomo(false);
     }
   };
-  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
