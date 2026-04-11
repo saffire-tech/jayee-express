@@ -266,116 +266,168 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
   }
 
   return (
-    <div className="relative" style={{ height: 'calc(100vh - 180px)' }}>
-      {/* Map */}
-      <div ref={mapContainerRef} className="w-full h-full rounded-xl overflow-hidden" />
+    <div className="space-y-4">
+      {/* Map section */}
+      {!locationError && (
+        <div className="relative" style={{ height: '50vh', minHeight: '300px' }}>
+          <div ref={mapContainerRef} className="w-full h-full rounded-xl overflow-hidden" />
 
-      {/* Order count badge */}
-      <div className="absolute top-3 left-3 z-10">
-        <Badge className="bg-background/90 text-foreground backdrop-blur-sm border shadow-md px-3 py-1.5">
-          <Package className="h-3.5 w-3.5 mr-1.5" />
-          {orders.length} available
-        </Badge>
-      </div>
+          {/* Order count badge */}
+          <div className="absolute top-3 left-3 z-10">
+            <Badge className="bg-background/90 text-foreground backdrop-blur-sm border shadow-md px-3 py-1.5">
+              <Package className="h-3.5 w-3.5 mr-1.5" />
+              {orders.length} available
+            </Badge>
+          </div>
 
-      {/* Bottom sheet for selected order */}
-      {selectedOrder && (
-        <div className="absolute bottom-0 left-0 right-0 z-20 bg-card border-t border-border rounded-t-2xl shadow-2xl max-h-[60%] overflow-y-auto animate-in slide-in-from-bottom">
-          <div className="p-4">
-            {/* Handle bar */}
-            <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-3" />
+          {/* Bottom sheet for selected order */}
+          {selectedOrder && (
+            <div className="absolute bottom-0 left-0 right-0 z-20 bg-card border-t border-border rounded-t-2xl shadow-2xl max-h-[60%] overflow-y-auto animate-in slide-in-from-bottom">
+              <div className="p-4">
+                <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-3" />
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-bold text-lg">{selectedOrder.store?.name || 'Unknown Store'}</h3>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {selectedOrder.store?.location || 'No location'}
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={closeDetail}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
 
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-bold text-lg">{selectedOrder.store?.name || 'Unknown Store'}</h3>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {selectedOrder.store?.location || 'No location'}
+                {loadingDetail ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading route & items...
+                  </div>
+                ) : (
+                  <>
+                    {orderDetail?.route && (
+                      <div className="flex gap-3 mb-3">
+                        <Badge variant="secondary" className="gap-1">
+                          <Navigation className="h-3 w-3" />
+                          {orderDetail.route.distance.toFixed(1)} km
+                        </Badge>
+                        <Badge variant="secondary" className="gap-1">
+                          <Clock className="h-3 w-3" />
+                          ~{Math.ceil(orderDetail.route.duration)} min
+                        </Badge>
+                      </div>
+                    )}
+                    {orderDetail?.items && orderDetail.items.length > 0 && (
+                      <div className="mb-3 space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">Order Items</p>
+                        {orderDetail.items.map((item, i) => (
+                          <div key={i} className="flex items-center gap-2 text-sm">
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.name} className="w-8 h-8 rounded object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <span className="flex-1 line-clamp-1">{item.quantity}x {item.name}</span>
+                            <span className="text-muted-foreground">₵{(item.quantity * item.price).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div className="flex items-center gap-3 mb-3">
+                  <Badge variant="outline" className="text-primary border-primary text-base px-3 py-1">
+                    Fee: ₵{Number(selectedOrder.delivery_fee).toLocaleString()}
+                  </Badge>
+                  <Badge variant="secondary">
+                    Order: ₵{Number(selectedOrder.total_amount).toLocaleString()}
+                  </Badge>
+                </div>
+
+                {selectedOrder.delivery_address && (
+                  <p className="text-sm text-muted-foreground mb-3">
+                    <MapPin className="h-3 w-3 inline mr-1" />
+                    Deliver to: {selectedOrder.delivery_address}
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={() => handleAccept(selectedOrder.id)} disabled={accepting === selectedOrder.id}>
+                    {accepting === selectedOrder.id ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Accept Delivery
+                  </Button>
+                  <Button variant="outline" onClick={closeDetail}>Close</Button>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={closeDetail}>
-                <X className="h-4 w-4" />
-              </Button>
             </div>
+          )}
 
-            {/* Route info */}
-            {loadingDetail ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading route & items...
+          {orders.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl">
+              <div className="text-center">
+                <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                <h3 className="font-semibold">No deliveries available</h3>
+                <p className="text-sm text-muted-foreground">Check back later for new delivery requests</p>
               </div>
-            ) : (
-              <>
-                {orderDetail?.route && (
-                  <div className="flex gap-3 mb-3">
-                    <Badge variant="secondary" className="gap-1">
-                      <Navigation className="h-3 w-3" />
-                      {orderDetail.route.distance.toFixed(1)} km
-                    </Badge>
-                    <Badge variant="secondary" className="gap-1">
-                      <Clock className="h-3 w-3" />
-                      ~{Math.ceil(orderDetail.route.duration)} min
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Order items */}
-                {orderDetail?.items && orderDetail.items.length > 0 && (
-                  <div className="mb-3 space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Order Items</p>
-                    {orderDetail.items.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm">
-                        {item.image_url ? (
-                          <img src={item.image_url} alt={item.name} className="w-8 h-8 rounded object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                            <Package className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        <span className="flex-1 line-clamp-1">{item.quantity}x {item.name}</span>
-                        <span className="text-muted-foreground">₵{(item.quantity * item.price).toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Fee & actions */}
-            <div className="flex items-center gap-3 mb-3">
-              <Badge variant="outline" className="text-primary border-primary text-base px-3 py-1">
-                Fee: ₵{Number(selectedOrder.delivery_fee).toLocaleString()}
-              </Badge>
-              <Badge variant="secondary">
-                Order: ₵{Number(selectedOrder.total_amount).toLocaleString()}
-              </Badge>
             </div>
-
-            {selectedOrder.delivery_address && (
-              <p className="text-sm text-muted-foreground mb-3">
-                <MapPin className="h-3 w-3 inline mr-1" />
-                Deliver to: {selectedOrder.delivery_address}
-              </p>
-            )}
-
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={() => handleAccept(selectedOrder.id)} disabled={accepting === selectedOrder.id}>
-                {accepting === selectedOrder.id ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                Accept Delivery
-              </Button>
-              <Button variant="outline" onClick={closeDetail}>Close</Button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
-      {/* Empty state overlay */}
-      {orders.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl">
-          <div className="text-center">
-            <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <h3 className="font-semibold">No deliveries available</h3>
-            <p className="text-sm text-muted-foreground">Check back later for new delivery requests</p>
-          </div>
+      {/* List view - always visible as fallback */}
+      {orders.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-sm text-muted-foreground px-1">
+            {orders.length} Available Deliver{orders.length === 1 ? 'y' : 'ies'}
+          </h3>
+          {orders.map((order) => {
+            const dist = userPos && order.store?.latitude && order.store?.longitude
+              ? haversineDistance(userPos.lat, userPos.lng, order.store.latitude, order.store.longitude)
+              : null;
+            return (
+              <div
+                key={order.id}
+                className="bg-card border rounded-xl p-4 flex items-center gap-4"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">{order.store?.name || 'Unknown Store'}</p>
+                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{order.delivery_address || order.store?.location || 'No address'}</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <Badge variant="outline" className="text-primary border-primary">
+                      Fee: ₵{Number(order.delivery_fee).toLocaleString()}
+                    </Badge>
+                    {dist !== null && (
+                      <span className="text-xs text-muted-foreground">{dist.toFixed(1)} km away</span>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => handleAccept(order.id)}
+                  disabled={accepting === order.id}
+                >
+                  {accepting === order.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Accept'
+                  )}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {orders.length === 0 && locationError && (
+        <div className="text-center py-12">
+          <LocateOff className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+          <h3 className="font-semibold">No deliveries available</h3>
+          <p className="text-sm text-muted-foreground">Enable location for a better experience</p>
         </div>
       )}
     </div>
