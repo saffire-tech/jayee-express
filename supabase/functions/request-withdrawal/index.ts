@@ -181,9 +181,9 @@ Deno.serve(async (req) => {
       await adminClient.from("withdrawal_requests").update({ status: "failed" }).eq("id", withdrawal.id);
       throw new Error(transferData.message || "Transfer failed");
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Withdrawal error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

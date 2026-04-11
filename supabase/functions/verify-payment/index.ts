@@ -94,8 +94,8 @@ Deno.serve(async (req) => {
           payment_reference: reference,
           delivery_type: metadata.delivery_type || "pickup",
           delivery_fee: orderDeliveryFee,
-          delivery_latitude: isNaN(deliveryLat) ? null : deliveryLat,
-          delivery_longitude: isNaN(deliveryLng) ? null : deliveryLng,
+          delivery_latitude: deliveryLat !== null && !isNaN(deliveryLat) ? deliveryLat : null,
+          delivery_longitude: deliveryLng !== null && !isNaN(deliveryLng) ? deliveryLng : null,
           delivery_address: metadata.delivery_address || null,
           delivery_status: null,
           delivery_payout_status: metadata.delivery_type === "delivery" ? "pending" : null,
@@ -155,9 +155,9 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ verified: true, orders_created: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Verify payment error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

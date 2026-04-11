@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Store, Package, ShoppingCart, TrendingUp, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import AnnouncementsManager from '@/components/admin/AnnouncementsManager';
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
@@ -86,6 +87,10 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       )}
+
+      <div className="mt-8">
+        <AnnouncementsManager />
+      </div>
     </AdminLayout>
   );
 }
