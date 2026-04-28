@@ -1,7 +1,7 @@
 {
-  "name": "Shodel",
-  "short_name": "Shodel",
-  "description": "Connect to Commerce - The community marketplace for Accra",
+  "name": "Jayee Express",
+  "short_name": "Jayee",
+  "description": "Connect to Commerce - The community marketplace",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f97316",
