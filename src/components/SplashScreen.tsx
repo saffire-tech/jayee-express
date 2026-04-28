@@ -27,7 +27,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         <div className="w-28 h-28 rounded-3xl bg-white/10 backdrop-blur-sm p-4 shadow-2xl">
           <img
             src={shodelIcon}
-            alt="Shodel"
+            alt="Jayee-express"
             className="w-full h-full object-contain"
           />
         </div>
