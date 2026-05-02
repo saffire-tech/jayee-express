@@ -67,16 +67,9 @@ Deno.serve(async (req) => {
       .single();
 
     if (store) {
-      // Get commission to calculate seller share
-      const { data: commissionSetting } = await adminClient
-        .from("platform_settings")
-        .select("value")
-        .eq("key", "commission_percentage")
-        .single();
-
-      const commissionPercent = commissionSetting ? parseFloat(commissionSetting.value) : 5;
+      // No commission - full items total was credited to seller
       const itemsTotal = order.total_amount - (order.delivery_fee || 0);
-      const sellerShare = itemsTotal * (1 - commissionPercent / 100);
+      const sellerShare = itemsTotal;
 
       if (sellerShare > 0) {
         try {
