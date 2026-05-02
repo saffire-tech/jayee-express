@@ -57,14 +57,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get commission
-    const { data: commissionSetting } = await supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "commission_percentage")
-      .single();
-    const commissionPercent = commissionSetting ? parseFloat(commissionSetting.value) : 5;
-
     const storeGroups = metadata.store_groups;
     const totalDeliveryFee = parseFloat(metadata.delivery_fee) || 0;
 
@@ -125,7 +117,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (storeData?.user_id) {
-        const sellerShare = itemsTotal * (1 - commissionPercent / 100);
+        const sellerShare = itemsTotal;
         if (sellerShare > 0) {
           try {
             await supabase.rpc("update_wallet_balance", {
