@@ -34,7 +34,7 @@ const Navbar = () => {
         <div className="h-14 md:h-16 flex items-center justify-between gap-3">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <img src={shodelLogo} alt="Shodel" className="h-9 md:h-10 w-auto" />
+            <img src={shodelLogo} alt="Jayee Express" className="h-9 md:h-10 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}

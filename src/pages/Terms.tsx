@@ -4,8 +4,8 @@ import Footer from "@/components/layout/Footer";
 const Terms = () => {
   return <>
       <Helmet>
-        <title>Terms of Service | Shodel</title>
-        <meta name="description" content="Shodel Terms of Service - Read our terms and conditions for using the platform." />
+        <title>Terms of Service | Jayee Express</title>
+        <meta name="description" content="Jayee Express Terms of Service - Read our terms and conditions for using the platform." />
       </Helmet>
       
       <div className="min-h-screen flex flex-col bg-background">
@@ -19,13 +19,13 @@ const Terms = () => {
             <div className="prose prose-gray dark:prose-invert max-w-none space-y-6 md:space-y-8">
               <section>
                 <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
-                <p className="text-muted-foreground leading-relaxed">By accessing or using the Shodel platform, you agree to be bound by these Terms of Service. If you do not agree to these Terms, you may not access or use the Platform. These Terms constitute a legally binding agreement between you and Shodel.</p>
+                <p className="text-muted-foreground leading-relaxed">By accessing or using the Jayee Express platform, you agree to be bound by these Terms of Service. If you do not agree to these Terms, you may not access or use the Platform. These Terms constitute a legally binding agreement between you and Jayee Express.</p>
               </section>
 
               <section>
                 <h2 className="text-2xl font-semibold mb-4">2. Description of Service</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shodel is a peer-to-peer marketplace platform designed for community members to buy and sell 
+                  Jayee Express is a peer-to-peer marketplace platform designed for community members to buy and sell 
                   products and services. The Platform enables users to create stores, list products/services, browse 
                   offerings, communicate with other users, and complete transactions.
                 </p>
@@ -58,7 +58,7 @@ const Terms = () => {
                 <h2 className="text-2xl font-semibold mb-4">4. Marketplace Rules</h2>
                 
                 <h3 className="text-xl font-medium mt-6 mb-3">4.1 For Sellers</h3>
-                <p className="text-muted-foreground leading-relaxed">As a seller on Shodel, you agree to:</p>
+                <p className="text-muted-foreground leading-relaxed">As a seller on Jayee Express, you agree to:</p>
                 <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-3">
                   <li>Provide accurate and complete product/service descriptions</li>
                   <li>Set fair and honest prices in Ghana Cedis (₵)</li>
@@ -70,7 +70,7 @@ const Terms = () => {
                 </ul>
 
                 <h3 className="text-xl font-medium mt-6 mb-3">4.2 For Buyers</h3>
-                <p className="text-muted-foreground leading-relaxed">As a buyer on Shodel, you agree to:</p>
+                <p className="text-muted-foreground leading-relaxed">As a buyer on Jayee Express, you agree to:</p>
                 <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-3">
                   <li>Provide accurate delivery/contact information</li>
                   <li>Complete payment for orders you place</li>
@@ -81,7 +81,7 @@ const Terms = () => {
 
               <section>
                 <h2 className="text-2xl font-semibold mb-4">5. Prohibited Items and Activities</h2>
-                <p className="text-muted-foreground leading-relaxed">The following are strictly prohibited on Shodel:</p>
+                <p className="text-muted-foreground leading-relaxed">The following are strictly prohibited on Jayee Express:</p>
                 <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-3">
                   <li>Illegal drugs, narcotics, or controlled substances</li>
                   <li>Weapons, ammunition, or explosives</li>
@@ -102,7 +102,7 @@ const Terms = () => {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">6. Store Verification</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  All stores on Shodel are subject to verification and approval by our administrators. Stores must 
+                  All stores on Jayee Express are subject to verification and approval by our administrators. Stores must 
                   meet our quality and safety standards before they can be visible to other users. We reserve the 
                   right to reject, suspend, or remove any store that violates these Terms or our community guidelines.
                 </p>
@@ -111,7 +111,7 @@ const Terms = () => {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">7. Transactions and Payments</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shodel facilitates connections between buyers and sellers but is not a party to any transaction. 
+                  Jayee Express facilitates connections between buyers and sellers but is not a party to any transaction. 
                   All transactions are conducted directly between users. You are responsible for:
                 </p>
                 <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-3">
@@ -120,7 +120,7 @@ const Terms = () => {
                   <li>Resolving disputes directly with the other party</li>
                 </ul>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  All prices on the Platform are displayed in Ghana Cedis (₵). Shodel does not process payments 
+                  All prices on the Platform are displayed in Ghana Cedis (₵). Jayee Express does not process payments 
                   directly and is not responsible for payment disputes between users.
                 </p>
               </section>
@@ -128,7 +128,7 @@ const Terms = () => {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">8. User Content</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  By posting content on Shodel (including product listings, images, store information, and messages), 
+                  By posting content on Jayee Express (including product listings, images, store information, and messages), 
                   you grant us a non-exclusive, worldwide, royalty-free license to use, display, and distribute such 
                   content on our Platform. You retain ownership of your content and are responsible for ensuring it 
                   does not violate any laws or third-party rights.
@@ -167,7 +167,7 @@ const Terms = () => {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">11. Limitation of Liability</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shodel is a platform that connects buyers and sellers. We are not responsible for:
+                  Jayee Express is a platform that connects buyers and sellers. We are not responsible for:
                 </p>
                 <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-3">
                   <li>The quality, safety, or legality of items listed</li>
@@ -177,7 +177,7 @@ const Terms = () => {
                   <li>Any losses or damages arising from transactions</li>
                 </ul>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  To the maximum extent permitted by law, Shodel shall not be liable for any indirect, incidental, 
+                  To the maximum extent permitted by law, Jayee Express shall not be liable for any indirect, incidental, 
                   special, consequential, or punitive damages arising from your use of the Platform.
                 </p>
               </section>
@@ -195,9 +195,9 @@ const Terms = () => {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">13. Intellectual Property</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  The Shodel name, logo, and all related trademarks, service marks, and logos are the property 
-                  of Shodel. You may not use our intellectual property without our prior written consent. 
-                  The Platform and its original content, features, and functionality are owned by Shodel and 
+                  The Jayee Express name, logo, and all related trademarks, service marks, and logos are the property 
+                  of Jayee Express. You may not use our intellectual property without our prior written consent. 
+                  The Platform and its original content, features, and functionality are owned by Jayee Express and 
                   are protected by copyright, trademark, and other intellectual property laws.
                 </p>
               </section>

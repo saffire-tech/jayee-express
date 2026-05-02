@@ -320,7 +320,7 @@ const Products = () => {
             <p className="text-muted-foreground mb-6">
               {hasActiveFilters 
                 ? 'Try adjusting your filters or search query'
-                : 'Be the first to list your products on Shodel!'}
+                : 'Be the first to list your products on Jayee Express!'}
             </p>
             {hasActiveFilters && (
               <Button onClick={clearFilters}>Clear Filters</Button>

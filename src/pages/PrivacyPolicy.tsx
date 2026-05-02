@@ -4,8 +4,8 @@ import Footer from "@/components/layout/Footer";
 const PrivacyPolicy = () => {
   return <>
       <Helmet>
-        <title>Privacy Policy | Shodel</title>
-        <meta name="description" content="Shodel Privacy Policy - Learn how we collect, use, and protect your personal information." />
+        <title>Privacy Policy | Jayee Express</title>
+        <meta name="description" content="Jayee Express Privacy Policy - Learn how we collect, use, and protect your personal information." />
       </Helmet>
       
       <div className="min-h-screen flex flex-col bg-background">
@@ -19,9 +19,9 @@ const PrivacyPolicy = () => {
             <div className="prose prose-gray dark:prose-invert max-w-none space-y-6 md:space-y-8">
               <section>
                 <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
-                <p className="text-muted-foreground leading-relaxed">Welcome to Shodel. We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and website (collectively, the "Platform").</p>
+                <p className="text-muted-foreground leading-relaxed">Welcome to Jayee Express. We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and website (collectively, the "Platform").</p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  By using Shodel, you agree to the collection and use of information in accordance with this policy. 
+                  By using Jayee Express, you agree to the collection and use of information in accordance with this policy. 
                   If you do not agree with our policies and practices, please do not use our Platform.
                 </p>
               </section>
@@ -126,7 +126,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">8. Children's Privacy</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shodel is designed for community members and is not intended for children under 16 years of age. 
+                  Jayee Express is designed for community members and is not intended for children under 16 years of age. 
                   We do not knowingly collect personal information from children under 16. If you are a parent or 
                   guardian and believe your child has provided us with personal information, please contact us.
                 </p>

@@ -49,7 +49,7 @@ const Auth = () => {
             Back to home
           </button>
 
-          <img src={shodelLogo} alt="Shodel" className="h-12 w-auto mb-8" />
+          <img src={shodelLogo} alt="Jayee Express" className="h-12 w-auto mb-8" />
 
           <h2 className="text-3xl font-bold text-foreground mb-2">
             {isLogin ? "Welcome back" : "Create your account"}
@@ -57,7 +57,7 @@ const Auth = () => {
           <p className="text-muted-foreground mb-8">
             {isLogin
               ? "Sign in to access your account and continue shopping"
-              : "Join Shodel and start buying or selling in your community"}
+              : "Join Jayee Express and start buying or selling in your community"}
           </p>
 
           {error && (
