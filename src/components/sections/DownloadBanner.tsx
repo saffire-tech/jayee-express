@@ -12,7 +12,7 @@ const DownloadBanner = () => {
               <Smartphone className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-foreground">Get the Shodel App</h3>
+              <h3 className="text-base font-bold text-foreground">Get the Jayee Express App</h3>
               <p className="text-sm text-muted-foreground">Shop and sell on the go</p>
             </div>
           </div>

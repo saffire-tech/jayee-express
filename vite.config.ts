@@ -21,8 +21,8 @@ export default defineConfig(({ mode }) => ({
       injectRegister: "auto",
       includeAssets: ["favicon.png", "icons/*.png"],
       manifest: {
-        name: "Shodel",
-        short_name: "Shodel",
+        name: "Jayee Express",
+        short_name: "Jayee Express",
         description: "Connect to Commerce - The community marketplace for Accra",
         start_url: "/",
         display: "standalone",

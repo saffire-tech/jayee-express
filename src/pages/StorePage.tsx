@@ -147,16 +147,16 @@ const StorePage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{store.name} - Shodel</title>
-        <meta name="description" content={store.description || `Shop at ${store.name} on Shodel`} />
+        <title>{store.name} - Jayee Express</title>
+        <meta name="description" content={store.description || `Shop at ${store.name} on Jayee Express`} />
         <meta property="og:title" content={store.name} />
-        <meta property="og:description" content={store.description || `Shop at ${store.name} on Shodel - The community marketplace`} />
+        <meta property="og:description" content={store.description || `Shop at ${store.name} on Jayee Express - The community marketplace`} />
         <meta property="og:image" content={storeImage} />
         <meta property="og:url" content={storeUrl} />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={store.name} />
-        <meta name="twitter:description" content={store.description || `Shop at ${store.name} on Shodel`} />
+        <meta name="twitter:description" content={store.description || `Shop at ${store.name} on Jayee Express`} />
         <meta name="twitter:image" content={storeImage} />
       </Helmet>
       <Navbar />

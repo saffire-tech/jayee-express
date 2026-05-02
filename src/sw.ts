@@ -42,7 +42,7 @@ self.addEventListener('push', (event: PushEvent) => {
     } as NotificationOptions;
 
     event.waitUntil(
-      self.registration.showNotification(data.title || 'Shodel', options)
+      self.registration.showNotification(data.title || 'Jayee Express', options)
     );
   } catch (error) {
     console.error('[SW] Error handling push event:', error);

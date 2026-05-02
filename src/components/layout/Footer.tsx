@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1">
-            <img src={shodelLogoWhite} alt="Shodel" className="h-9 w-auto mb-3" />
+            <img src={shodelLogoWhite} alt="Jayee Express" className="h-9 w-auto mb-3" />
             <p className="text-neutral-400 text-sm mb-5 max-w-xs leading-relaxed">
               Connecting local entrepreneurs with buyers in your community.
             </p>
@@ -62,7 +62,7 @@ const Footer = () => {
 
         <div className="pt-6 border-t border-white/10 text-center">
           <p className="text-neutral-500 text-xs">
-            © {new Date().getFullYear()} Jayee-express. All rights reserved.
+            © {new Date().getFullYear()} Jayee Express. All rights reserved.
           </p>
         </div>
       </div>

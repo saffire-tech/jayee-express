@@ -33,7 +33,7 @@ function generateOGHtml(
   url: string,
   type: 'product' | 'store' | 'service'
 ): string {
-  const siteName = 'Shodel';
+  const siteName = 'Jayee Express';
   const safeTitle = title.replace(/"/g, '&quot;');
   const safeDescription = description.replace(/"/g, '&quot;');
   
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let title = 'Shodel';
+    let title = 'Jayee Express';
     let description = 'Community Marketplace';
     let imageUrl = 'https://uniplug.app/og-image.png';
 
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       }
 
       // Fetch store name separately
-      let storeName = 'Shodel';
+      let storeName = 'Jayee Express';
       if (product.store_id) {
         const { data: store } = await supabase
           .from('stores')
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       title = store.name;
       description = store.description 
         ? `${store.description.substring(0, 150)}${store.description.length > 150 ? '...' : ''}`
-        : `Shop at ${store.name}${store.location ? ` - ${store.location}` : ''} on Shodel`;
+        : `Shop at ${store.name}${store.location ? ` - ${store.location}` : ''} on Jayee Express`;
       // Prefer cover image for stores, fall back to logo
       imageUrl = store.cover_url || store.logo_url || imageUrl;
     } else if (type === 'service') {
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
       }
 
       // Fetch store info for the redirect URL and fallback image
-      let storeName = 'Shodel';
+      let storeName = 'Jayee Express';
       let storeImageUrl = '';
       if (service.store_id) {
         const { data: store } = await supabase
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
       title = service.name;
       description = service.description 
         ? `${service.description.substring(0, 150)}${service.description.length > 150 ? '...' : ''}`
-        : `${service.name} - Available at ${storeName} on Shodel`;
+        : `${service.name} - Available at ${storeName} on Jayee Express`;
       // Use service image, fall back to store image, then default
       imageUrl = service.image_url || storeImageUrl || imageUrl;
     }

@@ -199,16 +199,16 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{product.name} - Shodel</title>
-        <meta name="description" content={product.description || `Buy ${product.name} on Shodel`} />
+        <title>{product.name} - Jayee Express</title>
+        <meta name="description" content={product.description || `Buy ${product.name} on Jayee Express`} />
         <meta property="og:title" content={`${product.name} - ₵${product.price.toLocaleString()}`} />
-        <meta property="og:description" content={product.description || `Buy ${product.name} on Shodel - The community marketplace`} />
+        <meta property="og:description" content={product.description || `Buy ${product.name} on Jayee Express - The community marketplace`} />
         <meta property="og:image" content={productImage} />
         <meta property="og:url" content={productUrl} />
         <meta property="og:type" content="product" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${product.name} - ₵${product.price.toLocaleString()}`} />
-        <meta name="twitter:description" content={product.description || `Buy ${product.name} on Shodel`} />
+        <meta name="twitter:description" content={product.description || `Buy ${product.name} on Jayee Express`} />
         <meta name="twitter:image" content={productImage} />
       </Helmet>
       <Navbar />

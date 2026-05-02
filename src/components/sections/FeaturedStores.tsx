@@ -85,7 +85,7 @@ const FeaturedStores = () => {
           <div className="text-center py-12 bg-card border border-border rounded-2xl">
             <Store className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-semibold text-base mb-1">No stores yet</h3>
-            <p className="text-sm text-muted-foreground">Be the first to create your store on Shodel!</p>
+            <p className="text-sm text-muted-foreground">Be the first to create your store on Jayee Express!</p>
           </div>
         </div>
       </section>
