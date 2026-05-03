@@ -67,6 +67,24 @@ const SubscriptionCard = ({ storeId, productCount, onUpdated }: Props) => {
     return () => window.removeEventListener("focus", onFocus);
   }, [storeId]);
 
+  // If returning from Paystack with a reference, verify it (fallback if webhook is delayed)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get("reference") || params.get("trxref");
+    if (params.get("subscription") === "success" && reference) {
+      supabase.functions.invoke("verify-payment", { body: { reference } })
+        .then(() => load())
+        .finally(() => {
+          // Clean URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete("reference");
+          url.searchParams.delete("trxref");
+          url.searchParams.delete("subscription");
+          window.history.replaceState({}, "", url.toString());
+        });
+    }
+  }, []);
+
   const cd = useCountdown(store?.subscription_expires_at || null);
   const noSub = !store?.subscription_expires_at;
   const isExpired = cd?.expired || noSub;
