@@ -242,7 +242,10 @@ export const useStore = () => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      toast({ title: "Cannot add product", description: error.message, variant: "destructive" });
+      throw error;
+    }
     
     setProducts([newProduct, ...products]);
     toast({ title: "Product added!" });
