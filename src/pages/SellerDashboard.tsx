@@ -191,6 +191,11 @@ const SellerDashboard = () => {
           </div>
         </div>
 
+        {/* Subscription */}
+        <div className="mb-6">
+          <SubscriptionCard storeId={store.id} productCount={products.length} onUpdated={refetch} />
+        </div>
+
         {/* Analytics */}
         <div className="mb-8">
           <Analytics store={store} products={products} orders={orders} />
