@@ -32,17 +32,33 @@ Deno.serve(async (req) => {
     const txData = verifyData.data;
     const metadata = txData.metadata;
 
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Subscription branch
+    if (metadata?.type === "subscription") {
+      // Check idempotency
+      const { data: existingSub } = await supabase
+        .from("store_subscriptions")
+        .select("id")
+        .eq("payment_reference", reference)
+        .limit(1);
+      if (!existingSub || existingSub.length === 0) {
+        await processSubscription(supabase, metadata, reference, Number(txData.amount) / 100);
+      }
+      return new Response(JSON.stringify({ verified: true, subscription: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!metadata?.buyer_id || !metadata?.store_groups) {
       return new Response(JSON.stringify({ verified: false, error: "Missing metadata" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     // Check if orders already exist
     const { data: existingOrders } = await supabase
