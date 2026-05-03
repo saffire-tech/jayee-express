@@ -19,6 +19,7 @@ import WebServicesManager from "@/components/seller/WebServicesManager";
 import LocationSelector from "@/components/ui/LocationSelector";
 import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe, Smartphone, Wallet } from "lucide-react";
 import WalletCard from "@/components/wallet/WalletCard";
+import SubscriptionCard from "@/components/seller/SubscriptionCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareButton from "@/components/ui/ShareButton";
 import { Button } from "@/components/ui/button";
@@ -188,6 +189,11 @@ const SellerDashboard = () => {
               View Store
             </Button>
           </div>
+        </div>
+
+        {/* Subscription */}
+        <div className="mb-6">
+          <SubscriptionCard storeId={store.id} productCount={products.length} onUpdated={refetch} />
         </div>
 
         {/* Analytics */}

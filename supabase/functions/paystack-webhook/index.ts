@@ -35,14 +35,20 @@ Deno.serve(async (req) => {
     const metadata = data.metadata;
     const reference = data.reference;
 
-    if (!metadata?.buyer_id || !metadata?.store_groups) {
-      return new Response("Missing metadata", { status: 400 });
-    }
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Subscription payment branch
+    if (metadata?.type === "subscription") {
+      await processSubscription(supabase, metadata, reference, Number(data.amount) / 100);
+      return new Response("OK", { status: 200 });
+    }
+
+    if (!metadata?.buyer_id || !metadata?.store_groups) {
+      return new Response("Missing metadata", { status: 400 });
+    }
 
     const storeGroups = metadata.store_groups;
     const totalDeliveryFee = parseFloat(metadata.delivery_fee) || 0;
@@ -138,3 +144,53 @@ Deno.serve(async (req) => {
     return new Response("Internal error", { status: 500 });
   }
 });
+
+async function processSubscription(supabase: any, metadata: any, reference: string, amountPaid: number) {
+  const { store_id, plan_id, user_id, months } = metadata;
+  const monthsInt = parseInt(months) || 1;
+
+  const { data: plan } = await supabase
+    .from("subscription_plans")
+    .select("max_products, name")
+    .eq("id", plan_id)
+    .single();
+  if (!plan) throw new Error("Plan not found");
+
+  const { data: store } = await supabase
+    .from("stores")
+    .select("subscription_expires_at")
+    .eq("id", store_id)
+    .single();
+
+  const now = new Date();
+  const baseDate = store?.subscription_expires_at && new Date(store.subscription_expires_at) > now
+    ? new Date(store.subscription_expires_at)
+    : now;
+  const newExpiry = new Date(baseDate);
+  newExpiry.setMonth(newExpiry.getMonth() + monthsInt);
+
+  await supabase.from("store_subscriptions").insert({
+    store_id, user_id, plan_id,
+    months: monthsInt,
+    amount_paid: amountPaid,
+    starts_at: baseDate.toISOString(),
+    expires_at: newExpiry.toISOString(),
+    status: "active",
+    payment_reference: reference,
+  });
+
+  await supabase.from("stores").update({
+    current_plan_id: plan_id,
+    product_limit: plan.max_products,
+    subscription_expires_at: newExpiry.toISOString(),
+  }).eq("id", store_id);
+
+  await supabase.from("notifications").insert({
+    user_id,
+    type: "subscription",
+    title: "Subscription Active",
+    body: `Your ${plan.name} plan is active until ${newExpiry.toLocaleDateString()}.`,
+    data: { store_id, plan_id },
+  });
+}
+

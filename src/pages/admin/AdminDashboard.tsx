@@ -6,6 +6,7 @@ import { Users, Store, Package, ShoppingCart, TrendingUp, Eye } from 'lucide-rea
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import AnnouncementsManager from '@/components/admin/AnnouncementsManager';
+import SubscriptionPlansManager from '@/components/admin/SubscriptionPlansManager';
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
@@ -90,6 +91,10 @@ export default function AdminDashboard() {
 
       <div className="mt-8">
         <AnnouncementsManager />
+      </div>
+
+      <div className="mt-8">
+        <SubscriptionPlansManager />
       </div>
     </AdminLayout>
   );

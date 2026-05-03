@@ -32,17 +32,33 @@ Deno.serve(async (req) => {
     const txData = verifyData.data;
     const metadata = txData.metadata;
 
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Subscription branch
+    if (metadata?.type === "subscription") {
+      // Check idempotency
+      const { data: existingSub } = await supabase
+        .from("store_subscriptions")
+        .select("id")
+        .eq("payment_reference", reference)
+        .limit(1);
+      if (!existingSub || existingSub.length === 0) {
+        await processSubscription(supabase, metadata, reference, Number(txData.amount) / 100);
+      }
+      return new Response(JSON.stringify({ verified: true, subscription: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!metadata?.buyer_id || !metadata?.store_groups) {
       return new Response(JSON.stringify({ verified: false, error: "Missing metadata" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     // Check if orders already exist
     const { data: existingOrders } = await supabase
@@ -155,3 +171,52 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+async function processSubscription(supabase: any, metadata: any, reference: string, amountPaid: number) {
+  const { store_id, plan_id, user_id, months } = metadata;
+  const monthsInt = parseInt(months) || 1;
+
+  const { data: plan } = await supabase
+    .from("subscription_plans")
+    .select("max_products, name")
+    .eq("id", plan_id)
+    .single();
+  if (!plan) throw new Error("Plan not found");
+
+  const { data: store } = await supabase
+    .from("stores")
+    .select("subscription_expires_at")
+    .eq("id", store_id)
+    .single();
+
+  const now = new Date();
+  const baseDate = store?.subscription_expires_at && new Date(store.subscription_expires_at) > now
+    ? new Date(store.subscription_expires_at)
+    : now;
+  const newExpiry = new Date(baseDate);
+  newExpiry.setMonth(newExpiry.getMonth() + monthsInt);
+
+  await supabase.from("store_subscriptions").insert({
+    store_id, user_id, plan_id,
+    months: monthsInt,
+    amount_paid: amountPaid,
+    starts_at: baseDate.toISOString(),
+    expires_at: newExpiry.toISOString(),
+    status: "active",
+    payment_reference: reference,
+  });
+
+  await supabase.from("stores").update({
+    current_plan_id: plan_id,
+    product_limit: plan.max_products,
+    subscription_expires_at: newExpiry.toISOString(),
+  }).eq("id", store_id);
+
+  await supabase.from("notifications").insert({
+    user_id,
+    type: "subscription",
+    title: "Subscription Active",
+    body: `Your ${plan.name} plan is active until ${newExpiry.toLocaleDateString()}.`,
+    data: { store_id, plan_id },
+  });
+}
