@@ -35,14 +35,20 @@ Deno.serve(async (req) => {
     const metadata = data.metadata;
     const reference = data.reference;
 
-    if (!metadata?.buyer_id || !metadata?.store_groups) {
-      return new Response("Missing metadata", { status: 400 });
-    }
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Subscription payment branch
+    if (metadata?.type === "subscription") {
+      await processSubscription(supabase, metadata, reference, Number(data.amount) / 100);
+      return new Response("OK", { status: 200 });
+    }
+
+    if (!metadata?.buyer_id || !metadata?.store_groups) {
+      return new Response("Missing metadata", { status: 400 });
+    }
 
     const storeGroups = metadata.store_groups;
     const totalDeliveryFee = parseFloat(metadata.delivery_fee) || 0;
