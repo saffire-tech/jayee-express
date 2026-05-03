@@ -603,6 +603,56 @@ export type Database = {
           },
         ]
       }
+      store_subscriptions: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          expires_at: string
+          id: string
+          months: number
+          payment_reference: string | null
+          plan_id: string
+          starts_at: string
+          status: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          months: number
+          payment_reference?: string | null
+          plan_id: string
+          starts_at?: string
+          status?: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          months?: number
+          payment_reference?: string | null
+          plan_id?: string
+          starts_at?: string
+          status?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_web_services: {
         Row: {
           created_at: string
@@ -658,6 +708,7 @@ export type Database = {
           campus: string | null
           cover_url: string | null
           created_at: string
+          current_plan_id: string | null
           description: string | null
           id: string
           is_active: boolean | null
@@ -673,6 +724,8 @@ export type Database = {
           name: string
           paystack_subaccount_code: string | null
           phone: string | null
+          product_limit: number
+          subscription_expires_at: string | null
           total_sales: number | null
           total_views: number | null
           updated_at: string
@@ -682,6 +735,7 @@ export type Database = {
           campus?: string | null
           cover_url?: string | null
           created_at?: string
+          current_plan_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -697,6 +751,8 @@ export type Database = {
           name: string
           paystack_subaccount_code?: string | null
           phone?: string | null
+          product_limit?: number
+          subscription_expires_at?: string | null
           total_sales?: number | null
           total_views?: number | null
           updated_at?: string
@@ -706,6 +762,7 @@ export type Database = {
           campus?: string | null
           cover_url?: string | null
           created_at?: string
+          current_plan_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
@@ -721,10 +778,53 @@ export type Database = {
           name?: string
           paystack_subaccount_code?: string | null
           phone?: string | null
+          product_limit?: number
+          subscription_expires_at?: string | null
           total_sales?: number | null
           total_views?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_current_plan_id_fkey"
+            columns: ["current_plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          max_products: number
+          name: string
+          price_per_month: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          max_products: number
+          name: string
+          price_per_month: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          max_products?: number
+          name?: string
+          price_per_month?: number
+          updated_at?: string
         }
         Relationships: []
       }
