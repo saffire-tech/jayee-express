@@ -23,6 +23,7 @@ interface DeliveryOptionProps {
     deliveryLatitude?: number;
     deliveryLongitude?: number;
     deliveryAddress?: string;
+    deliveryLandmark?: string;
   }) => void;
 }
 
