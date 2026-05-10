@@ -30,6 +30,7 @@ const Cart = () => {
     deliveryLatitude?: number;
     deliveryLongitude?: number;
     deliveryAddress?: string;
+    deliveryLandmark?: string;
   }>({ deliveryType: 'pickup', deliveryFee: 0 });
   const [cartStores, setCartStores] = useState<StoreInfo[]>([]);
 
