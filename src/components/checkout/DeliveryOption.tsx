@@ -85,6 +85,8 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
   const [routeInfo, setRouteInfo] = useState<{ totalDistance: number; orderedStores: Array<{ name: string }> } | null>(null);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [noZoneMatch, setNoZoneMatch] = useState(false);
+  const [landmark, setLandmark] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     const fetchZones = async () => {
