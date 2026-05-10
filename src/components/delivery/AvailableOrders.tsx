@@ -19,6 +19,7 @@ interface AvailableOrder {
   delivery_latitude: number;
   delivery_longitude: number;
   delivery_address: string | null;
+  delivery_landmark?: string | null;
   created_at: string;
   store_id: string;
   store: {
