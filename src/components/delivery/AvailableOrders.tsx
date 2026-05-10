@@ -19,6 +19,7 @@ interface AvailableOrder {
   delivery_latitude: number;
   delivery_longitude: number;
   delivery_address: string | null;
+  delivery_landmark?: string | null;
   created_at: string;
   store_id: string;
   store: {
@@ -66,7 +67,7 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
   const fetchOrders = async () => {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, total_amount, delivery_fee, delivery_latitude, delivery_longitude, delivery_address, created_at, store_id')
+      .select('id, total_amount, delivery_fee, delivery_latitude, delivery_longitude, delivery_address, delivery_landmark, created_at, store_id')
       .eq('delivery_type', 'delivery')
       .eq('delivery_status', 'pending')
       .is('delivery_person_id', null);
@@ -347,9 +348,14 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
                 </div>
 
                 {selectedOrder.delivery_address && (
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-muted-foreground mb-1">
                     <MapPin className="h-3 w-3 inline mr-1" />
                     Deliver to: {selectedOrder.delivery_address}
+                  </p>
+                )}
+                {selectedOrder.delivery_landmark && (
+                  <p className="text-sm text-muted-foreground mb-3">
+                    <span className="font-medium">Landmark:</span> {selectedOrder.delivery_landmark}
                   </p>
                 )}
 

@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
       delivery_latitude: deliveryData?.deliveryLatitude || null,
       delivery_longitude: deliveryData?.deliveryLongitude || null,
       delivery_address: deliveryData?.deliveryAddress || null,
+      delivery_landmark: deliveryData?.deliveryLandmark || null,
       store_groups: Object.entries(storeGroups).map(([storeId, storeItems]) => ({
         store_id: storeId,
         items: storeItems.map((item: any) => ({

@@ -5,6 +5,8 @@ import { Package, Truck } from 'lucide-react';
 import MapPicker from '@/components/maps/MapPicker';
 import { haversineDistance } from '@/lib/distance';
 import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { MapPin } from 'lucide-react';
 
 interface StoreInfo {
   id: string;
@@ -21,6 +23,7 @@ interface DeliveryOptionProps {
     deliveryLatitude?: number;
     deliveryLongitude?: number;
     deliveryAddress?: string;
+    deliveryLandmark?: string;
   }) => void;
 }
 
@@ -82,6 +85,8 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
   const [routeInfo, setRouteInfo] = useState<{ totalDistance: number; orderedStores: Array<{ name: string }> } | null>(null);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [noZoneMatch, setNoZoneMatch] = useState(false);
+  const [landmark, setLandmark] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     const fetchZones = async () => {
@@ -118,6 +123,7 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
 
   const handleLocationSelect = (lat: number, lng: number) => {
     if (storesWithCoords.length === 0) return;
+    setCoords({ lat, lng });
 
     const { orderedStores, totalDistance } = computeRouteDistance(
       storesWithCoords.map((s) => ({ name: s.name, latitude: s.latitude, longitude: s.longitude })),
@@ -128,23 +134,27 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
     setRouteInfo({ totalDistance, orderedStores });
 
     const zone = zones.find((z) => totalDistance >= z.min_distance_km && totalDistance < z.max_distance_km);
-    if (zone) {
-      setDeliveryFee(zone.fee);
-      setNoZoneMatch(false);
+    const fee = zone?.fee ?? 0;
+    setDeliveryFee(fee);
+    setNoZoneMatch(!zone);
+    onDeliveryChange({
+      deliveryType: 'delivery',
+      deliveryFee: fee,
+      deliveryLatitude: lat,
+      deliveryLongitude: lng,
+      deliveryLandmark: landmark.trim() || undefined,
+    });
+  };
+
+  const handleLandmarkChange = (val: string) => {
+    setLandmark(val);
+    if (deliveryType === 'delivery' && coords) {
       onDeliveryChange({
         deliveryType: 'delivery',
-        deliveryFee: zone.fee,
-        deliveryLatitude: lat,
-        deliveryLongitude: lng,
-      });
-    } else {
-      setDeliveryFee(0);
-      setNoZoneMatch(true);
-      onDeliveryChange({
-        deliveryType: 'delivery',
-        deliveryFee: 0,
-        deliveryLatitude: lat,
-        deliveryLongitude: lng,
+        deliveryFee,
+        deliveryLatitude: coords.lat,
+        deliveryLongitude: coords.lng,
+        deliveryLandmark: val.trim() || undefined,
       });
     }
   };
@@ -205,6 +215,21 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
               )}
             </div>
           )}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              Landmark <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <Input
+              value={landmark}
+              onChange={(e) => handleLandmarkChange(e.target.value)}
+              placeholder="e.g. Near Shell filling station, blue gate"
+              maxLength={200}
+            />
+            <p className="text-xs text-muted-foreground">
+              Help the courier find you faster with a nearby landmark.
+            </p>
+          </div>
         </div>
       )}
     </div>
