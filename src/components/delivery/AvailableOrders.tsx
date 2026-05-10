@@ -348,9 +348,14 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
                 </div>
 
                 {selectedOrder.delivery_address && (
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-muted-foreground mb-1">
                     <MapPin className="h-3 w-3 inline mr-1" />
                     Deliver to: {selectedOrder.delivery_address}
+                  </p>
+                )}
+                {selectedOrder.delivery_landmark && (
+                  <p className="text-sm text-muted-foreground mb-3">
+                    <span className="font-medium">Landmark:</span> {selectedOrder.delivery_landmark}
                   </p>
                 )}
 
