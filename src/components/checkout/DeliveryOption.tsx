@@ -215,6 +215,21 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
               )}
             </div>
           )}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              Landmark <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <Input
+              value={landmark}
+              onChange={(e) => handleLandmarkChange(e.target.value)}
+              placeholder="e.g. Near Shell filling station, blue gate"
+              maxLength={200}
+            />
+            <p className="text-xs text-muted-foreground">
+              Help the courier find you faster with a nearby landmark.
+            </p>
+          </div>
         </div>
       )}
     </div>
