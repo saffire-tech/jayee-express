@@ -123,6 +123,7 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
 
   const handleLocationSelect = (lat: number, lng: number) => {
     if (storesWithCoords.length === 0) return;
+    setCoords({ lat, lng });
 
     const { orderedStores, totalDistance } = computeRouteDistance(
       storesWithCoords.map((s) => ({ name: s.name, latitude: s.latitude, longitude: s.longitude })),
@@ -133,23 +134,27 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
     setRouteInfo({ totalDistance, orderedStores });
 
     const zone = zones.find((z) => totalDistance >= z.min_distance_km && totalDistance < z.max_distance_km);
-    if (zone) {
-      setDeliveryFee(zone.fee);
-      setNoZoneMatch(false);
+    const fee = zone?.fee ?? 0;
+    setDeliveryFee(fee);
+    setNoZoneMatch(!zone);
+    onDeliveryChange({
+      deliveryType: 'delivery',
+      deliveryFee: fee,
+      deliveryLatitude: lat,
+      deliveryLongitude: lng,
+      deliveryLandmark: landmark.trim() || undefined,
+    });
+  };
+
+  const handleLandmarkChange = (val: string) => {
+    setLandmark(val);
+    if (deliveryType === 'delivery' && coords) {
       onDeliveryChange({
         deliveryType: 'delivery',
-        deliveryFee: zone.fee,
-        deliveryLatitude: lat,
-        deliveryLongitude: lng,
-      });
-    } else {
-      setDeliveryFee(0);
-      setNoZoneMatch(true);
-      onDeliveryChange({
-        deliveryType: 'delivery',
-        deliveryFee: 0,
-        deliveryLatitude: lat,
-        deliveryLongitude: lng,
+        deliveryFee,
+        deliveryLatitude: coords.lat,
+        deliveryLongitude: coords.lng,
+        deliveryLandmark: val.trim() || undefined,
       });
     }
   };
