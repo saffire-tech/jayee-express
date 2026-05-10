@@ -168,6 +168,36 @@ export type Database = {
         }
         Relationships: []
       }
+      locations: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          zone: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          zone: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          zone?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -301,6 +331,7 @@ export type Database = {
           created_at: string
           delivery_address: string | null
           delivery_fee: number
+          delivery_landmark: string | null
           delivery_latitude: number | null
           delivery_longitude: number | null
           delivery_payout_status: string | null
@@ -322,6 +353,7 @@ export type Database = {
           created_at?: string
           delivery_address?: string | null
           delivery_fee?: number
+          delivery_landmark?: string | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           delivery_payout_status?: string | null
@@ -343,6 +375,7 @@ export type Database = {
           created_at?: string
           delivery_address?: string | null
           delivery_fee?: number
+          delivery_landmark?: string | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           delivery_payout_status?: string | null
