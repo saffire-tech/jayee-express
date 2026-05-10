@@ -67,7 +67,7 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
   const fetchOrders = async () => {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, total_amount, delivery_fee, delivery_latitude, delivery_longitude, delivery_address, created_at, store_id')
+      .select('id, total_amount, delivery_fee, delivery_latitude, delivery_longitude, delivery_address, delivery_landmark, created_at, store_id')
       .eq('delivery_type', 'delivery')
       .eq('delivery_status', 'pending')
       .is('delivery_person_id', null);
