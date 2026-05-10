@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.initialize-subscription]
 verify_jwt = false
+
+[functions.cart-reminder]
+verify_jwt = false
