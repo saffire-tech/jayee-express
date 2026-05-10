@@ -5,6 +5,8 @@ import { Package, Truck } from 'lucide-react';
 import MapPicker from '@/components/maps/MapPicker';
 import { haversineDistance } from '@/lib/distance';
 import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { MapPin } from 'lucide-react';
 
 interface StoreInfo {
   id: string;
