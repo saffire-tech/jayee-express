@@ -105,6 +105,12 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
                   {orderData.delivery_address}
                 </p>
               )}
+              {orderData.delivery_landmark && (
+                <p>
+                  <span className="text-muted-foreground">Landmark: </span>
+                  {orderData.delivery_landmark}
+                </p>
+              )}
               {orderData.delivery_status && (
                 <p>
                   <span className="text-muted-foreground">Status: </span>
