@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import AnnouncementsManager from '@/components/admin/AnnouncementsManager';
 import SubscriptionPlansManager from '@/components/admin/SubscriptionPlansManager';
+import LocationsManager from '@/components/admin/LocationsManager';
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
