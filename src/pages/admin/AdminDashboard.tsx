@@ -97,6 +97,10 @@ export default function AdminDashboard() {
       <div className="mt-8">
         <SubscriptionPlansManager />
       </div>
+
+      <div className="mt-8">
+        <LocationsManager />
+      </div>
     </AdminLayout>
   );
 }
