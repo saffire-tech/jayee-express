@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { LOCATION_GROUPS, getGroupByLocation, type LocationGroup } from '@/config/locations';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { LOCATION_GROUPS as STATIC_GROUPS, type LocationGroup } from '@/config/locations';
+import { Select, SelectContent, SelectTrigger } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, X, MapPin } from 'lucide-react';
@@ -24,59 +25,67 @@ const LocationSelector = ({
   className = '',
   disabled = false,
 }: LocationSelectorProps) => {
+  const [groups, setGroups] = useState<LocationGroup[]>(STATIC_GROUPS);
   const [selectedGroup, setSelectedGroup] = useState<LocationGroup | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Fetch admin-managed locations
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('zone, name, display_order')
+        .eq('is_active', true)
+        .order('zone', { ascending: true })
+        .order('display_order', { ascending: true });
+      if (cancelled || error || !data || data.length === 0) return;
+      const byZone = new Map<string, string[]>();
+      for (const row of data) {
+        const arr = byZone.get(row.zone) || [];
+        arr.push(row.name);
+        byZone.set(row.zone, arr);
+      }
+      const next: LocationGroup[] = Array.from(byZone.entries()).map(([zone, locations]) => ({
+        id: zone.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        name: zone,
+        locations,
+      }));
+      setGroups(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const getGroupByLocation = (loc: string) =>
+    groups.find((g) => g.locations.includes(loc));
 
   useEffect(() => {
     if (value && value !== 'All') {
       const group = getGroupByLocation(value);
-      if (group) {
-        setSelectedGroup(group);
-      }
+      if (group) setSelectedGroup(group);
     }
-  }, [value]);
+  }, [value, groups]);
 
-  const handleGroupSelect = (groupId: string) => {
-    const group = LOCATION_GROUPS.find(g => g.id === groupId);
-    setSelectedGroup(group || null);
-  };
-
-  const handleLocationSelect = (location: string) => {
-    onChange(location);
-    setIsOpen(false);
-  };
-
-  const handleBack = () => {
-    setSelectedGroup(null);
-  };
+  const currentGroup = useMemo(
+    () => (value && value !== 'All' ? getGroupByLocation(value) : null),
+    [value, groups]
+  );
 
   const handleClear = () => {
     onChange(showAllOption ? 'All' : '');
     setSelectedGroup(null);
   };
 
-  const handleAllSelect = () => {
-    onChange('All');
-    setIsOpen(false);
-  };
-
   const getDisplayValue = () => {
-    if (!value || value === 'All') {
-      return showAllOption ? allOptionLabel : placeholder;
-    }
+    if (!value || value === 'All') return showAllOption ? allOptionLabel : placeholder;
     return value;
   };
 
-  const currentGroup = value && value !== 'All' ? getGroupByLocation(value) : null;
-
   return (
     <div className={`relative ${className}`}>
-      <Select
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        value={value}
-        disabled={disabled}
-      >
+      <Select open={isOpen} onOpenChange={setIsOpen} value={value} disabled={disabled}>
         <SelectTrigger className="w-full">
           <div className="flex items-center gap-2 truncate">
             <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -93,7 +102,7 @@ const LocationSelector = ({
             <div className="py-1">
               {showAllOption && (
                 <div
-                  onClick={handleAllSelect}
+                  onClick={() => { onChange('All'); setIsOpen(false); }}
                   className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent rounded-sm transition-colors"
                 >
                   <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -102,10 +111,10 @@ const LocationSelector = ({
               )}
               {showAllOption && <div className="h-px bg-border my-1" />}
               <p className="px-3 py-1.5 text-xs text-muted-foreground font-medium">Select Zone</p>
-              {LOCATION_GROUPS.map((group) => (
+              {groups.map((group) => (
                 <div
                   key={group.id}
-                  onClick={() => handleGroupSelect(group.id)}
+                  onClick={() => setSelectedGroup(group)}
                   className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent rounded-sm transition-colors"
                 >
                   <span className="text-sm">{group.name}</span>
@@ -122,10 +131,7 @@ const LocationSelector = ({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 gap-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleBack();
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setSelectedGroup(null); }}
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Back
@@ -138,7 +144,7 @@ const LocationSelector = ({
                 {selectedGroup.locations.map((location) => (
                   <div
                     key={location}
-                    onClick={() => handleLocationSelect(location)}
+                    onClick={() => { onChange(location); setIsOpen(false); }}
                     className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent rounded-sm transition-colors ${
                       value === location ? 'bg-accent' : ''
                     }`}
@@ -154,7 +160,7 @@ const LocationSelector = ({
           )}
         </SelectContent>
       </Select>
-      
+
       {value && value !== 'All' && !showAllOption && (
         <button
           type="button"
