@@ -146,6 +146,29 @@ const LocationsManager = () => {
                   placeholder="e.g. Osu"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Latitude</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={form.latitude}
+                    onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                    placeholder="5.5600"
+                  />
+                </div>
+                <div>
+                  <Label>Longitude</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={form.longitude}
+                    onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                    placeholder="-0.2057"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Tip: open Google Maps, right-click the spot, and copy the coordinates.
+              </p>
               <div>
                 <Label>Display Order</Label>
                 <Input
