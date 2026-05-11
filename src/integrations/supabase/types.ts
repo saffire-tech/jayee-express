@@ -174,6 +174,8 @@ export type Database = {
           display_order: number
           id: string
           is_active: boolean
+          latitude: number | null
+          longitude: number | null
           name: string
           updated_at: string
           zone: string
@@ -183,6 +185,8 @@ export type Database = {
           display_order?: number
           id?: string
           is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name: string
           updated_at?: string
           zone: string
@@ -192,6 +196,8 @@ export type Database = {
           display_order?: number
           id?: string
           is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           updated_at?: string
           zone?: string
@@ -858,6 +864,36 @@ export type Database = {
           name?: string
           price_per_month?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_known_devices: {
+        Row: {
+          created_at: string
+          device_hash: string
+          id: string
+          ip: string | null
+          last_seen_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_hash: string
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_hash?: string
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
