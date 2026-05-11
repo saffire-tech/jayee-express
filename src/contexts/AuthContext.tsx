@@ -69,6 +69,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return data;
   };
 
+  const checkNewDevice = async () => {
+    try {
+      const { getDeviceHash, getDeviceLabel } = await import("@/lib/deviceFingerprint");
+      const device_hash = await getDeviceHash();
+      await supabase.functions.invoke("notify-new-device", {
+        body: { device_hash, user_agent: getDeviceLabel() },
+      });
+    } catch (e) {
+      console.warn("notify-new-device call failed", e);
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST to prevent missing events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -82,6 +94,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => {
             fetchProfile(session.user.id).then(setProfile);
           }, 0);
+          if (event === "SIGNED_IN") {
+            setTimeout(() => { checkNewDevice(); }, 100);
+          }
         } else {
           setProfile(null);
         }

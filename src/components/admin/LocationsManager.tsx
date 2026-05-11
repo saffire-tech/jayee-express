@@ -16,6 +16,8 @@ interface Location {
   name: string;
   is_active: boolean;
   display_order: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const LocationsManager = () => {
@@ -23,7 +25,10 @@ const LocationsManager = () => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Location | null>(null);
-  const [form, setForm] = useState({ zone: '', name: '', display_order: 0, is_active: true });
+  const [form, setForm] = useState<{
+    zone: string; name: string; display_order: number; is_active: boolean;
+    latitude: string; longitude: string;
+  }>({ zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
 
   const fetchLocations = async () => {
     setLoading(true);
@@ -43,13 +48,20 @@ const LocationsManager = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ zone: '', name: '', display_order: 0, is_active: true });
+    setForm({ zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
     setOpen(true);
   };
 
   const openEdit = (loc: Location) => {
     setEditing(loc);
-    setForm({ zone: loc.zone, name: loc.name, display_order: loc.display_order, is_active: loc.is_active });
+    setForm({
+      zone: loc.zone,
+      name: loc.name,
+      display_order: loc.display_order,
+      is_active: loc.is_active,
+      latitude: loc.latitude?.toString() ?? '',
+      longitude: loc.longitude?.toString() ?? '',
+    });
     setOpen(true);
   };
 
@@ -58,11 +70,19 @@ const LocationsManager = () => {
       toast.error('Zone and name are required');
       return;
     }
+    const lat = form.latitude.trim() === '' ? null : parseFloat(form.latitude);
+    const lng = form.longitude.trim() === '' ? null : parseFloat(form.longitude);
+    if ((lat !== null && isNaN(lat)) || (lng !== null && isNaN(lng))) {
+      toast.error('Invalid coordinates');
+      return;
+    }
     const payload = {
       zone: form.zone.trim(),
       name: form.name.trim(),
       display_order: form.display_order || 0,
       is_active: form.is_active,
+      latitude: lat,
+      longitude: lng,
     };
     const { error } = editing
       ? await supabase.from('locations').update(payload).eq('id', editing.id)
@@ -126,6 +146,29 @@ const LocationsManager = () => {
                   placeholder="e.g. Osu"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Latitude</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={form.latitude}
+                    onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                    placeholder="5.5600"
+                  />
+                </div>
+                <div>
+                  <Label>Longitude</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={form.longitude}
+                    onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                    placeholder="-0.2057"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Tip: open Google Maps, right-click the spot, and copy the coordinates.
+              </p>
               <div>
                 <Label>Display Order</Label>
                 <Input
