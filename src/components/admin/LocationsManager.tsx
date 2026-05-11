@@ -48,13 +48,20 @@ const LocationsManager = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ zone: '', name: '', display_order: 0, is_active: true });
+    setForm({ zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
     setOpen(true);
   };
 
   const openEdit = (loc: Location) => {
     setEditing(loc);
-    setForm({ zone: loc.zone, name: loc.name, display_order: loc.display_order, is_active: loc.is_active });
+    setForm({
+      zone: loc.zone,
+      name: loc.name,
+      display_order: loc.display_order,
+      is_active: loc.is_active,
+      latitude: loc.latitude?.toString() ?? '',
+      longitude: loc.longitude?.toString() ?? '',
+    });
     setOpen(true);
   };
 
@@ -63,11 +70,19 @@ const LocationsManager = () => {
       toast.error('Zone and name are required');
       return;
     }
+    const lat = form.latitude.trim() === '' ? null : parseFloat(form.latitude);
+    const lng = form.longitude.trim() === '' ? null : parseFloat(form.longitude);
+    if ((lat !== null && isNaN(lat)) || (lng !== null && isNaN(lng))) {
+      toast.error('Invalid coordinates');
+      return;
+    }
     const payload = {
       zone: form.zone.trim(),
       name: form.name.trim(),
       display_order: form.display_order || 0,
       is_active: form.is_active,
+      latitude: lat,
+      longitude: lng,
     };
     const { error } = editing
       ? await supabase.from('locations').update(payload).eq('id', editing.id)
