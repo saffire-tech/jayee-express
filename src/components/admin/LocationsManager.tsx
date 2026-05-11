@@ -16,6 +16,8 @@ interface Location {
   name: string;
   is_active: boolean;
   display_order: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const LocationsManager = () => {
@@ -23,7 +25,10 @@ const LocationsManager = () => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Location | null>(null);
-  const [form, setForm] = useState({ zone: '', name: '', display_order: 0, is_active: true });
+  const [form, setForm] = useState<{
+    zone: string; name: string; display_order: number; is_active: boolean;
+    latitude: string; longitude: string;
+  }>({ zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
 
   const fetchLocations = async () => {
     setLoading(true);
