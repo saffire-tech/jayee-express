@@ -37,9 +37,10 @@ interface OrderDetail {
 
 interface AvailableOrdersProps {
   onAccept: (orderId: string) => void;
+  isOnline?: boolean;
 }
 
-const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
+const AvailableOrders = ({ onAccept, isOnline = true }: AvailableOrdersProps) => {
   const { user } = useAuth();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
