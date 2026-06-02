@@ -149,9 +149,18 @@ const DeliveryDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container max-w-3xl mx-auto px-4 pt-24 pb-16">
-        <div className="flex items-center gap-3 mb-6">
-          <Truck className="h-7 w-7 text-primary" />
-          <h1 className="text-2xl font-bold">Delivery Dashboard</h1>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <Truck className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-bold">Delivery Dashboard</h1>
+          </div>
+          {!activeOrderId && (
+            <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 ${isOnline ? 'border-primary/40 bg-primary/10' : 'border-border bg-muted/40'}`}>
+              <Radio className={`h-4 w-4 ${isOnline ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className="text-sm font-medium">{isOnline ? 'Online' : 'Offline'}</span>
+              <Switch checked={isOnline} disabled={togglingOnline} onCheckedChange={toggleOnline} />
+            </div>
+          )}
         </div>
 
         {activeOrderId ? (
