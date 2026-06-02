@@ -37,9 +37,10 @@ interface OrderDetail {
 
 interface AvailableOrdersProps {
   onAccept: (orderId: string) => void;
+  isOnline?: boolean;
 }
 
-const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
+const AvailableOrders = ({ onAccept, isOnline = true }: AvailableOrdersProps) => {
   const { user } = useAuth();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -89,13 +90,14 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
   };
 
   useEffect(() => {
+    if (!isOnline) { setOrders([]); setLoading(false); return; }
     fetchOrders();
     const channel = supabase
       .channel('available-deliveries')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [isOnline]);
 
   // Initialize map
   useEffect(() => {
@@ -224,6 +226,7 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
 
   const handleAccept = async (orderId: string) => {
     if (!user) return;
+    if (!isOnline) { toast.error('Go online to accept deliveries'); return; }
     setAccepting(orderId);
     try {
       const { error } = await supabase
@@ -251,6 +254,16 @@ const AvailableOrders = ({ onAccept }: AvailableOrdersProps) => {
       map.removeSource('route');
     }
   }, []);
+
+  if (!isOnline) {
+    return (
+      <div className="text-center py-12 border rounded-xl bg-card">
+        <LocateOff className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+        <h3 className="font-semibold">You're offline</h3>
+        <p className="text-sm text-muted-foreground">Turn on online mode to start receiving deliveries</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;

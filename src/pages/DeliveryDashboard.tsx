@@ -9,7 +9,8 @@ import ActiveDelivery from '@/components/delivery/ActiveDelivery';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Package, History, Wallet, Smartphone } from 'lucide-react';
+import { Loader2, Truck, Package, History, Wallet, Smartphone, Radio } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import WalletCard from '@/components/wallet/WalletCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,23 +29,44 @@ const DeliveryDashboard = () => {
   const [momoNumber, setMomoNumber] = useState('');
   const [momoProvider, setMomoProvider] = useState('');
   const [savingMomo, setSavingMomo] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
+  const [togglingOnline, setTogglingOnline] = useState(false);
 
-  // Load existing MoMo details
+  // Load existing MoMo details + online status
   useEffect(() => {
     if (!user) return;
-    const loadMomo = async () => {
+    const load = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('momo_number, momo_provider')
+        .select('momo_number, momo_provider, is_online')
         .eq('user_id', user.id)
         .maybeSingle();
       if (data) {
         setMomoNumber(data.momo_number || '');
         setMomoProvider(data.momo_provider || '');
+        setIsOnline(!!(data as any).is_online);
       }
     };
-    loadMomo();
+    load();
   }, [user]);
+
+  const toggleOnline = async (next: boolean) => {
+    if (!user) return;
+    setTogglingOnline(true);
+    const prev = isOnline;
+    setIsOnline(next);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_online: next } as any)
+      .eq('user_id', user.id);
+    setTogglingOnline(false);
+    if (error) {
+      setIsOnline(prev);
+      toast.error('Failed to update status');
+    } else {
+      toast.success(next ? "You're online — receiving deliveries" : "You're offline");
+    }
+  };
 
   const handleSaveMomo = async () => {
     if (!momoNumber || !momoProvider) return;
@@ -127,9 +149,18 @@ const DeliveryDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container max-w-3xl mx-auto px-4 pt-24 pb-16">
-        <div className="flex items-center gap-3 mb-6">
-          <Truck className="h-7 w-7 text-primary" />
-          <h1 className="text-2xl font-bold">Delivery Dashboard</h1>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <Truck className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl font-bold">Delivery Dashboard</h1>
+          </div>
+          {!activeOrderId && (
+            <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 ${isOnline ? 'border-primary/40 bg-primary/10' : 'border-border bg-muted/40'}`}>
+              <Radio className={`h-4 w-4 ${isOnline ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className="text-sm font-medium">{isOnline ? 'Online' : 'Offline'}</span>
+              <Switch checked={isOnline} disabled={togglingOnline} onCheckedChange={toggleOnline} />
+            </div>
+          )}
         </div>
 
         {activeOrderId ? (
@@ -155,7 +186,7 @@ const DeliveryDashboard = () => {
             </TabsList>
 
             <TabsContent value="available" className="mt-4">
-              <AvailableOrders onAccept={(id) => setActiveOrderId(id)} />
+              <AvailableOrders onAccept={(id) => setActiveOrderId(id)} isOnline={isOnline} />
             </TabsContent>
 
             <TabsContent value="wallet" className="mt-4">
