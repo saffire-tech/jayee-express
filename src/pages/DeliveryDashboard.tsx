@@ -29,6 +29,8 @@ const DeliveryDashboard = () => {
   const [momoNumber, setMomoNumber] = useState('');
   const [momoProvider, setMomoProvider] = useState('');
   const [savingMomo, setSavingMomo] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
+  const [togglingOnline, setTogglingOnline] = useState(false);
 
   // Load existing MoMo details
   useEffect(() => {
