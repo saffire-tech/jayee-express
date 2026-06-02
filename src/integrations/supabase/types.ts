@@ -540,6 +540,7 @@ export type Database = {
           current_mode: Database["public"]["Enums"]["user_mode"] | null
           full_name: string | null
           id: string
+          is_online: boolean
           is_suspended: boolean | null
           momo_number: string | null
           momo_provider: string | null
@@ -554,6 +555,7 @@ export type Database = {
           current_mode?: Database["public"]["Enums"]["user_mode"] | null
           full_name?: string | null
           id?: string
+          is_online?: boolean
           is_suspended?: boolean | null
           momo_number?: string | null
           momo_provider?: string | null
@@ -568,6 +570,7 @@ export type Database = {
           current_mode?: Database["public"]["Enums"]["user_mode"] | null
           full_name?: string | null
           id?: string
+          is_online?: boolean
           is_suspended?: boolean | null
           momo_number?: string | null
           momo_provider?: string | null
