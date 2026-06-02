@@ -32,22 +32,41 @@ const DeliveryDashboard = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
 
-  // Load existing MoMo details
+  // Load existing MoMo details + online status
   useEffect(() => {
     if (!user) return;
-    const loadMomo = async () => {
+    const load = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('momo_number, momo_provider')
+        .select('momo_number, momo_provider, is_online')
         .eq('user_id', user.id)
         .maybeSingle();
       if (data) {
         setMomoNumber(data.momo_number || '');
         setMomoProvider(data.momo_provider || '');
+        setIsOnline(!!(data as any).is_online);
       }
     };
-    loadMomo();
+    load();
   }, [user]);
+
+  const toggleOnline = async (next: boolean) => {
+    if (!user) return;
+    setTogglingOnline(true);
+    const prev = isOnline;
+    setIsOnline(next);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_online: next } as any)
+      .eq('user_id', user.id);
+    setTogglingOnline(false);
+    if (error) {
+      setIsOnline(prev);
+      toast.error('Failed to update status');
+    } else {
+      toast.success(next ? "You're online — receiving deliveries" : "You're offline");
+    }
+  };
 
   const handleSaveMomo = async () => {
     if (!momoNumber || !momoProvider) return;
