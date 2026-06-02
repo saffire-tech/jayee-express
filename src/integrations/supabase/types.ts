@@ -73,6 +73,45 @@ export type Database = {
           },
         ]
       }
+      community_locations: {
+        Row: {
+          contributed_by: string | null
+          created_at: string
+          id: string
+          is_flagged: boolean
+          latitude: number
+          longitude: number
+          name: string
+          name_lower: string | null
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          contributed_by?: string | null
+          created_at?: string
+          id?: string
+          is_flagged?: boolean
+          latitude: number
+          longitude: number
+          name: string
+          name_lower?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          contributed_by?: string | null
+          created_at?: string
+          id?: string
+          is_flagged?: boolean
+          latitude?: number
+          longitude?: number
+          name?: string
+          name_lower?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       delivery_locations: {
         Row: {
           id: string
@@ -1043,6 +1082,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_location_usage: { Args: { _id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1055,6 +1095,8 @@ export type Database = {
         Returns: undefined
       }
       increment_store_views: { Args: { store_id: string }; Returns: undefined }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_wallet_balance: {
         Args: {
           _amount: number
