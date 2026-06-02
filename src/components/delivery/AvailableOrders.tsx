@@ -90,13 +90,14 @@ const AvailableOrders = ({ onAccept, isOnline = true }: AvailableOrdersProps) =>
   };
 
   useEffect(() => {
+    if (!isOnline) { setOrders([]); setLoading(false); return; }
     fetchOrders();
     const channel = supabase
       .channel('available-deliveries')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [isOnline]);
 
   // Initialize map
   useEffect(() => {
