@@ -186,7 +186,7 @@ const DeliveryDashboard = () => {
             </TabsList>
 
             <TabsContent value="available" className="mt-4">
-              <AvailableOrders onAccept={(id) => setActiveOrderId(id)} />
+              <AvailableOrders onAccept={(id) => setActiveOrderId(id)} isOnline={isOnline} />
             </TabsContent>
 
             <TabsContent value="wallet" className="mt-4">
