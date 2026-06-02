@@ -226,6 +226,7 @@ const AvailableOrders = ({ onAccept, isOnline = true }: AvailableOrdersProps) =>
 
   const handleAccept = async (orderId: string) => {
     if (!user) return;
+    if (!isOnline) { toast.error('Go online to accept deliveries'); return; }
     setAccepting(orderId);
     try {
       const { error } = await supabase
