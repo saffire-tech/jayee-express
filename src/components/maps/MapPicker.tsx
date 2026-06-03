@@ -5,7 +5,7 @@ import { MAPBOX_TOKEN, MAPBOX_SATELLITE_STYLE } from '@/lib/mapbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Search, Users, Map as MapIcon, Plus, X } from 'lucide-react';
+import { MapPin, Search, Users, Map as MapIcon, Plus, X, Crosshair, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { haversineDistance } from '@/lib/distance';
@@ -67,6 +67,7 @@ const MapPicker = ({
   const [pendingPin, setPendingPin] = useState<{ lat: number; lng: number; suggestedName?: string } | null>(null);
   const [pinName, setPinName] = useState('');
   const [savingPin, setSavingPin] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   const defaultLat = latitude || 5.6037;
   const defaultLng = longitude || -0.1870;
@@ -252,6 +253,42 @@ const MapPicker = ({
     }
   };
 
+  const useCurrentLocation = () => {
+    if (!('geolocation' in navigator)) {
+      toast.error('Geolocation is not supported on this device');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        if (map.current) {
+          map.current.flyTo({ center: [lng, lat], zoom: 16 });
+        }
+        placeMarker(lat, lng);
+        onLocationSelect(lat, lng);
+        if (enableCommunityContributions && user) {
+          setPendingPin({ lat, lng });
+          setPinName('');
+        } else if (!user) {
+          toast.message('Sign in to name this spot for the community.');
+        }
+        setLocating(false);
+      },
+      (err) => {
+        console.error(err);
+        toast.error(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission denied. Enable it in your browser settings.'
+            : 'Could not get your current location'
+        );
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   const hasSuggestions =
     showSuggestions && (communityResults.length > 0 || mapboxResults.length > 0 || loadingSuggestions);
 
@@ -324,6 +361,23 @@ const MapPicker = ({
             )}
           </div>
         )}
+      </div>
+
+      <div className="mb-2 flex justify-end">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={useCurrentLocation}
+          disabled={locating}
+        >
+          {locating ? (
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+          ) : (
+            <Crosshair className="h-4 w-4 mr-1.5" />
+          )}
+          {locating ? 'Locating...' : 'Use my current location'}
+        </Button>
       </div>
 
       <div
