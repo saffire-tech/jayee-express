@@ -363,6 +363,23 @@ const MapPicker = ({
         )}
       </div>
 
+      <div className="mb-2 flex justify-end">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={useCurrentLocation}
+          disabled={locating}
+        >
+          {locating ? (
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+          ) : (
+            <Crosshair className="h-4 w-4 mr-1.5" />
+          )}
+          {locating ? 'Locating...' : 'Use my current location'}
+        </Button>
+      </div>
+
       <div
         ref={mapContainer}
         className="w-full h-[300px] rounded-lg overflow-hidden border border-border"
