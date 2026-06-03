@@ -5,7 +5,7 @@ import { MAPBOX_TOKEN, MAPBOX_SATELLITE_STYLE } from '@/lib/mapbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Search, Users, Map as MapIcon, Plus, X } from 'lucide-react';
+import { MapPin, Search, Users, Map as MapIcon, Plus, X, Crosshair, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { haversineDistance } from '@/lib/distance';
