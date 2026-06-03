@@ -253,6 +253,42 @@ const MapPicker = ({
     }
   };
 
+  const useCurrentLocation = () => {
+    if (!('geolocation' in navigator)) {
+      toast.error('Geolocation is not supported on this device');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        if (map.current) {
+          map.current.flyTo({ center: [lng, lat], zoom: 16 });
+        }
+        placeMarker(lat, lng);
+        onLocationSelect(lat, lng);
+        if (enableCommunityContributions && user) {
+          setPendingPin({ lat, lng });
+          setPinName('');
+        } else if (!user) {
+          toast.message('Sign in to name this spot for the community.');
+        }
+        setLocating(false);
+      },
+      (err) => {
+        console.error(err);
+        toast.error(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission denied. Enable it in your browser settings.'
+            : 'Could not get your current location'
+        );
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   const hasSuggestions =
     showSuggestions && (communityResults.length > 0 || mapboxResults.length > 0 || loadingSuggestions);
 
