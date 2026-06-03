@@ -67,6 +67,7 @@ const MapPicker = ({
   const [pendingPin, setPendingPin] = useState<{ lat: number; lng: number; suggestedName?: string } | null>(null);
   const [pinName, setPinName] = useState('');
   const [savingPin, setSavingPin] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   const defaultLat = latitude || 5.6037;
   const defaultLng = longitude || -0.1870;
