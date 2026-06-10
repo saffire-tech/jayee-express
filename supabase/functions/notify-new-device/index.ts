@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "Jayee Express <onboarding@resend.dev>",
+            from: "Jayee Express <noreply@jayeeexpress.com>",
             to: [user.email],
             subject: "New device signed into your Jayee Express account",
             html,
