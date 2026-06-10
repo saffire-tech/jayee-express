@@ -72,12 +72,14 @@ export const useStore = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const STORE_COLUMNS = "id, user_id, name, description, logo_url, cover_url, location, phone, campus, is_verified, is_active, is_featured, is_suspended, total_views, total_sales, latitude, longitude, current_plan_id, product_limit, subscription_expires_at, created_at, updated_at";
+
   const fetchStore = async () => {
     if (!user) return null;
     
     const { data, error } = await supabase
       .from("stores")
-      .select("*")
+      .select(STORE_COLUMNS)
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -87,6 +89,7 @@ export const useStore = () => {
     }
     return data;
   };
+
 
   const fetchProducts = async (storeId: string) => {
     const { data, error } = await supabase
