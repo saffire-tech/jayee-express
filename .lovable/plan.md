@@ -1,68 +1,104 @@
+## Why Google login is broken on jayeeexpress.com
 
-## Goal
-Let users contribute named map locations so future searches can jump straight to coordinates that real Ghanaians have pinned, with autocomplete suggestions as they type.
+Your site is hosted on **Vercel**, not on Lovable hosting. The current Google sign‑in code uses Lovable's managed OAuth flow:
 
-## 1. Database
+```ts
+const { lovable } = await import("@/integrations/lovable/index");
+await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+```
 
-New table `community_locations`:
-- `id` uuid pk
-- `name` text (the user-provided place name, e.g. "Mama Lizzy Shop, Adenta")
-- `name_lower` text (generated, lower-cased, for fast ILIKE / trigram search)
-- `latitude` double precision
-- `longitude` double precision
-- `contributed_by` uuid (auth user id, nullable so we keep history if user deleted)
-- `usage_count` int default 1 (increment when someone picks it from suggestions)
-- `is_flagged` boolean default false (admin moderation hook, off by default)
-- `created_at`, `updated_at`
+That flow redirects the browser to `https://jayeeexpress.com/~oauth/initiate`. The `/~oauth/*` paths only exist on Lovable's hosting proxy — Vercel knows nothing about them, so it returns the **404 NOT_FOUND (cdg1)** error you saw (cdg1 = Vercel Paris edge).
 
-Indexes:
-- `pg_trgm` extension + GIN index on `name_lower` for fuzzy suggestions
-- B-tree on `usage_count desc` for ranking
+Managed Lovable OAuth cannot work on a Vercel-hosted domain. Since you already have your own Google Cloud OAuth credentials, the fix is to switch sign‑in to Supabase's native OAuth flow (which works on any host) and point Google + Supabase at jayeeexpress.com.
 
-RLS + GRANTs:
-- `GRANT SELECT ON public.community_locations TO anon, authenticated`
-- `GRANT INSERT, UPDATE ON public.community_locations TO authenticated`
-- `GRANT ALL TO service_role`
-- Policies:
-  - SELECT: anyone where `is_flagged = false` (admins see all via `has_role`)
-  - INSERT: `auth.uid() = contributed_by`
-  - UPDATE: only `usage_count` bump allowed for any authenticated user, full update for admin / original contributor (use a small `bump_location_usage(id uuid)` security-definer RPC instead of broad UPDATE policy — cleaner and safer)
-  - Admin manage-all policy via `has_role(auth.uid(), 'admin')`
+---
 
-No edits to existing `locations` table (that one stays as admin-curated zones for delivery pricing).
+## Plan
 
-## 2. MapPicker changes (`src/components/maps/MapPicker.tsx`)
+### 1. Switch Google sign-in to Supabase native OAuth
+- In `src/pages/Auth.tsx`, replace the `lovable.auth.signInWithOAuth("google", ...)` block with:
+  ```ts
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${window.location.origin}/` },
+  });
+  ```
+- Leave the `src/integrations/lovable/` folder in place (auto‑generated) but stop calling it.
 
-Replace the current Mapbox-only search with a hybrid suggestion box:
+### 2. Configure your own Google credentials in the backend
+Tell you (manual step in Cloud → Users → Auth Settings → Sign In Methods → Google):
+- Turn **off** "Use Lovable‑managed Google" (so your own client ID/secret are used).
+- Paste your Google **Client ID** and **Client Secret**.
+- Copy the **Callback URL** shown there — it will look like  
+  `https://brqzedcxzjqwzpkwrmow.supabase.co/auth/v1/callback`.
 
-1. As the user types in the search input (debounced ~250ms), in parallel fetch:
-   - Community matches: `supabase.from('community_locations').select().ilike('name_lower', '%q%').order('usage_count', { ascending: false }).limit(6)` (later upgradable to `pg_trgm` similarity).
-   - Mapbox geocoding (existing call), limit 4, biased to Ghana (`country=gh&proximity=-0.187,5.6037`).
-2. Render a dropdown under the input with two grouped sections:
-   - "Community pins" (with a small user icon + usage count badge)
-   - "Map results" (Mapbox icon)
-3. Clicking a community pin: fly map to its coords, drop marker, call `bump_location_usage(id)` RPC, fire `onLocationSelect(lat, lng)`.
-4. Clicking a Mapbox result: fly map, drop marker, then show an inline "Save this place" mini-form (name input prefilled with the Mapbox place name, Save / Skip buttons). On Save: insert into `community_locations` with `contributed_by = auth.uid()`.
-5. Clicking a blank spot on the map (existing behavior): drop marker, then show the same "Name this place (optional)" inline prompt so anonymous map clicks can also become contributions.
+### 3. Update Google Cloud Console (you do this in console.cloud.google.com)
+On your OAuth 2.0 Web Client:
 
-New prop on MapPicker: `enableCommunityContributions?: boolean` (default `true`) so admin LocationsManager can opt out if needed.
+**Authorized JavaScript origins**
+- `https://jayeeexpress.com`
+- `https://www.jayeeexpress.com`
+- `https://jayee-express.lovable.app` (keep Lovable preview working)
 
-UI: keep current Tailwind styling — dropdown uses `bg-popover border-border shadow-md rounded-md`, sections separated by `text-xs text-muted-foreground` headers, no hardcoded colors.
+**Authorized redirect URIs**
+- `https://brqzedcxzjqwzpkwrmow.supabase.co/auth/v1/callback` ← the only one Google actually redirects to
 
-## 3. Where it's used
-No changes needed in the call sites (`DeliveryOption.tsx`, `LocationsManager.tsx`) — they already consume `onLocationSelect(lat, lng)`. They just inherit the new search UX automatically.
+**OAuth consent screen → Authorised domains**
+- `jayeeexpress.com`
+- `supabase.co`
 
-## 4. Edge cases / guards
-- Require auth to save a contribution; if unauthenticated, hide the "Save this place" form and show a small "Sign in to save this place for others" hint.
-- Trim + collapse whitespace, enforce 2–80 char name, reject duplicates within ~50m of an existing pin with the same lower-cased name (check client-side before insert; on conflict, just bump usage on the existing row).
-- Suggestions only fired for queries ≥ 2 chars.
-- Suggestions list capped at 10 total, community first.
+### 4. Add jayeeexpress.com to Supabase Auth URL allow‑list
+In Cloud → Users → Auth Settings → URL Configuration:
+- **Site URL:** `https://jayeeexpress.com`
+- **Additional Redirect URLs:** add
+  - `https://jayeeexpress.com/**`
+  - `https://www.jayeeexpress.com/**`
+  - `https://jayee-express.lovable.app/**` (preview)
+  - `http://localhost:8080/**` (dev)
 
-## 5. Not in scope (call out)
-- No admin moderation UI in this pass — `is_flagged` column is added so we can build it later. If you want a quick "Hide bad pins" admin tab, say so and I'll add it.
-- No reverse-geocoding of map clicks (we just let the user name it).
+Without these, Supabase will reject the post‑login redirect back to your domain.
 
-## Technical notes
-- Migration enables `pg_trgm` and adds the GIN index; the `bump_location_usage` function runs as `SECURITY DEFINER` with `SET search_path = public` and only does `UPDATE community_locations SET usage_count = usage_count + 1 WHERE id = _id`.
-- Mapbox geocoding URL gets `&country=gh&proximity=-0.187,5.6037&limit=4` to keep results local.
-- Suggestion fetches are race-safe via an incrementing request id ref inside MapPicker.
+### 5. Move Resend to jayeeexpress.com
+Two Edge Functions currently send from `onboarding@resend.dev`:
+- `supabase/functions/notify-new-device/index.ts`
+- `supabase/functions/send-email-notification/index.ts`
+
+Change every `from` to:
+```
+Jayee Express <noreply@jayeeexpress.com>
+```
+(or another mailbox on your verified domain — confirm which mailbox you want, default `noreply@`.)
+
+Then redeploy both functions.
+
+Things you must verify in Resend yourself:
+- `jayeeexpress.com` shows **Verified** in Resend → Domains (SPF/DKIM/DMARC green).
+- The `RESEND_API_KEY` secret already stored in this project belongs to the Resend account that owns the verified domain. If you rotated the key when you switched domains, I'll prompt you to update it via the secrets tool.
+
+### 6. Make the new domain serve the app smoothly
+- Add `www.jayeeexpress.com` in Vercel and set one as primary with a 308 redirect to the other (recommend apex `jayeeexpress.com` as primary, `www` → apex).
+- Confirm Vercel project has SPA rewrite (`/* → /index.html`) so deep links don't 404. (Vite/React Router needs this on Vercel; Lovable hosting did it automatically.) If missing, I'll add a `vercel.json` with:
+  ```json
+  { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+  ```
+- The Mapbox public token is already domain‑agnostic, no change needed.
+- The Lovable preview at `jayee-express.lovable.app` keeps working because we keep it in both Google's origins and Supabase's redirect list.
+
+---
+
+## What I will change in code (build mode)
+
+1. `src/pages/Auth.tsx` — swap the Google button handler to `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: ... } })`.
+2. `supabase/functions/notify-new-device/index.ts` — `from` → `Jayee Express <noreply@jayeeexpress.com>`.
+3. `supabase/functions/send-email-notification/index.ts` — same `from` change.
+4. (If you confirm Vercel is missing SPA rewrite) add `vercel.json` at project root.
+
+## What you do manually (I can't reach these)
+- Google Cloud Console: origins + redirect URI + consent screen domains (Section 3).
+- Cloud → Users → Auth Settings: paste Google Client ID/Secret, set Site URL + redirect allow‑list (Sections 2 + 4).
+- Resend dashboard: confirm `jayeeexpress.com` is verified.
+- Vercel: confirm both apex + www are attached and pointing to the right project.
+
+## Questions before I build
+- Confirm the sender mailbox: `noreply@jayeeexpress.com` OK, or do you prefer `hello@`, `support@`, `notifications@`?
+- Do you already have a `vercel.json` in your repo? If unsure I'll add the SPA rewrite defensively.
