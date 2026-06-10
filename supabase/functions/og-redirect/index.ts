@@ -87,7 +87,18 @@ Deno.serve(async (req) => {
     // Expected path: /og-redirect?type=product&id=xxx or /og-redirect?type=store&id=xxx or /og-redirect?type=service&id=xxx
     const type = url.searchParams.get('type') as 'product' | 'store' | 'service' | null;
     const id = url.searchParams.get('id');
-    const origin = url.searchParams.get('origin') || 'https://uniplug.lovable.app';
+    // Allow-list of valid origins (prevents open-redirect abuse)
+    const ALLOWED_ORIGINS = [
+      'https://jayeeexpress.com',
+      'https://www.jayeeexpress.com',
+      'https://jayee-express.lovable.app',
+      'https://uniplug.lovable.app',
+    ];
+    const requestedOrigin = url.searchParams.get('origin');
+    const origin = requestedOrigin && ALLOWED_ORIGINS.includes(requestedOrigin)
+      ? requestedOrigin
+      : ALLOWED_ORIGINS[0];
+
     
     if (!type || !id) {
       return new Response('Missing type or id parameter', { 
