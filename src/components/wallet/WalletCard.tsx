@@ -35,13 +35,10 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
   const fetchMomoDetails = async () => {
     if (!user) return;
     if (role === "seller" && storeId) {
-      const { data } = await supabase
-        .from("stores")
-        .select("momo_number, momo_provider")
-        .eq("id", storeId)
-        .maybeSingle();
-      if (data?.momo_number && data?.momo_provider) {
-        setMomoDetails({ momo_number: data.momo_number, momo_provider: data.momo_provider });
+      const { data } = await supabase.rpc("get_my_store_payout", { _store_id: storeId });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row?.momo_number && row?.momo_provider) {
+        setMomoDetails({ momo_number: row.momo_number, momo_provider: row.momo_provider });
       }
     } else {
       const { data } = await supabase
@@ -54,6 +51,7 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
       }
     }
   };
+
 
   useEffect(() => {
     fetchWallet();
