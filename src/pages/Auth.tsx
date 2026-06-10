@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import shodelLogo from "@/assets/shodel-logo.png";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
