@@ -1086,6 +1086,14 @@ export type Database = {
     }
     Functions: {
       bump_location_usage: { Args: { _id: string }; Returns: undefined }
+      get_my_store_payout: {
+        Args: { _store_id: string }
+        Returns: {
+          momo_number: string
+          momo_provider: string
+          paystack_subaccount_code: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

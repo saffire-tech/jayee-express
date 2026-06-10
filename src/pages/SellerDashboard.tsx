@@ -97,11 +97,23 @@ const SellerDashboard = () => {
         cover_url: store.cover_url || "",
         latitude: (store as any).latitude || null,
         longitude: (store as any).longitude || null,
-        momo_number: (store as any).momo_number || "",
-        momo_provider: (store as any).momo_provider || "",
+        momo_number: "",
+        momo_provider: "",
+      });
+      // Fetch payout details via secure RPC (owner-only)
+      supabase.rpc('get_my_store_payout', { _store_id: store.id }).then(({ data }) => {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row) {
+          setStoreSettings(prev => ({
+            ...prev,
+            momo_number: (row as any).momo_number || "",
+            momo_provider: (row as any).momo_provider || "",
+          }));
+        }
       });
     }
   }, [store]);
+
 
   const handleSaveSettings = async () => {
     setSavingSettings(true);
