@@ -49,8 +49,9 @@ export default function StoresManagement() {
     queryFn: async () => {
       let query = supabase
         .from('stores')
-        .select('*')
+        .select('id, user_id, name, description, logo_url, cover_url, location, phone, campus, is_verified, is_active, is_featured, is_suspended, total_views, total_sales, latitude, longitude, current_plan_id, product_limit, subscription_expires_at, created_at, updated_at')
         .order('created_at', { ascending: false });
+
 
       if (search) {
         query = query.or(`name.ilike.%${search}%,location.ilike.%${search}%`);
