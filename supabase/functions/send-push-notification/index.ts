@@ -198,7 +198,7 @@ serve(async (req) => {
   }
 
   try {
-    // Require authentication: caller must present a valid JWT
+    // Require authentication: caller must present a valid JWT (user or service role)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -206,9 +206,18 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    const supabaseUrlForAuth = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    if (supabaseUrlForAuth && supabaseAnonKey) {
+    const bearer = authHeader.replace('Bearer ', '');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const isServiceRole = !!serviceRoleKey && bearer === serviceRoleKey;
+    if (!isServiceRole) {
+      const supabaseUrlForAuth = Deno.env.get('SUPABASE_URL');
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+      if (!supabaseUrlForAuth || !supabaseAnonKey) {
+        return new Response(
+          JSON.stringify({ error: 'Server misconfigured' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       const authClient = createClient(supabaseUrlForAuth, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
@@ -220,6 +229,8 @@ serve(async (req) => {
         );
       }
     }
+
+
 
     // Get environment variables
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
