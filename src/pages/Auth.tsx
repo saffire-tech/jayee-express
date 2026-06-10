@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import shodelLogo from "@/assets/shodel-logo.png";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -142,15 +143,11 @@ const Auth = () => {
             onClick={async () => {
               setError("");
               try {
-                const { lovable } = await import("@/integrations/lovable/index");
-                const result = await lovable.auth.signInWithOAuth("google", {
-                  redirect_uri: window.location.origin,
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: "google",
+                  options: { redirectTo: `${window.location.origin}/` },
                 });
-                if (result.error) {
-                  setError(result.error.message || "Google sign-in failed");
-                  return;
-                }
-                if (!result.redirected) navigate("/");
+                if (error) setError(error.message || "Google sign-in failed");
               } catch (e: any) {
                 setError(e?.message || "Google sign-in failed");
               }
