@@ -150,6 +150,7 @@ const RecommendedProducts = () => {
                   <Button
                     size="icon"
                     variant="secondary"
+                    aria-label={`Add ${product.name} to cart`}
                     className="absolute bottom-1.5 right-1.5 md:bottom-2 md:right-2 h-7 w-7 md:h-8 md:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => handleAddToCart(e, product)}
                   >

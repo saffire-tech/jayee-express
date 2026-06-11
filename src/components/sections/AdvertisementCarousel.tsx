@@ -81,6 +81,10 @@ const AdvertisementCarousel = () => {
                 <img
                   src={product.image_url}
                   alt={product.name}
+                  width={1200}
+                  height={400}
+                  fetchPriority={products.indexOf(product) === 0 ? "high" : "auto"}
+                  loading={products.indexOf(product) === 0 ? "eager" : "lazy"}
                   className="w-full h-full object-cover"
                 />
               ) : (
