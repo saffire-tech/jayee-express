@@ -41,7 +41,7 @@ interface AvailableOrdersProps {
 }
 
 const AvailableOrders = ({ onAccept, isOnline = true }: AvailableOrdersProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -66,12 +66,14 @@ const AvailableOrders = ({ onAccept, isOnline = true }: AvailableOrdersProps) =>
   }, []);
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('orders')
       .select('id, total_amount, delivery_fee, delivery_latitude, delivery_longitude, delivery_address, delivery_landmark, created_at, store_id')
       .eq('delivery_type', 'delivery')
       .eq('delivery_status', 'pending')
       .is('delivery_person_id', null);
+    if (profile?.city) query = query.eq('city', profile.city);
+    const { data, error } = await query;
 
     if (error) { console.error(error); setLoading(false); return; }
 
@@ -97,7 +99,7 @@ const AvailableOrders = ({ onAccept, isOnline = true }: AvailableOrdersProps) =>
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => fetchOrders())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [isOnline]);
+  }, [isOnline, profile?.city]);
 
   // Initialize map
   useEffect(() => {
