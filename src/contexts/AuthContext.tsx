@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchProfile = async (userId: string, shouldCheckSuspension = true) => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, avatar_url, phone, campus, current_mode, created_at, updated_at, is_suspended, is_online")
+      .select("id, user_id, full_name, avatar_url, phone, campus, current_mode, created_at, updated_at, is_suspended, is_online, city")
       .eq("user_id", userId)
       .maybeSingle();
 
