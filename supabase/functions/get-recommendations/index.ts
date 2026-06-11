@@ -40,6 +40,12 @@ serve(async (req) => {
       }
     }
 
+    if (!userId) {
+      return new Response(JSON.stringify({ recommendations: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Fetch user's purchase history
     const { data: orders } = userId ? await supabase
       .from('orders')
