@@ -1,11 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Heart, ShoppingCart, Package, Eye } from "lucide-react";
+import { Star, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
 import { ProductGridSkeleton } from "@/components/ui/skeletons";
 import { motion } from "framer-motion";
+import SectionHeader from "@/components/home/SectionHeader";
 
 interface Product {
   id: string;
@@ -14,9 +15,7 @@ interface Product {
   image_url: string | null;
   category: string;
   views: number | null;
-  store: {
-    name: string;
-  } | null;
+  store: { name: string; logo_url?: string | null } | null;
 }
 
 interface FeaturedProductsProps {
@@ -26,7 +25,7 @@ interface FeaturedProductsProps {
 const fetchFeaturedProducts = async (category: string | null): Promise<Product[]> => {
   let query = supabase
     .from('products')
-    .select(`id, name, price, image_url, category, views, store:stores(name)`)
+    .select(`id, name, price, image_url, category, views, store:stores(name, logo_url)`)
     .eq('is_active', true);
 
   if (category) {
@@ -40,7 +39,7 @@ const fetchFeaturedProducts = async (category: string | null): Promise<Product[]
     .limit(8);
 
   if (error) throw error;
-  
+
   return data?.map(p => ({
     ...p,
     store: Array.isArray(p.store) ? p.store[0] : p.store
@@ -49,30 +48,37 @@ const fetchFeaturedProducts = async (category: string | null): Promise<Product[]
 
 const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
   const { addToCart } = useCart();
-  
+  const navigate = useNavigate();
+
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['featured-products', selectedCategory],
     queryFn: () => fetchFeaturedProducts(selectedCategory ?? null),
     staleTime: 1000 * 60 * 5,
   });
 
-  const handleAddToCart = async (productId: string) => {
+  const handleAddToCart = async (e: React.MouseEvent, productId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     await addToCart(productId, 1);
   };
 
-  const sectionTitle = selectedCategory ? selectedCategory : "Trending Now";
-  const sectionLabel = selectedCategory ? "CATEGORY" : "FEATURED";
+  const handleBuyNow = async (e: React.MouseEvent, productId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await addToCart(productId, 1);
+    navigate("/cart");
+  };
+
+  const sectionTitle = selectedCategory ? `Freshly in ${selectedCategory}` : "Freshly in Stocked";
+  const viewAllHref = selectedCategory
+    ? `/products?category=${encodeURIComponent(selectedCategory)}`
+    : "/products";
 
   if (isLoading) {
     return (
-      <section className="py-12 md:py-20">
+      <section className="py-6 md:py-10">
         <div className="container px-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-            <div>
-              <p className="text-xs font-semibold text-primary tracking-widest mb-2">{sectionLabel}</p>
-              <h2 className="text-2xl md:text-3xl font-bold">{sectionTitle}</h2>
-            </div>
-          </div>
+          <SectionHeader title={sectionTitle} viewAllHref={viewAllHref} />
           <ProductGridSkeleton count={8} />
         </div>
       </section>
@@ -81,21 +87,16 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
 
   if (products.length === 0) {
     return (
-      <section className="py-12 md:py-20">
+      <section className="py-6 md:py-10">
         <div className="container px-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-            <div>
-              <p className="text-xs font-semibold text-primary tracking-widest mb-2">{sectionLabel}</p>
-              <h2 className="text-2xl md:text-3xl font-bold">{sectionTitle}</h2>
-            </div>
-          </div>
+          <SectionHeader title={sectionTitle} viewAllHref={viewAllHref} />
           <div className="text-center py-12 bg-card border border-border rounded-2xl">
             <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-semibold text-base mb-1">
               {selectedCategory ? `No products in ${selectedCategory}` : "No products yet"}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {selectedCategory 
+              {selectedCategory
                 ? "Try selecting a different category"
                 : "Be the first to list your products on Jayee Express!"}
             </p>
@@ -106,33 +107,20 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
   }
 
   return (
-    <section className="py-12 md:py-20">
+    <section className="py-6 md:py-10">
       <div className="container px-4">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-          <div>
-            <p className="text-xs font-semibold text-primary tracking-widest mb-2">{sectionLabel}</p>
-            <h2 className="text-2xl md:text-3xl font-bold">{sectionTitle}</h2>
-          </div>
-          <Link to={selectedCategory ? `/products?category=${encodeURIComponent(selectedCategory)}` : "/products"}>
-            <Button variant="outline" size="sm" className="rounded-xl">
-              View All {selectedCategory ? `in ${selectedCategory}` : "Products"}
-            </Button>
-          </Link>
-        </div>
+        <SectionHeader title={sectionTitle} viewAllHref={viewAllHref} />
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
           {products.map((product, i) => (
             <motion.div
               key={product.id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04, duration: 0.3 }}
-              className="group bg-card rounded-2xl overflow-hidden border border-border/60 hover:border-primary/20 transition-all duration-300 hover:shadow-lg"
+              className="group bg-card rounded-2xl overflow-hidden border border-border/60 hover:border-primary/30 transition-all duration-300 hover:shadow-card-hover"
             >
-              {/* Image */}
-              <Link to={`/product/${product.id}`}>
+              <Link to={`/product/${product.id}`} className="block">
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   {product.image_url && !product.image_url.startsWith('data:') ? (
                     <img
@@ -146,45 +134,59 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
                       <Package className="h-8 w-8 text-muted-foreground/50" />
                     </div>
                   )}
-                  <button className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-background">
-                    <Heart className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive transition-colors" />
-                  </button>
-                  <div className="absolute bottom-2 left-2">
-                    <span className="px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-[10px] font-medium">
-                      {product.category}
-                    </span>
-                  </div>
-                  {(product.views ?? 0) > 10 && (
-                    <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-[10px] font-medium text-muted-foreground">
-                      <Eye className="h-3 w-3" />
-                      {product.views}
+
+                  {/* Store chip overlay */}
+                  {product.store && (
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-background/85 backdrop-blur-md border border-border/40 shadow-sm">
+                      <div className="w-4 h-4 rounded-full bg-muted overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        {product.store.logo_url ? (
+                          <img src={product.store.logo_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[8px] font-bold text-muted-foreground">
+                            {product.store.name?.[0] ?? "?"}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-medium text-foreground truncate flex-1">
+                        {product.store.name}
+                      </span>
                     </div>
                   )}
+
+                  {/* Rating badge */}
+                  <div className="absolute top-2 right-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-background/85 backdrop-blur-md text-[10px] font-bold shadow-sm">
+                    <Star className="h-2.5 w-2.5 fill-warning text-warning" style={{ color: 'hsl(var(--warning))', fill: 'hsl(var(--warning))' }} />
+                    <span>4.7</span>
+                  </div>
                 </div>
               </Link>
 
-              {/* Content */}
-              <div className="p-2.5 sm:p-3">
+              <div className="p-2.5 md:p-3">
                 <Link to={`/product/${product.id}`}>
-                  <h3 className="font-semibold text-sm text-foreground mb-0.5 group-hover:text-primary transition-colors line-clamp-1">
+                  <h3 className="font-semibold text-sm text-foreground mb-1 group-hover:text-primary transition-colors line-clamp-1">
                     {product.name}
                   </h3>
                 </Link>
-                <p className="text-[11px] text-muted-foreground mb-2 line-clamp-1">
-                  {product.store?.name || 'Unknown Seller'}
+                <p className="text-sm font-bold text-foreground mb-2">
+                  ₵{product.price.toFixed(2)}
+                  <span className="text-[10px] font-normal text-muted-foreground ml-1">(per item)</span>
                 </p>
-                
-                <div className="flex items-center justify-between gap-1">
-                  <p className="text-sm font-bold text-foreground">
-                    ₵{product.price.toFixed(2)}
-                  </p>
-                  <Button 
-                    size="sm" 
-                    className="gap-1 h-7 px-2.5 text-[11px] rounded-lg" 
-                    onClick={() => handleAddToCart(product.id)}
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-[11px] rounded-lg border-primary/40 text-primary hover:bg-primary/5"
+                    onClick={(e) => handleAddToCart(e, product.id)}
                   >
-                    <ShoppingCart className="h-3 w-3" />
-                    Add
+                    Add to Cart
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 px-2 text-[11px] rounded-lg"
+                    onClick={(e) => handleBuyNow(e, product.id)}
+                  >
+                    Buy Now
                   </Button>
                 </div>
               </div>

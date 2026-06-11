@@ -53,22 +53,17 @@ const FeaturedStores = () => {
   });
 
   const header = (
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-      <div>
-        <p className="text-xs font-semibold text-primary tracking-widest mb-2">TOP SELLERS</p>
-        <h2 className="text-2xl md:text-3xl font-bold">Featured Stores</h2>
-      </div>
-      <Link to="/stores">
-        <Button variant="outline" size="sm" className="rounded-xl">
-          View All Stores
-        </Button>
+    <div className="flex items-end justify-between gap-4 mb-3 md:mb-4">
+      <h2 className="text-lg md:text-2xl font-bold tracking-tight">Featured Stores</h2>
+      <Link to="/stores" className="text-[11px] md:text-xs font-bold tracking-wider text-primary hover:text-primary/80">
+        VIEW ALL ›
       </Link>
     </div>
   );
 
   if (isLoading) {
     return (
-      <section id="stores" className="py-12 md:py-20 bg-muted/30">
+      <section id="stores" className="py-6 md:py-10 bg-muted/30">
         <div className="container px-4">
           {header}
           <StoreGridSkeleton count={4} />
@@ -79,7 +74,7 @@ const FeaturedStores = () => {
 
   if (stores.length === 0) {
     return (
-      <section id="stores" className="py-12 md:py-20 bg-muted/30">
+      <section id="stores" className="py-6 md:py-10 bg-muted/30">
         <div className="container px-4">
           {header}
           <div className="text-center py-12 bg-card border border-border rounded-2xl">
@@ -93,11 +88,59 @@ const FeaturedStores = () => {
   }
 
   return (
-    <section id="stores" className="py-12 md:py-20 bg-muted/30">
+    <section id="stores" className="py-6 md:py-10 bg-muted/30">
       <div className="container px-4">
         {header}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {/* Mobile: horizontal scroll with image-forward cards */}
+        <div className="md:hidden -mx-4 px-4 flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+          {stores.map((store, i) => (
+            <motion.div
+              key={store.id}
+              initial={{ opacity: 0, x: 12 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05, duration: 0.3 }}
+              className="flex-shrink-0 w-[78%] snap-start"
+            >
+              <Link
+                to={`/store/${store.id}`}
+                className="group block relative rounded-2xl overflow-hidden border border-border/60 bg-card shadow-sm h-44"
+              >
+                {store.cover_url ? (
+                  <img src={store.cover_url} alt={store.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10" />
+                )}
+                {/* Floating info card */}
+                <div className="absolute top-3 left-3 right-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-background/95 backdrop-blur-md shadow-md border border-border/40">
+                  <div className="w-8 h-8 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                    {store.logo_url ? (
+                      <img src={store.logo_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Store className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1">
+                      <h3 className="text-sm font-bold truncate">{store.name}</h3>
+                      {store.is_verified && <Verified className="h-3 w-3 text-primary flex-shrink-0" />}
+                    </div>
+                    {store.location && (
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 truncate">
+                        <MapPin className="h-2.5 w-2.5" /> {store.location}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">★ 4.7</span>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Desktop grid */}
+        <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {stores.map((store, i) => (
             <motion.div
               key={store.id}
@@ -110,25 +153,17 @@ const FeaturedStores = () => {
                 to={`/store/${store.id}`}
                 className="group block bg-card rounded-2xl overflow-hidden border border-border/60 hover:border-primary/20 transition-all duration-300 hover:shadow-lg"
               >
-                {/* Cover */}
-                <div className="relative h-24 sm:h-28 overflow-hidden bg-muted">
+                <div className="relative h-32 overflow-hidden bg-muted">
                   {store.cover_url ? (
-                    <img
-                      src={store.cover_url}
-                      alt={store.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    <img src={store.cover_url} alt={store.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5" />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
                 </div>
-
-                {/* Content */}
                 <div className="relative p-3 pt-0">
                   <div className="relative -mt-6 mb-2">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl border-2 border-card shadow-sm bg-muted flex items-center justify-center overflow-hidden">
+                    <div className="w-12 h-12 rounded-xl border-2 border-card shadow-sm bg-muted flex items-center justify-center overflow-hidden">
                       {store.logo_url ? (
                         <img src={store.logo_url} alt={store.name} loading="lazy" className="w-full h-full object-cover" />
                       ) : (
@@ -141,14 +176,12 @@ const FeaturedStores = () => {
                       </div>
                     )}
                   </div>
-
                   <h3 className="text-sm font-bold text-foreground mb-0.5 group-hover:text-primary transition-colors line-clamp-1">
                     {store.name}
                   </h3>
                   <p className="text-[11px] text-muted-foreground mb-2 line-clamp-1">
                     {store.description || 'No description'}
                   </p>
-
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     {store.location ? (
                       <span className="flex items-center gap-1 line-clamp-1">

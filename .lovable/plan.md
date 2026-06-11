@@ -1,40 +1,57 @@
-# Auto-Update for Installed App
+# Home Page Restyle Plan
 
-## Problem
-Users who installed Jayee Express to their home screen keep seeing old versions even after refreshing. This happens because the service worker (`src/sw.ts`) serves cached HTML and assets, and the current registration in `src/main.tsx` uses `confirm()` (which is blocked or ignored inside installed PWAs on many phones), so the new version never activates.
+Restyle only `/` (mobile and desktop) to match the two reference images. Keep orange as primary, keep all data, routes, components, and features as-is — only the visual composition changes.
 
-## Fix
-Make updates apply automatically, with a small in-app banner as a visible fallback when an update is ready.
+## Mobile home (Agrizel reference)
 
-### 1. Service worker (`src/sw.ts`)
-- Keep `skipWaiting()` + `clientsClaim()` so a new worker takes over immediately.
-- Add a **NetworkFirst** runtime route for HTML navigations so the app shell is re-fetched from the network when online and only falls back to cache when offline. This is the core fix — right now precached HTML can be served indefinitely.
-- Keep `CacheFirst` only for hashed JS/CSS assets (they already bust on every build).
-- Exclude `/~oauth` and `/reset-password` from navigation caching so auth flows always hit the network.
+Reorder and restyle `src/pages/Index.tsx` for mobile so it reads top-to-bottom as:
 
-### 2. Registration (`src/main.tsx`)
-Replace the `confirm()` prompt with automatic update behavior:
-- On `onNeedRefresh`, immediately call `updateSW(true)` to activate the new worker and reload — no user prompt needed in 95% of cases.
-- Also poll `registration.update()` every 60 seconds while the app is open, and on `visibilitychange` when the tab/app becomes visible again (covers users who reopen the installed app days later).
+1. **Compact top bar** (replacing the dense navbar on mobile home): small circular logo + "Delivering to {location}" line with map pin, and a cart icon on the right with badge.
+2. **Rounded pill search bar** — full-width, soft gray fill, leading search icon, placeholder "Search products, stores, categories" (reuses `GlobalSearch`).
+3. **Categories row** — horizontal scroll of pill chips with small colored icon bubbles (uses existing categories data). Active chip filled orange.
+4. **Promo banner card** — large rounded card reusing `AdvertisementCarousel`, styled with soft background, bold headline, small subtext, and a filled orange CTA button bottom-left.
+5. **"Freshly in Stocked" style section header** — bold title left, "VIEW ALL ›" link right. Used for both `RecommendedProducts` and `FeaturedProducts`.
+6. **Product cards** — square image top with rounded corners, store chip overlay (avatar + name + ★ rating) on the image, title + price below, full-width orange "Buy Now" / outlined "Add to Cart" buttons stacked.
+7. **Featured stores** — restyled as horizontally scrollable cards with cover image + floating store info chip (matches the third reference screen).
+8. Keep `HowItWorks`, `DownloadBanner`, `CTASection`, `Footer`, and the bottom `MobileTabBar` unchanged in behavior; only spacing/typography refreshed for consistency.
 
-### 3. Visible fallback: update banner
-Create `src/components/UpdateAvailableBanner.tsx` — a small bottom-of-screen toast (above the mobile tab bar, using existing design tokens) that appears only if the auto-reload hasn't completed within ~3 seconds (edge case: user is mid-form so we delay the reload). It shows "A new version is available" with an **Update now** button that calls `updateSW(true)`. Dismissable; reappears on next update.
+## Desktop home (Snapcart reference)
 
-### 4. Version surface (small)
-Add a `__APP_VERSION__` define in `vite.config.ts` (from `package.json` version + build timestamp) and show it faintly in the More drawer footer. Helps you and users confirm they're on the latest build.
+Restyle desktop `/` into a three-zone shell below the existing `Navbar`:
 
-## What users will experience
-- Open the installed app → it silently fetches the latest shell in the background → reloads to the new version within a second or two of detecting an update.
-- If they're typing in a form when an update arrives, the banner appears instead, and they tap **Update now** when ready.
-- No more stuck-on-old-version reports.
+1. **Utility strip** under navbar — thin row with "Free shipping over ₵___ · Money-back guarantee · 100% secure payment" badges, full-width, soft background.
+2. **Category sidebar (left, ~220px)** — sticky vertical list of product categories (from existing categories data), each row hover-highlighted in orange. Collapsible via shadcn `Sidebar` with `SidebarProvider` so users can hide it; trigger lives in the utility strip.
+3. **Hero collage (center + right)** — a 3-column grid:
+   - Large left card: current `AdvertisementCarousel` styled as a big rounded hero with headline + "Buy Now" pill.
+   - Two stacked right cards: featured store + featured product teasers pulled from existing featured queries.
+4. **Featured brands / stores strip** — horizontal row of logo chips sourced from `FeaturedStores` (logo + name, monochrome on hover -> color).
+5. **"Best Sellers" tabbed row** — `FeaturedProducts` rendered with category pill tabs above (reusing `CategoriesSection` selection state already in `Index.tsx`); products shown as 5-up card grid with corner "Best Selling" / installment badges, ★ rating, price.
+6. **Promo band** — dark full-width banner reusing `DownloadBanner` styled like the "A healthy leap ahead" strip.
+7. **"Top picks" section** — `RecommendedProducts` rendered as left feature card (large) + right 3x2 mini category grid (Vegetables, Fruits, etc.) using existing categories data.
+8. Keep `HowItWorks`, `CTASection`, and `Footer` at the bottom with refreshed spacing.
+
+The desktop and mobile compositions are gated by `useIsMobile()` in `Index.tsx` — desktop renders the new shell, mobile renders the Agrizel-style stack.
 
 ## Out of scope
-- Native Android/iOS Capacitor build updates (those ship through Play Store / app stores, not the service worker).
-- Forcing logout or clearing user data on update.
+- Other pages (`/products`, `/stores`, `/product/:id`, etc.) — unchanged.
+- Auth, cart, checkout, seller, admin, delivery flows — unchanged.
+- Data model, routes, business logic — unchanged.
+- Brand colors stay: primary orange, white, black. No green swap.
 
-## Files to change
-- `src/sw.ts` — add NetworkFirst navigation route, OAuth/reset exclusions
-- `src/main.tsx` — auto-apply updates, periodic + visibility-based update checks, mount banner
-- `src/components/UpdateAvailableBanner.tsx` *(new)* — fallback UI
-- `vite.config.ts` — inject `__APP_VERSION__` define
-- `src/components/layout/MobileTabBar.tsx` — show version in More drawer (tiny text)
+## Technical details
+- Files edited:
+  - `src/pages/Index.tsx` — branch desktop vs mobile compositions.
+  - `src/components/sections/AdvertisementCarousel.tsx` — hero card variant prop (`compact` mobile / `hero` desktop).
+  - `src/components/sections/CategoriesSection.tsx` — add `variant="pills"` (mobile chips) and `variant="sidebar"` (desktop left rail).
+  - `src/components/sections/FeaturedProducts.tsx` — new product card layout (image-top, store chip overlay, dual CTA buttons on mobile; 5-up grid on desktop).
+  - `src/components/sections/FeaturedStores.tsx` — horizontally scrollable image-forward cards on mobile; logo strip on desktop.
+  - `src/components/sections/RecommendedProducts.tsx` — section header restyle; reuse same product card.
+  - `src/components/layout/Navbar.tsx` — minor mobile variant: on `/` only, render the slim "Delivering to …" top bar instead of the full navbar (desktop unchanged).
+- New files:
+  - `src/components/home/HomeCategorySidebar.tsx` — desktop left sidebar via shadcn `Sidebar` (collapsible="icon").
+  - `src/components/home/HomeUtilityStrip.tsx` — desktop trust-badges strip.
+  - `src/components/home/SectionHeader.tsx` — shared "Title … VIEW ALL ›" header.
+  - `src/components/home/ProductCard.tsx` — reference-style product card used by Featured + Recommended sections.
+- All colors via existing semantic tokens (`--primary`, `--background`, `--muted`, `--card`, `--border`). No hardcoded hex.
+- Dark mode preserved by relying on tokens.
+- No new dependencies.
