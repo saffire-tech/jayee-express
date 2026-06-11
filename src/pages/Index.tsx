@@ -11,6 +11,7 @@ import FeaturedStores from "@/components/sections/FeaturedStores";
 import DownloadBanner from "@/components/sections/DownloadBanner";
 import CTASection from "@/components/sections/CTASection";
 import Footer from "@/components/layout/Footer";
+import SEO from "@/components/SEO";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ const Index = () => {
 
   const content = (
     <>
+      <h1 className="sr-only">Jayee Express — community marketplace in Ghana. Shop and sell locally in Tamale and Wa.</h1>
       <AnnouncementBanner />
       <AdvertisementCarousel />
       <RecommendedProducts />
