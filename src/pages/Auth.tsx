@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import shodelLogo from "@/assets/shodel-logo.png";
-import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -144,21 +144,21 @@ const Auth = () => {
               setError("");
               setLoading(true);
               try {
-                // Normalize www -> apex so redirect always returns to the primary domain
-                const host = window.location.hostname.replace(/^www\./i, "");
-                const isProd = host === "jayeeexpress.com";
-                const redirectTo = isProd
-                  ? "https://jayeeexpress.com/"
-                  : `${window.location.origin}/`;
-
-                const { error } = await supabase.auth.signInWithOAuth({
-                  provider: "google",
-                  options: { redirectTo },
+                const result = await lovable.auth.signInWithOAuth("google", {
+                  redirect_uri: window.location.origin,
+                  extraParams: {
+                    project_id: "83f62de6-ce52-416e-942a-7a56f8c633e2",
+                    prompt: "select_account",
+                  },
                 });
-                if (error) {
-                  setError(error.message || "Google sign-in failed");
+
+                if (result.error) {
+                  setError(result.error.message || "Google sign-in failed");
                   setLoading(false);
+                  return;
                 }
+
+                if (!result.redirected) navigate("/");
               } catch (e: any) {
                 setError(e?.message || "Google sign-in failed");
                 setLoading(false);
