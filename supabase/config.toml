@@ -4,7 +4,7 @@ project_id = "brqzedcxzjqwzpkwrmow"
 verify_jwt = false
 
 [functions.get-recommendations]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-email-notification]
 verify_jwt = false
