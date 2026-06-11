@@ -43,7 +43,9 @@ const PurchaseHistory = lazy(() => import("./pages/PurchaseHistory"));
 const NotificationCenter = lazy(() => import("./pages/NotificationCenter"));
 const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const SelectCity = lazy(() => import("./pages/SelectCity"));
 const MobileTabBar = lazy(() => import("./components/layout/MobileTabBar"));
+import RequireCity from "./components/auth/RequireCity";
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -84,6 +86,7 @@ const App = () => {
             <AuthProvider>
               <PWABadgeManager />
               <PushNotificationManager />
+              <RequireCity />
               <AdminProvider>
                 <CartProvider>
                   <Suspense fallback={<PageLoader />}>
@@ -91,6 +94,7 @@ const App = () => {
                       <Route path="/" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/select-city" element={<SelectCity />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/purchases" element={<PurchaseHistory />} />
                       <Route path="/seller" element={<SellerDashboard />} />

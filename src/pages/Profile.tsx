@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Phone, ArrowLeft, Loader2, Store, ShoppingBag, Bell, BellOff, History, Smartphone } from "lucide-react";
+import { User, Phone, ArrowLeft, Loader2, Store, ShoppingBag, Bell, BellOff, History, Smartphone, MapPin } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import LocationSelector from "@/components/ui/LocationSelector";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -146,6 +146,35 @@ const Profile = () => {
             </button>
           </div>
         </div>
+
+        {/* City Selector */}
+        <div className="bg-card rounded-2xl border border-border p-6 mb-8">
+          <h2 className="font-semibold mb-1 flex items-center gap-2">
+            <MapPin className="h-4 w-4" /> Your City
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            You'll only see stores, products, and deliveries from this city.
+          </p>
+          <div className="flex gap-4">
+            {(["Tamale", "Wa"] as const).map((c) => (
+              <button
+                key={c}
+                onClick={async () => {
+                  if (profile?.city === c) return;
+                  await updateProfile({ city: c } as any);
+                }}
+                className={`flex-1 p-4 rounded-xl border-2 transition-all font-medium ${
+                  profile?.city === c
+                    ? "border-primary bg-accent text-primary"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
 
         {/* Notification Settings */}
         {isSupported && (

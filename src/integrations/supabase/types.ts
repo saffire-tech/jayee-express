@@ -373,6 +373,7 @@ export type Database = {
         Row: {
           buyer_id: string
           cancelled_at: string | null
+          city: string
           created_at: string
           delivery_address: string | null
           delivery_fee: number
@@ -395,6 +396,7 @@ export type Database = {
         Insert: {
           buyer_id: string
           cancelled_at?: string | null
+          city: string
           created_at?: string
           delivery_address?: string | null
           delivery_fee?: number
@@ -417,6 +419,7 @@ export type Database = {
         Update: {
           buyer_id?: string
           cancelled_at?: string | null
+          city?: string
           created_at?: string
           delivery_address?: string | null
           delivery_fee?: number
@@ -536,6 +539,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           campus: string | null
+          city: string | null
           created_at: string
           current_mode: Database["public"]["Enums"]["user_mode"] | null
           full_name: string | null
@@ -551,6 +555,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           campus?: string | null
+          city?: string | null
           created_at?: string
           current_mode?: Database["public"]["Enums"]["user_mode"] | null
           full_name?: string | null
@@ -566,6 +571,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           campus?: string | null
+          city?: string | null
           created_at?: string
           current_mode?: Database["public"]["Enums"]["user_mode"] | null
           full_name?: string | null
@@ -787,6 +793,7 @@ export type Database = {
       stores: {
         Row: {
           campus: string | null
+          city: string
           cover_url: string | null
           created_at: string
           current_plan_id: string | null
@@ -814,6 +821,7 @@ export type Database = {
         }
         Insert: {
           campus?: string | null
+          city: string
           cover_url?: string | null
           created_at?: string
           current_plan_id?: string | null
@@ -841,6 +849,7 @@ export type Database = {
         }
         Update: {
           campus?: string | null
+          city?: string
           cover_url?: string | null
           created_at?: string
           current_plan_id?: string | null
@@ -1086,6 +1095,7 @@ export type Database = {
     }
     Functions: {
       bump_location_usage: { Args: { _id: string }; Returns: undefined }
+      current_user_city: { Args: never; Returns: string }
       get_my_momo: {
         Args: never
         Returns: {

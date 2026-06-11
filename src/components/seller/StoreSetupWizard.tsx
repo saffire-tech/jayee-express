@@ -6,12 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import LocationSelector from "@/components/ui/LocationSelector";
 import MapPicker from "@/components/maps/MapPicker";
 import { Store, MapPin, Phone, Loader2, ArrowRight, Check, Navigation } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StoreSetupWizardProps {
-  onComplete: (data: { name: string; description: string; location: string; phone: string; campus: string; latitude?: number; longitude?: number }) => Promise<unknown>;
+  onComplete: (data: { name: string; description: string; location: string; phone: string; campus: string; city: string; latitude?: number; longitude?: number }) => Promise<unknown>;
 }
 
 const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
+  const { profile } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,6 +22,7 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
     location: "",
     phone: "",
     campus: "",
+    city: profile?.city || "Tamale",
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
   });
