@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import SEO from '@/components/SEO';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -193,24 +193,44 @@ const ProductDetail = () => {
     );
   }
 
-  const productImage = galleryImages[0] || 'https://uniplug.app/icons/icon-512x512.png';
-  const productUrl = `https://uniplug.app/product/${product.id}`;
+  const productImage = galleryImages[0] || 'https://jayeeexpress.com/icons/icon-512x512.png';
+  const productDescription = product.description
+    ? product.description.slice(0, 155)
+    : `Buy ${product.name} from ${product.store?.name ?? 'a local seller'} on Jayee Express.`;
+
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: productDescription,
+    image: productImage,
+    sku: product.id,
+    category: product.category,
+    brand: product.store?.name
+      ? { "@type": "Brand", name: product.store.name }
+      : undefined,
+    offers: {
+      "@type": "Offer",
+      url: `https://jayeeexpress.com/product/${product.id}`,
+      priceCurrency: "GHS",
+      price: product.price,
+      availability:
+        (product.stock ?? 0) > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+    },
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>{product.name} - Jayee Express</title>
-        <meta name="description" content={product.description || `Buy ${product.name} on Jayee Express`} />
-        <meta property="og:title" content={`${product.name} - ₵${product.price.toLocaleString()}`} />
-        <meta property="og:description" content={product.description || `Buy ${product.name} on Jayee Express - The community marketplace`} />
-        <meta property="og:image" content={productImage} />
-        <meta property="og:url" content={productUrl} />
-        <meta property="og:type" content="product" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${product.name} - ₵${product.price.toLocaleString()}`} />
-        <meta name="twitter:description" content={product.description || `Buy ${product.name} on Jayee Express`} />
-        <meta name="twitter:image" content={productImage} />
-      </Helmet>
+      <SEO
+        title={`${product.name} — ₵${product.price.toLocaleString()} | Jayee Express`}
+        description={productDescription}
+        canonicalPath={`/product/${product.id}`}
+        image={productImage}
+        type="product"
+        jsonLd={productJsonLd}
+      />
       <Navbar />
       
       <main className="container mx-auto px-4 pt-24 pb-8">
