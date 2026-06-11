@@ -422,14 +422,7 @@ const Messages = () => {
                   </div>
                 </ScrollArea>
 
-                {/* Payment Notice */}
-                <div className="px-4 py-2 bg-amber-500/10 border-t border-amber-500/20">
-                  <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                    <AlertTriangle className="h-3 w-3 shrink-0" />
-                    <span>Don't pay until you receive goods/services. Jayee Express is not responsible for fraud.</span>
-                  </p>
-                </div>
-
+                
                 {/* Message Input */}
                 <div className="p-4 border-t border-border">
                   <form
