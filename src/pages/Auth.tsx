@@ -6,7 +6,12 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import shodelLogo from "@/assets/shodel-logo.png";
-import { lovable } from "@/integrations/lovable";
+import { createLovableAuth } from "@lovable.dev/cloud-auth-js";
+import { supabase } from "@/integrations/supabase/client";
+
+const lovableOAuth = createLovableAuth({
+  oauthBrokerUrl: "https://oauth.lovable.app/initiate",
+});
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -144,7 +149,7 @@ const Auth = () => {
               setError("");
               setLoading(true);
               try {
-                const result = await lovable.auth.signInWithOAuth("google", {
+                const result = await lovableOAuth.signInWithOAuth("google", {
                   redirect_uri: window.location.origin,
                   extraParams: {
                     project_id: "83f62de6-ce52-416e-942a-7a56f8c633e2",
@@ -158,7 +163,11 @@ const Auth = () => {
                   return;
                 }
 
-                if (!result.redirected) navigate("/");
+                if (!result.redirected && result.tokens) {
+                  const { error } = await supabase.auth.setSession(result.tokens);
+                  if (error) throw error;
+                  navigate("/");
+                }
               } catch (e: any) {
                 setError(e?.message || "Google sign-in failed");
                 setLoading(false);
