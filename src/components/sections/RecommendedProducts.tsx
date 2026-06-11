@@ -119,25 +119,33 @@ const RecommendedProducts = () => {
   const SectionIcon = isFallback ? TrendingUp : Sparkles;
 
   return (
-    <section className="py-12 md:py-16 bg-muted/30">
+    <section className="py-6 md:py-10 bg-muted/30">
       <div className="container px-4">
-        <div className="flex items-center gap-2 mb-6 md:mb-8">
-          <SectionIcon className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold">{sectionTitle}</h2>
+        <div className="flex items-end justify-between gap-4 mb-3 md:mb-4">
+          <h2 className="text-lg md:text-2xl font-bold tracking-tight flex items-center gap-2">
+            <SectionIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+            {sectionTitle}
+          </h2>
+          <button
+            onClick={() => navigate("/products")}
+            className="text-[11px] md:text-xs font-bold tracking-wider text-primary hover:text-primary/80"
+          >
+            VIEW ALL ›
+          </button>
         </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
           {productsToShow.slice(0, 8).map((product) => (
-            <Card 
-              key={product.id} 
-              className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all border-border hover:border-primary/30"
+            <Card
+              key={product.id}
+              className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all border-border hover:border-primary/30 rounded-2xl"
               onClick={() => navigate(`/product/${product.id}`)}
             >
               <CardContent className="p-0">
                 <div className="aspect-square relative overflow-hidden bg-muted">
                   {product.image_url ? (
-                    <img 
-                      src={product.image_url} 
+                    <img
+                      src={product.image_url}
                       alt={product.name}
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
@@ -157,13 +165,13 @@ const RecommendedProducts = () => {
                     <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4" />
                   </Button>
                 </div>
-                <div className="p-2.5 md:p-4">
-                  <h3 className="font-medium text-sm md:text-base line-clamp-1">{product.name}</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">
+                <div className="p-2.5 md:p-3">
+                  <h3 className="font-semibold text-sm line-clamp-1">{product.name}</h3>
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">
                     {product.store?.name} {product.store?.campus && `• ${product.store.campus}`}
                   </p>
-                  <p className="text-primary font-semibold text-sm md:text-base mt-0.5 md:mt-1">
-                    GH₵ {product.price.toFixed(2)}
+                  <p className="text-foreground font-bold text-sm mt-1">
+                    ₵{product.price.toFixed(2)}
                   </p>
                 </div>
               </CardContent>

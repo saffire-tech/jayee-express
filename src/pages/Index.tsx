@@ -15,6 +15,8 @@ import SEO from "@/components/SEO";
 import { PullToRefresh } from "@/components/ui/PullToRefresh";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
+import HomeUtilityStrip from "@/components/home/HomeUtilityStrip";
+import HomeCategorySidebar from "@/components/home/HomeCategorySidebar";
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -29,19 +31,53 @@ const Index = () => {
     toast.success("Content refreshed");
   }, [queryClient]);
 
-  const content = (
+  const mobileContent = (
     <>
-      <h1 className="sr-only">Jayee Express — community marketplace in Ghana. Shop and sell locally in Tamale and Wa.</h1>
+      <h1 className="sr-only">Jayee Express — community marketplace in Ghana.</h1>
       <AnnouncementBanner />
       <AdvertisementCarousel />
+      <div className="-mt-2">
+        <CategoriesSection
+          selectedCategory={selectedCategory}
+          onCategorySelect={setSelectedCategory}
+        />
+      </div>
       <RecommendedProducts />
-      <CategoriesSection 
-        selectedCategory={selectedCategory} 
-        onCategorySelect={setSelectedCategory} 
-      />
       <FeaturedProducts selectedCategory={selectedCategory} />
-      <HowItWorks />
       <FeaturedStores />
+      <HowItWorks />
+      <DownloadBanner />
+      <CTASection />
+      <Footer />
+    </>
+  );
+
+  const desktopContent = (
+    <>
+      <h1 className="sr-only">Jayee Express — community marketplace in Ghana.</h1>
+      <AnnouncementBanner />
+      <HomeUtilityStrip />
+      <AdvertisementCarousel />
+      <CategoriesSection
+        selectedCategory={selectedCategory}
+        onCategorySelect={setSelectedCategory}
+      />
+
+      <div className="container px-4 py-6">
+        <div className="flex gap-6">
+          <HomeCategorySidebar
+            selectedCategory={selectedCategory}
+            onCategorySelect={setSelectedCategory}
+          />
+          <div className="flex-1 min-w-0 space-y-2">
+            <RecommendedProducts />
+            <FeaturedProducts selectedCategory={selectedCategory} />
+            <FeaturedStores />
+          </div>
+        </div>
+      </div>
+
+      <HowItWorks />
       <DownloadBanner />
       <CTASection />
       <Footer />
@@ -57,11 +93,9 @@ const Index = () => {
       />
       <Navbar />
       {isMobile ? (
-        <PullToRefresh onRefresh={handleRefresh}>
-          {content}
-        </PullToRefresh>
+        <PullToRefresh onRefresh={handleRefresh}>{mobileContent}</PullToRefresh>
       ) : (
-        content
+        desktopContent
       )}
     </main>
   );
