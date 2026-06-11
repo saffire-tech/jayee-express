@@ -81,8 +81,8 @@ Deno.serve(async (req) => {
         items: storeItems.map((item: any) => ({
           product_id: item.product_id,
           quantity: item.quantity,
-          price: item.product.price,
-          name: item.product.name,
+          price: item.price,
+          name: item.name,
         })),
       })),
     };
