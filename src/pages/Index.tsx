@@ -50,6 +50,11 @@ const Index = () => {
 
   return (
     <main className="min-h-screen bg-background pb-16 md:pb-0">
+      <SEO
+        title="Jayee Express — Community Marketplace in Ghana"
+        description="Buy and sell goods and services in your community. Discover local stores, shop with delivery across Tamale and Wa on Jayee Express."
+        canonicalPath="/"
+      />
       <Navbar />
       {isMobile ? (
         <PullToRefresh onRefresh={handleRefresh}>
