@@ -1,104 +1,36 @@
-## Why Google login is broken on jayeeexpress.com
+## Root cause
 
-Your site is hosted on **Vercel**, not on Lovable hosting. The current Google sign‑in code uses Lovable's managed OAuth flow:
+Your live site is still using Lovable Cloud OAuth, which sends users to `https://www.jayeeexpress.com/~oauth/initiate...`. That route only works on Lovable hosting, not on your Vercel-hosted custom domain, so Vercel returns 404.
 
-```ts
-const { lovable } = await import("@/integrations/lovable/index");
-await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-```
-
-That flow redirects the browser to `https://jayeeexpress.com/~oauth/initiate`. The `/~oauth/*` paths only exist on Lovable's hosting proxy — Vercel knows nothing about them, so it returns the **404 NOT_FOUND (cdg1)** error you saw (cdg1 = Vercel Paris edge).
-
-Managed Lovable OAuth cannot work on a Vercel-hosted domain. Since you already have your own Google Cloud OAuth credentials, the fix is to switch sign‑in to Supabase's native OAuth flow (which works on any host) and point Google + Supabase at jayeeexpress.com.
-
----
+The app must use direct backend Google OAuth on Vercel, which should redirect through the backend `/auth/v1/authorize` flow instead of `~oauth`.
 
 ## Plan
 
-### 1. Switch Google sign-in to Supabase native OAuth
-- In `src/pages/Auth.tsx`, replace the `lovable.auth.signInWithOAuth("google", ...)` block with:
-  ```ts
-  await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: `${window.location.origin}/` },
-  });
-  ```
-- Leave the `src/integrations/lovable/` folder in place (auto‑generated) but stop calling it.
+1. **Lock the auth page to direct Google OAuth**
+   - Update the Google button in `src/pages/Auth.tsx` so it only uses `supabase.auth.signInWithOAuth({ provider: "google" })`.
+   - Use a stable production redirect target based on the current site origin, normalizing `www.jayeeexpress.com` to `jayeeexpress.com` so Google/backend redirects are consistent.
+   - Add loading/error handling for the Google button so failed OAuth setup shows a useful message instead of silently failing.
 
-### 2. Configure your own Google credentials in the backend
-Tell you (manual step in Cloud → Users → Auth Settings → Sign In Methods → Google):
-- Turn **off** "Use Lovable‑managed Google" (so your own client ID/secret are used).
-- Paste your Google **Client ID** and **Client Secret**.
-- Copy the **Callback URL** shown there — it will look like  
-  `https://brqzedcxzjqwzpkwrmow.supabase.co/auth/v1/callback`.
+2. **Remove the stale Lovable OAuth path from the deployed app flow**
+   - Ensure the auth page has no dependency on `@/integrations/lovable` or `lovable.auth.signInWithOAuth`.
+   - Search the codebase for any remaining `~oauth` or Lovable OAuth sign-in usage and remove/avoid it if it affects sign-in.
 
-### 3. Update Google Cloud Console (you do this in console.cloud.google.com)
-On your OAuth 2.0 Web Client:
+3. **Keep Vercel SPA routing intact**
+   - Keep the existing Vercel rewrite for normal React routes.
+   - Do not try to make `~oauth/initiate` work in Vercel, because that path belongs to Lovable hosting and is not the correct solution for your current deployment.
 
-**Authorized JavaScript origins**
-- `https://jayeeexpress.com`
-- `https://www.jayeeexpress.com`
-- `https://jayee-express.lovable.app` (keep Lovable preview working)
+4. **Required external settings to verify after the code fix**
+   - In Google Cloud OAuth, authorized JavaScript origins should include:
+     - `https://jayeeexpress.com`
+     - `https://www.jayeeexpress.com`
+   - The authorized redirect URI should be the backend callback URL:
+     - `https://brqzedcxzjqwzpkwrmow.supabase.co/auth/v1/callback`
+   - In backend auth settings, the site URL should be your primary domain, preferably:
+     - `https://jayeeexpress.com`
+   - Additional redirect URLs should include:
+     - `https://jayeeexpress.com/**`
+     - `https://www.jayeeexpress.com/**`
 
-**Authorized redirect URIs**
-- `https://brqzedcxzjqwzpkwrmow.supabase.co/auth/v1/callback` ← the only one Google actually redirects to
-
-**OAuth consent screen → Authorised domains**
-- `jayeeexpress.com`
-- `supabase.co`
-
-### 4. Add jayeeexpress.com to Supabase Auth URL allow‑list
-In Cloud → Users → Auth Settings → URL Configuration:
-- **Site URL:** `https://jayeeexpress.com`
-- **Additional Redirect URLs:** add
-  - `https://jayeeexpress.com/**`
-  - `https://www.jayeeexpress.com/**`
-  - `https://jayee-express.lovable.app/**` (preview)
-  - `http://localhost:8080/**` (dev)
-
-Without these, Supabase will reject the post‑login redirect back to your domain.
-
-### 5. Move Resend to jayeeexpress.com
-Two Edge Functions currently send from `onboarding@resend.dev`:
-- `supabase/functions/notify-new-device/index.ts`
-- `supabase/functions/send-email-notification/index.ts`
-
-Change every `from` to:
-```
-Jayee Express <noreply@jayeeexpress.com>
-```
-(or another mailbox on your verified domain — confirm which mailbox you want, default `noreply@`.)
-
-Then redeploy both functions.
-
-Things you must verify in Resend yourself:
-- `jayeeexpress.com` shows **Verified** in Resend → Domains (SPF/DKIM/DMARC green).
-- The `RESEND_API_KEY` secret already stored in this project belongs to the Resend account that owns the verified domain. If you rotated the key when you switched domains, I'll prompt you to update it via the secrets tool.
-
-### 6. Make the new domain serve the app smoothly
-- Add `www.jayeeexpress.com` in Vercel and set one as primary with a 308 redirect to the other (recommend apex `jayeeexpress.com` as primary, `www` → apex).
-- Confirm Vercel project has SPA rewrite (`/* → /index.html`) so deep links don't 404. (Vite/React Router needs this on Vercel; Lovable hosting did it automatically.) If missing, I'll add a `vercel.json` with:
-  ```json
-  { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
-  ```
-- The Mapbox public token is already domain‑agnostic, no change needed.
-- The Lovable preview at `jayee-express.lovable.app` keeps working because we keep it in both Google's origins and Supabase's redirect list.
-
----
-
-## What I will change in code (build mode)
-
-1. `src/pages/Auth.tsx` — swap the Google button handler to `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: ... } })`.
-2. `supabase/functions/notify-new-device/index.ts` — `from` → `Jayee Express <noreply@jayeeexpress.com>`.
-3. `supabase/functions/send-email-notification/index.ts` — same `from` change.
-4. (If you confirm Vercel is missing SPA rewrite) add `vercel.json` at project root.
-
-## What you do manually (I can't reach these)
-- Google Cloud Console: origins + redirect URI + consent screen domains (Section 3).
-- Cloud → Users → Auth Settings: paste Google Client ID/Secret, set Site URL + redirect allow‑list (Sections 2 + 4).
-- Resend dashboard: confirm `jayeeexpress.com` is verified.
-- Vercel: confirm both apex + www are attached and pointing to the right project.
-
-## Questions before I build
-- Confirm the sender mailbox: `noreply@jayeeexpress.com` OK, or do you prefer `hello@`, `support@`, `notifications@`?
-- Do you already have a `vercel.json` in your repo? If unsure I'll add the SPA rewrite defensively.
+5. **Verify**
+   - After GitHub/Vercel redeploys, clicking “Continue with Google” should no longer open `/~oauth/initiate`.
+   - It should redirect to the backend Google OAuth authorize URL, then return to `jayeeexpress.com` after successful sign-in.
