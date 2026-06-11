@@ -30,22 +30,4 @@
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
-  <url>
-    <loc>https://jayeeexpress.com/store/a1e12be6-e095-4f23-9813-c7ee885446f6</loc>
-    <lastmod>2026-06-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://jayeeexpress.com/product/a4572d52-4537-40aa-b64c-29ac787893e1</loc>
-    <lastmod>2026-06-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://jayeeexpress.com/product/ed99a92e-a82f-406d-ae32-b7b6ed6bd86c</loc>
-    <lastmod>2026-06-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
 </urlset>
