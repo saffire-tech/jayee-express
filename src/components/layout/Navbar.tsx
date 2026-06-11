@@ -66,8 +66,8 @@ const Navbar = () => {
               <GlobalSearch variant="navbar" />
             </div>
             
-            <Link to="/cart" className="relative">
-              <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9">
+            <Link to="/cart" className="relative" aria-label={`Cart${totalItems > 0 ? ` (${totalItems} items)` : ''}`}>
+              <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9" aria-label="Open cart">
                 <ShoppingCart className="h-[18px] w-[18px]" />
                 {totalItems > 0 && (
                   <Badge className="absolute -top-1 -right-1 h-4.5 w-4.5 flex items-center justify-center p-0 text-[10px] rounded-full">
@@ -108,8 +108,8 @@ const Navbar = () => {
                     )}
                   </Link>
                 )}
-                <Link to="/notifications" className="relative">
-                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9">
+                <Link to="/notifications" className="relative" aria-label="Notifications">
+                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9" aria-label="View notifications">
                     <Bell className="h-[18px] w-[18px]" />
                   </Button>
                   {unreadNotifications > 0 && (
@@ -118,8 +118,8 @@ const Navbar = () => {
                     </Badge>
                   )}
                 </Link>
-                <Link to="/messages" className="relative">
-                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9">
+                <Link to="/messages" className="relative" aria-label="Messages">
+                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9" aria-label="View messages">
                     <MessageCircle className="h-[18px] w-[18px]" />
                   </Button>
                   {unreadMessages > 0 && (
@@ -128,13 +128,13 @@ const Navbar = () => {
                     </Badge>
                   )}
                 </Link>
-                <Link to="/profile">
-                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9">
+                <Link to="/profile" aria-label="Profile">
+                  <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9" aria-label="View profile">
                     <User className="h-[18px] w-[18px]" />
                   </Button>
                 </Link>
                 <ThemeToggle />
-                <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9" onClick={handleSignOut}>
+                <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9" onClick={handleSignOut} aria-label="Sign out">
                   <LogOut className="h-[18px] w-[18px]" />
                 </Button>
               </>

@@ -59,7 +59,12 @@ const MobileTabBar = () => {
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border/50 supports-[backdrop-filter]:bg-background/60 safe-area-bottom">
       <div className="flex items-center h-14">
         {tabs.map(tab => (
-          <Link key={tab.path} to={tab.path} className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 relative">
+          <Link
+            key={tab.path}
+            to={tab.path}
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 relative"
+            aria-label={tab.badge && tab.badge > 0 ? `${tab.label} (${tab.badge})` : tab.label}
+          >
             <div className="relative">
               {isActive(tab.path) && (
                 <motion.div
@@ -83,7 +88,7 @@ const MobileTabBar = () => {
 
         <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
           <DrawerTrigger asChild>
-            <button className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 relative">
+            <button className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 relative" aria-label="More options">
               <div className="relative">
                 <Menu className="h-5 w-5 text-muted-foreground" />
                 {user && totalNotifications > 0 && (
