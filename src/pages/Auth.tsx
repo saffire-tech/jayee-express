@@ -142,14 +142,26 @@ const Auth = () => {
             disabled={loading}
             onClick={async () => {
               setError("");
+              setLoading(true);
               try {
+                // Normalize www -> apex so redirect always returns to the primary domain
+                const host = window.location.hostname.replace(/^www\./i, "");
+                const isProd = host === "jayeeexpress.com";
+                const redirectTo = isProd
+                  ? "https://jayeeexpress.com/"
+                  : `${window.location.origin}/`;
+
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: "google",
-                  options: { redirectTo: `${window.location.origin}/` },
+                  options: { redirectTo },
                 });
-                if (error) setError(error.message || "Google sign-in failed");
+                if (error) {
+                  setError(error.message || "Google sign-in failed");
+                  setLoading(false);
+                }
               } catch (e: any) {
                 setError(e?.message || "Google sign-in failed");
+                setLoading(false);
               }
             }}
           >
