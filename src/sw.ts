@@ -1,10 +1,13 @@
 /// <reference lib="webworker" />
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
+import { NavigationRoute, registerRoute } from 'workbox-routing';
+import { NetworkFirst, CacheFirst } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 import { clientsClaim } from 'workbox-core';
 
 declare let self: ServiceWorkerGlobalScope & { __WB_MANIFEST: Array<{ url: string; revision: string | null }> };
 
-// Take control immediately
+// Take control immediately so updates apply ASAP
 self.skipWaiting();
 clientsClaim();
 
@@ -15,10 +18,37 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
 // ============================================
+// NAVIGATION: NetworkFirst so updates show up
+// ============================================
+// HTML navigations always try the network first. Falls back to the precached
+// index.html only when offline. Excludes OAuth and password reset routes.
+const navigationHandler = new NetworkFirst({
+  cacheName: 'navigations',
+  networkTimeoutSeconds: 5,
+  plugins: [new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 })],
+});
+
+registerRoute(
+  new NavigationRoute(navigationHandler, {
+    denylist: [/^\/~oauth/, /^\/reset-password/, /^\/api\//, /^\/auth\/v1\//],
+  })
+);
+
+// Hashed static assets: CacheFirst is fine because filenames change each build
+registerRoute(
+  ({ request, url }) =>
+    url.origin === self.location.origin &&
+    (request.destination === 'script' || request.destination === 'style' || request.destination === 'font'),
+  new CacheFirst({
+    cacheName: 'static-assets',
+    plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 })],
+  })
+);
+
+// ============================================
 // PUSH NOTIFICATION HANDLERS
 // ============================================
 
-// Handle push events - show notification
 self.addEventListener('push', (event: PushEvent) => {
   console.log('[SW] Push event received:', event);
 
@@ -49,7 +79,6 @@ self.addEventListener('push', (event: PushEvent) => {
   }
 });
 
-// Handle notification click - navigate to appropriate page
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
   console.log('[SW] Notification clicked:', event);
 
@@ -58,7 +87,6 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   const data = event.notification.data || {};
   let targetUrl = '/';
 
-  // Navigate based on notification type
   if (data.type === 'message') {
     targetUrl = '/messages';
   } else if (data.type === 'order' && data.url) {
@@ -71,7 +99,6 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if there's already a window open
       for (const client of clientList) {
         if ('focus' in client) {
           client.focus();
@@ -81,7 +108,6 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
           return client;
         }
       }
-      // If no window is open, open a new one
       if (self.clients.openWindow) {
         return self.clients.openWindow(targetUrl);
       }
@@ -89,10 +115,8 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   );
 });
 
-// Handle push subscription change - log for debugging
 self.addEventListener('pushsubscriptionchange', (event) => {
   console.log('[SW] Push subscription changed:', event);
-  // The subscription renewal will happen next time the user opens the app
 });
 
-console.log('[SW] Service worker loaded with push notification support');
+console.log('[SW] Service worker loaded with auto-update + push support');
