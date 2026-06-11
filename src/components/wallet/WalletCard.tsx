@@ -41,13 +41,10 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
         setMomoDetails({ momo_number: row.momo_number, momo_provider: row.momo_provider });
       }
     } else {
-      const { data } = await supabase
-        .from("profiles")
-        .select("momo_number, momo_provider")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (data?.momo_number && data?.momo_provider) {
-        setMomoDetails({ momo_number: data.momo_number, momo_provider: data.momo_provider });
+      const { data } = await supabase.rpc("get_my_momo");
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row?.momo_number && row?.momo_provider) {
+        setMomoDetails({ momo_number: row.momo_number, momo_provider: row.momo_provider });
       }
     }
   };

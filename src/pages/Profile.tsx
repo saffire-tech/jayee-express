@@ -41,10 +41,19 @@ const Profile = () => {
       setFullName(profile.full_name || "");
       setPhone(profile.phone || "");
       setCampus(profile.campus || "");
-      setMomoNumber((profile as any).momo_number || "");
-      setMomoProvider((profile as any).momo_provider || "");
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("get_my_momo").then(({ data }) => {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        setMomoNumber(row.momo_number || "");
+        setMomoProvider(row.momo_provider || "");
+      }
+    });
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
