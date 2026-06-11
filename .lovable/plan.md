@@ -1,57 +1,58 @@
-# Home Page Restyle Plan
+# City Segmentation: Tamale vs Wa
 
-Restyle only `/` (mobile and desktop) to match the two reference images. Keep orange as primary, keep all data, routes, components, and features as-is — only the visual composition changes.
+Split the marketplace into two isolated regions. A user picks Tamale or Wa right after signup; their city determines every store, product, order, and delivery job they can see or interact with. Tamale users will never see Wa data, and vice versa — enforced both in the UI and at the database level (RLS).
 
-## Mobile home (Agrizel reference)
+## Data model changes (migration)
 
-Reorder and restyle `src/pages/Index.tsx` for mobile so it reads top-to-bottom as:
+1. Add `city` column (text, check `city in ('Tamale','Wa')`) to:
+   - `profiles` — the user's chosen city
+   - `stores` — the store's operating city
+   - `orders` — snapshot of the order's city (denormalized from store for RLS speed)
+2. Backfill: set every existing row's `city = 'Tamale'`.
+3. Make `city` NOT NULL after backfill.
+4. Trigger on `orders` insert: auto-set `orders.city` from `stores.city`.
+5. Trigger on `products` insert/update: reject if `store.city <> buyer's city` is not needed — products inherit visibility from store via RLS.
 
-1. **Compact top bar** (replacing the dense navbar on mobile home): small circular logo + "Delivering to {location}" line with map pin, and a cart icon on the right with badge.
-2. **Rounded pill search bar** — full-width, soft gray fill, leading search icon, placeholder "Search products, stores, categories" (reuses `GlobalSearch`).
-3. **Categories row** — horizontal scroll of pill chips with small colored icon bubbles (uses existing categories data). Active chip filled orange.
-4. **Promo banner card** — large rounded card reusing `AdvertisementCarousel`, styled with soft background, bold headline, small subtext, and a filled orange CTA button bottom-left.
-5. **"Freshly in Stocked" style section header** — bold title left, "VIEW ALL ›" link right. Used for both `RecommendedProducts` and `FeaturedProducts`.
-6. **Product cards** — square image top with rounded corners, store chip overlay (avatar + name + ★ rating) on the image, title + price below, full-width orange "Buy Now" / outlined "Add to Cart" buttons stacked.
-7. **Featured stores** — restyled as horizontally scrollable cards with cover image + floating store info chip (matches the third reference screen).
-8. Keep `HowItWorks`, `DownloadBanner`, `CTASection`, `Footer`, and the bottom `MobileTabBar` unchanged in behavior; only spacing/typography refreshed for consistency.
+## RLS updates
 
-## Desktop home (Snapcart reference)
+Add a security-definer helper `public.current_user_city()` that returns `profiles.city` for `auth.uid()`. Then update existing policies (combine with existing conditions, do not replace verification/suspension logic):
 
-Restyle desktop `/` into a three-zone shell below the existing `Navbar`:
+- `stores` SELECT: existing visibility AND `city = current_user_city()` (admins bypass).
+- `products` SELECT: store's city must match (`EXISTS (SELECT 1 FROM stores s WHERE s.id = products.store_id AND s.city = current_user_city())`).
+- `orders` SELECT/UPDATE for delivery couriers: existing acceptance/management policies AND `orders.city = current_user_city()`.
+- `cart_items` INSERT: block adding a product whose store city ≠ user's city (trigger or policy check).
+- Admins (has_role 'admin') see all cities.
 
-1. **Utility strip** under navbar — thin row with "Free shipping over ₵___ · Money-back guarantee · 100% secure payment" badges, full-width, soft background.
-2. **Category sidebar (left, ~220px)** — sticky vertical list of product categories (from existing categories data), each row hover-highlighted in orange. Collapsible via shadcn `Sidebar` with `SidebarProvider` so users can hide it; trigger lives in the utility strip.
-3. **Hero collage (center + right)** — a 3-column grid:
-   - Large left card: current `AdvertisementCarousel` styled as a big rounded hero with headline + "Buy Now" pill.
-   - Two stacked right cards: featured store + featured product teasers pulled from existing featured queries.
-4. **Featured brands / stores strip** — horizontal row of logo chips sourced from `FeaturedStores` (logo + name, monochrome on hover -> color).
-5. **"Best Sellers" tabbed row** — `FeaturedProducts` rendered with category pill tabs above (reusing `CategoriesSection` selection state already in `Index.tsx`); products shown as 5-up card grid with corner "Best Selling" / installment badges, ★ rating, price.
-6. **Promo band** — dark full-width banner reusing `DownloadBanner` styled like the "A healthy leap ahead" strip.
-7. **"Top picks" section** — `RecommendedProducts` rendered as left feature card (large) + right 3x2 mini category grid (Vegetables, Fruits, etc.) using existing categories data.
-8. Keep `HowItWorks`, `CTASection`, and `Footer` at the bottom with refreshed spacing.
+## Frontend changes
 
-The desktop and mobile compositions are gated by `useIsMobile()` in `Index.tsx` — desktop renders the new shell, mobile renders the Agrizel-style stack.
+**New onboarding screen** (`src/pages/SelectCity.tsx`, route `/select-city`):
+- Two big cards: Tamale, Wa. On select → `UPDATE profiles SET city = ...` → navigate to `/`.
+- `AuthContext` gains `profile.city`. After sign-in, if `profile.city` is null → redirect to `/select-city` (guard in `App.tsx` / a `RequireCity` wrapper around app routes; exclude `/auth`, `/select-city`, public product/store pages).
+
+**Profile page** (`src/pages/Profile.tsx`):
+- Add "City" section with a Tamale/Wa radio group, saved via `updateProfile({ city })`. Show a brief warning that switching changes which stores/products are visible.
+
+**Store creation / seller setup** (`StoreSetupWizard.tsx`, any "create store" flow):
+- Add required city field (Tamale/Wa). Default to the seller's `profile.city`. Lock or warn if changed.
+
+**Listing pages** (Home, `Products.tsx`, `Stores.tsx`, search, recommendations, featured sections):
+- Add `.eq('city', profile.city)` to queries. (RLS already enforces this; the explicit filter keeps queries efficient and indexable.)
+
+**Delivery dashboard** (`DeliveryDashboard.tsx`, `AvailableOrders.tsx`):
+- Filter available orders by `city = courier's profile.city`. Distance sorting still applies within the city.
+
+**Edge functions** (`get-recommendations`, `cart-reminder`, `send-push-notification` audience queries): filter by city using the requester's profile.
 
 ## Out of scope
-- Other pages (`/products`, `/stores`, `/product/:id`, etc.) — unchanged.
-- Auth, cart, checkout, seller, admin, delivery flows — unchanged.
-- Data model, routes, business logic — unchanged.
-- Brand colors stay: primary orange, white, black. No green swap.
 
-## Technical details
-- Files edited:
-  - `src/pages/Index.tsx` — branch desktop vs mobile compositions.
-  - `src/components/sections/AdvertisementCarousel.tsx` — hero card variant prop (`compact` mobile / `hero` desktop).
-  - `src/components/sections/CategoriesSection.tsx` — add `variant="pills"` (mobile chips) and `variant="sidebar"` (desktop left rail).
-  - `src/components/sections/FeaturedProducts.tsx` — new product card layout (image-top, store chip overlay, dual CTA buttons on mobile; 5-up grid on desktop).
-  - `src/components/sections/FeaturedStores.tsx` — horizontally scrollable image-forward cards on mobile; logo strip on desktop.
-  - `src/components/sections/RecommendedProducts.tsx` — section header restyle; reuse same product card.
-  - `src/components/layout/Navbar.tsx` — minor mobile variant: on `/` only, render the slim "Delivering to …" top bar instead of the full navbar (desktop unchanged).
-- New files:
-  - `src/components/home/HomeCategorySidebar.tsx` — desktop left sidebar via shadcn `Sidebar` (collapsible="icon").
-  - `src/components/home/HomeUtilityStrip.tsx` — desktop trust-badges strip.
-  - `src/components/home/SectionHeader.tsx` — shared "Title … VIEW ALL ›" header.
-  - `src/components/home/ProductCard.tsx` — reference-style product card used by Featured + Recommended sections.
-- All colors via existing semantic tokens (`--primary`, `--background`, `--muted`, `--card`, `--border`). No hardcoded hex.
-- Dark mode preserved by relying on tokens.
-- No new dependencies.
+- Cross-city checkout, multi-city stores, automatic location detection (no IP/geolocation), adding more cities beyond Tamale/Wa, UI redesign, payments, auth flows.
+
+## Files touched
+
+- New: `supabase/migrations/<ts>_city_segmentation.sql`, `src/pages/SelectCity.tsx`, `src/components/auth/RequireCity.tsx`
+- Edited: `src/contexts/AuthContext.tsx` (expose `city`), `src/App.tsx` (route + guard), `src/pages/Profile.tsx`, `src/components/seller/StoreSetupWizard.tsx`, `src/pages/Index.tsx`, `src/pages/Products.tsx`, `src/pages/Stores.tsx`, `src/components/sections/FeaturedProducts.tsx`, `FeaturedStores.tsx`, `RecommendedProducts.tsx`, `SimilarProducts.tsx`, `src/components/search/GlobalSearch.tsx`, `src/pages/DeliveryDashboard.tsx`, `src/components/delivery/AvailableOrders.tsx`, edge functions listed above.
+- Memory: add `mem://features/city-segmentation` and update index Core line.
+
+## Verification
+
+After build: sign up new user → city screen appears → pick Tamale → home shows only Tamale stores. Switch city in Profile → list updates. As a Wa courier, available orders shows only Wa orders. Direct API call from a Tamale user for a Wa product id returns empty (RLS).
