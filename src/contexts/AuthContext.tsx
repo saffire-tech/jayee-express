@@ -12,7 +12,7 @@ interface Profile {
   campus: string | null;
   current_mode: "buyer" | "seller" | null;
   is_suspended: boolean | null;
-  city: "Tamale" | "Wa" | null;
+  city: string | null;
 }
 
 interface AuthContextType {
