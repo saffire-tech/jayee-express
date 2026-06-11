@@ -36,15 +36,18 @@ const DeliveryDashboard = () => {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data } = await supabase
+      const { data: prof } = await supabase
         .from('profiles')
-        .select('momo_number, momo_provider, is_online')
+        .select('is_online')
         .eq('user_id', user.id)
         .maybeSingle();
-      if (data) {
-        setMomoNumber(data.momo_number || '');
-        setMomoProvider(data.momo_provider || '');
-        setIsOnline(!!(data as any).is_online);
+      if (prof) setIsOnline(!!(prof as any).is_online);
+
+      const { data: momo } = await supabase.rpc('get_my_momo');
+      const row = Array.isArray(momo) ? momo[0] : momo;
+      if (row) {
+        setMomoNumber(row.momo_number || '');
+        setMomoProvider(row.momo_provider || '');
       }
     };
     load();

@@ -1086,6 +1086,13 @@ export type Database = {
     }
     Functions: {
       bump_location_usage: { Args: { _id: string }; Returns: undefined }
+      get_my_momo: {
+        Args: never
+        Returns: {
+          momo_number: string
+          momo_provider: string
+        }[]
+      }
       get_my_store_payout: {
         Args: { _store_id: string }
         Returns: {

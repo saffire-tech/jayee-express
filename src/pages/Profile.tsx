@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Phone, ArrowLeft, Loader2, Store, ShoppingBag, Bell, BellOff, History, Smartphone } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
@@ -41,10 +42,19 @@ const Profile = () => {
       setFullName(profile.full_name || "");
       setPhone(profile.phone || "");
       setCampus(profile.campus || "");
-      setMomoNumber((profile as any).momo_number || "");
-      setMomoProvider((profile as any).momo_provider || "");
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("get_my_momo").then(({ data }) => {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        setMomoNumber(row.momo_number || "");
+        setMomoProvider(row.momo_provider || "");
+      }
+    });
+  }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
