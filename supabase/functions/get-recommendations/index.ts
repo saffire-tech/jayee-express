@@ -12,42 +12,42 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    // Verify the caller's JWT using the signing-keys-aware getClaims API
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false },
-    });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsErr } = await authClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims?.sub) {
-      console.error('JWT verification failed:', claimsErr?.message);
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    const userId = claimsData.claims.sub as string;
-    console.log('User authenticated:', userId);
-
-    // Data client: use service role key to bypass RLS for data fetching
+    // Data client: use service role key to bypass RLS for recommendation data fetching
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
 
+    // Verify the caller's JWT when a real user session is present. Anonymous publishable
+    // tokens do not include a user `sub`, so they should fall back instead of returning 401.
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | null = null;
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+    });
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: claimsData, error: claimsErr } = await authClient.auth.getClaims(token);
+      if (claimsData?.claims?.sub) {
+        userId = claimsData.claims.sub as string;
+        console.log('User authenticated:', userId);
+      } else if (claimsErr) {
+        console.warn('JWT verification skipped; using public recommendations:', claimsErr.message);
+      }
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ recommendations: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Fetch user's purchase history
-    const { data: orders } = await supabase
+    const { data: orders } = userId ? await supabase
       .from('orders')
       .select(`
         id,
@@ -58,15 +58,15 @@ serve(async (req) => {
       `)
       .eq('buyer_id', userId)
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(10) : { data: [] };
 
     // Fetch user's recent searches
-    const { data: searches } = await supabase
+    const { data: searches } = userId ? await supabase
       .from('user_searches')
       .select('search_query, category, campus')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(20) : { data: [] };
 
     // Fetch all active products
     const { data: allProducts } = await supabase

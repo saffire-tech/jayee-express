@@ -23,29 +23,34 @@ interface RecommendedProduct {
 }
 
 const RecommendedProducts = () => {
-  const { user } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const accessToken = session?.access_token;
 
   // Fetch AI recommendations
   const { data: recommendations = [], isLoading: isLoadingRecs, isError: isRecsError } = useQuery({
     queryKey: ['recommendations', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('get-recommendations');
+      if (!accessToken) return [];
+
+      const { data, error } = await supabase.functions.invoke('get-recommendations', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       if (error) {
-        console.error('Error fetching recommendations:', error);
-        throw error;
+        console.warn('Recommendations unavailable, showing fallback products');
+        return [];
       }
-      return data.recommendations as RecommendedProduct[];
+      return Array.isArray(data?.recommendations) ? data.recommendations as RecommendedProduct[] : [];
     },
-    enabled: !!user,
+    enabled: !authLoading && !!accessToken,
     staleTime: 5 * 60 * 1000,
     retry: false,
     meta: { suppressError: true },
   });
 
   // Fallback: fetch featured products when recommendations fail or empty
-  const shouldFetchFallback = !!user && (isRecsError || (!isLoadingRecs && recommendations.length === 0));
+  const shouldFetchFallback = !authLoading && (!accessToken || isRecsError || (!isLoadingRecs && recommendations.length === 0));
   
   const { data: featuredProducts = [], isLoading: isLoadingFeatured } = useQuery({
     queryKey: ['featured-products-fallback'],
@@ -88,9 +93,7 @@ const RecommendedProducts = () => {
     toast.success(`${product.name} added to cart`);
   };
 
-  if (!user) return null;
-  
-  const isLoading = isLoadingRecs || (shouldFetchFallback && isLoadingFeatured);
+  const isLoading = authLoading || isLoadingRecs || (shouldFetchFallback && isLoadingFeatured);
   
   if (isLoading) {
     return (
@@ -107,7 +110,7 @@ const RecommendedProducts = () => {
   }
 
   // Decide which products to show
-  const isFallback = isRecsError || recommendations.length === 0;
+  const isFallback = !accessToken || isRecsError || recommendations.length === 0;
   const productsToShow = isFallback ? featuredProducts : recommendations;
   
   if (productsToShow.length === 0) return null;
