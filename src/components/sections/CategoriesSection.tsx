@@ -50,6 +50,7 @@ const CategoriesSection = ({ selectedCategory, onCategorySelect }: CategoriesSec
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Scroll categories left"
             className="absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex bg-background/90 backdrop-blur-sm shadow-sm rounded-full h-8 w-8 -ml-3"
             onClick={() => scroll("left")}
           >
@@ -59,6 +60,7 @@ const CategoriesSection = ({ selectedCategory, onCategorySelect }: CategoriesSec
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Scroll categories right"
             className="absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden md:flex bg-background/90 backdrop-blur-sm shadow-sm rounded-full h-8 w-8 -mr-3"
             onClick={() => scroll("right")}
           >
