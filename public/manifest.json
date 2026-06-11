@@ -3,7 +3,13 @@
   "short_name": "Jayee",
   "description": "Connect to Commerce - The community marketplace",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
   "background_color": "#f97316",
   "theme_color": "#f97316",
   "orientation": "portrait-primary",
