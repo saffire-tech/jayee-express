@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import shodelLogo from "@/assets/shodel-logo.png";
+import SEO from "@/components/SEO";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -38,6 +39,12 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <SEO
+        title="Sign In or Create Account | Jayee Express"
+        description="Sign in or create your free Jayee Express account to shop with local sellers and set up your store."
+        canonicalPath="/auth"
+        noindex
+      />
       {/* Left Panel - Form */}
       <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">

@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useSearchTracking } from '@/hooks/useSearchTracking';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import SEO from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -195,7 +196,13 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Browse Products & Services | Jayee Express"
+        description="Shop products and services from verified local sellers across Ghana. Find fashion, electronics, food, beauty, and more on Jayee Express."
+        canonicalPath="/products"
+      />
       <Navbar />
+      
       
       <main className="container mx-auto px-4 pt-24 pb-12">
         {/* Header */}
