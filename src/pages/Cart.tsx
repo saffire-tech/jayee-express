@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import SEO from '@/components/SEO';
 import DeliveryOption from '@/components/checkout/DeliveryOption';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -141,7 +142,14 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Your Cart | Jayee Express"
+        description="Review the items in your Jayee Express cart and check out."
+        canonicalPath="/cart"
+        noindex
+      />
       <Navbar />
+      
       
       <main className="container mx-auto px-4 pt-24 pb-8">
         <div className="flex items-center justify-between mb-6 md:mb-8">

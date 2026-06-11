@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import SEO from '@/components/SEO';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
 import { useStoreViewTracking } from '@/hooks/useViewTracking';
@@ -141,24 +141,33 @@ const StorePage = () => {
     );
   }
 
-  const storeImage = store.logo_url || store.cover_url || 'https://uniplug.app/icons/icon-512x512.png';
-  const storeUrl = `https://uniplug.app/store/${store.id}`;
+  const storeImage = store.logo_url || store.cover_url || 'https://jayeeexpress.com/icons/icon-512x512.png';
+  const storeDescription = store.description
+    ? store.description.slice(0, 155)
+    : `Shop at ${store.name}${store.location ? ` in ${store.location}` : ''} on Jayee Express — the community marketplace.`;
+
+  const storeJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    name: store.name,
+    description: storeDescription,
+    image: storeImage,
+    url: `https://jayeeexpress.com/store/${store.id}`,
+    address: store.location
+      ? { "@type": "PostalAddress", addressLocality: store.location, addressCountry: "GH" }
+      : undefined,
+    telephone: store.phone || undefined,
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>{store.name} - Jayee Express</title>
-        <meta name="description" content={store.description || `Shop at ${store.name} on Jayee Express`} />
-        <meta property="og:title" content={store.name} />
-        <meta property="og:description" content={store.description || `Shop at ${store.name} on Jayee Express - The community marketplace`} />
-        <meta property="og:image" content={storeImage} />
-        <meta property="og:url" content={storeUrl} />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={store.name} />
-        <meta name="twitter:description" content={store.description || `Shop at ${store.name} on Jayee Express`} />
-        <meta name="twitter:image" content={storeImage} />
-      </Helmet>
+      <SEO
+        title={`${store.name} | Jayee Express`}
+        description={storeDescription}
+        canonicalPath={`/store/${store.id}`}
+        image={storeImage}
+        jsonLd={storeJsonLd}
+      />
       <Navbar />
       
       <main>
