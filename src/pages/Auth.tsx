@@ -6,7 +6,12 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import shodelLogo from "@/assets/shodel-logo.png";
+import { createLovableAuth } from "@lovable.dev/cloud-auth-js";
 import { supabase } from "@/integrations/supabase/client";
+
+const lovableOAuth = createLovableAuth({
+  oauthBrokerUrl: "https://oauth.lovable.app/initiate",
+});
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -144,20 +149,24 @@ const Auth = () => {
               setError("");
               setLoading(true);
               try {
-                // Normalize www -> apex so redirect always returns to the primary domain
-                const host = window.location.hostname.replace(/^www\./i, "");
-                const isProd = host === "jayeeexpress.com";
-                const redirectTo = isProd
-                  ? "https://jayeeexpress.com/"
-                  : `${window.location.origin}/`;
-
-                const { error } = await supabase.auth.signInWithOAuth({
-                  provider: "google",
-                  options: { redirectTo },
+                const result = await lovableOAuth.signInWithOAuth("google", {
+                  redirect_uri: window.location.origin,
+                  extraParams: {
+                    project_id: "83f62de6-ce52-416e-942a-7a56f8c633e2",
+                    prompt: "select_account",
+                  },
                 });
-                if (error) {
-                  setError(error.message || "Google sign-in failed");
+
+                if (result.error) {
+                  setError(result.error.message || "Google sign-in failed");
                   setLoading(false);
+                  return;
+                }
+
+                if (!result.redirected && result.tokens) {
+                  const { error } = await supabase.auth.setSession(result.tokens);
+                  if (error) throw error;
+                  navigate("/");
                 }
               } catch (e: any) {
                 setError(e?.message || "Google sign-in failed");
