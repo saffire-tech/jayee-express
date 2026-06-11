@@ -42,6 +42,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const PurchaseHistory = lazy(() => import("./pages/PurchaseHistory"));
 const NotificationCenter = lazy(() => import("./pages/NotificationCenter"));
 const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const MobileTabBar = lazy(() => import("./components/layout/MobileTabBar"));
 
 const PageLoader = () => (
@@ -89,6 +90,7 @@ const App = () => {
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/purchases" element={<PurchaseHistory />} />
                       <Route path="/seller" element={<SellerDashboard />} />
