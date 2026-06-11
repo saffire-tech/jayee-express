@@ -28,17 +28,44 @@ Deno.serve(async (req) => {
 
     const { items, deliveryData, email } = await req.json();
 
-    // Calculate total amount — all money goes to platform
-    const subtotal = items.reduce((sum: number, item: any) => sum + item.product.price * item.quantity, 0);
-    const deliveryFee = deliveryData?.deliveryFee || 0;
+    if (!Array.isArray(items) || items.length === 0) throw new Error("No items provided");
+
+    // Fetch authoritative product data from DB - never trust client-supplied prices
+    const productIds = items.map((i: any) => i.product_id).filter(Boolean);
+    const { data: products, error: prodErr } = await supabase
+      .from("products")
+      .select("id, price, name, store_id, is_active")
+      .in("id", productIds);
+    if (prodErr) throw prodErr;
+    const priceMap: Record<string, { price: number; name: string; store_id: string; is_active: boolean }> = {};
+    for (const p of products || []) priceMap[p.id] = p as any;
+
+    // Validate every item resolves to an active product
+    for (const item of items) {
+      const p = priceMap[item.product_id];
+      if (!p || !p.is_active) throw new Error(`Invalid product: ${item.product_id}`);
+    }
+
+    // Calculate total amount using DB prices
+    const subtotal = items.reduce(
+      (sum: number, item: any) => sum + priceMap[item.product_id].price * (parseInt(item.quantity) || 1),
+      0
+    );
+    const deliveryFee = Number(deliveryData?.deliveryFee) || 0;
     const totalAmount = Math.round((subtotal + deliveryFee) * 100); // pesewas
 
-    // Group items by store for metadata
+    // Group items by store for metadata - using DB-sourced prices
     const storeGroups: Record<string, any[]> = {};
     for (const item of items) {
-      const storeId = item.product.store_id;
+      const p = priceMap[item.product_id];
+      const storeId = p.store_id;
       if (!storeGroups[storeId]) storeGroups[storeId] = [];
-      storeGroups[storeId].push(item);
+      storeGroups[storeId].push({
+        product_id: item.product_id,
+        quantity: parseInt(item.quantity) || 1,
+        price: p.price,
+        name: p.name,
+      });
     }
 
     const metadata = {
@@ -54,8 +81,8 @@ Deno.serve(async (req) => {
         items: storeItems.map((item: any) => ({
           product_id: item.product_id,
           quantity: item.quantity,
-          price: item.product.price,
-          name: item.product.name,
+          price: item.price,
+          name: item.name,
         })),
       })),
     };

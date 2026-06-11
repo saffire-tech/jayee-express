@@ -6,18 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-    if (payload.exp && payload.exp * 1000 < Date.now()) return null; // expired
-    return payload;
-  } catch {
-    return null;
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -34,19 +22,22 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    const token = authHeader.replace('Bearer ', '');
-    const claims = decodeJwtPayload(token);
-
-    if (!claims?.sub) {
-      return new Response(JSON.stringify({ error: 'Unauthorized', details: 'Invalid token' }), {
+    // Verify the caller's JWT cryptographically via Supabase Auth
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
+    });
+    const { data: userData, error: userErr } = await authClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    const userId = claims.sub as string;
+    const userId = userData.user.id;
     console.log('User authenticated:', userId);
 
     // Data client: use service role key to bypass RLS for data fetching
