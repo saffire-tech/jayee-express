@@ -488,6 +488,98 @@ export type Database = {
           },
         ]
       }
+      platform_payout_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          created_at: string
+          created_by: string
+          id: string
+          is_default: boolean
+          label: string
+          paystack_recipient_code: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_default?: boolean
+          label: string
+          paystack_recipient_code?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          paystack_recipient_code?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_payouts: {
+        Row: {
+          account_id: string | null
+          admin_user_id: string
+          amount: number
+          created_at: string
+          failure_reason: string | null
+          id: string
+          paystack_recipient_code: string | null
+          paystack_transfer_code: string | null
+          recipient_snapshot: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          admin_user_id: string
+          amount: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          paystack_recipient_code?: string | null
+          paystack_transfer_code?: string | null
+          recipient_snapshot?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          admin_user_id?: string
+          amount?: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          paystack_recipient_code?: string | null
+          paystack_transfer_code?: string | null
+          recipient_snapshot?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_payouts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "platform_payout_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           created_at: string
@@ -1336,6 +1428,18 @@ export type Database = {
         Returns: undefined
       }
       increment_store_views: { Args: { store_id: string }; Returns: undefined }
+      platform_revenue_summary: {
+        Args: never
+        Returns: {
+          net_earned: number
+          pending_withdrawals: number
+          revenue_this_month: number
+          rider_revenue: number
+          store_revenue: number
+          total_subscription_revenue: number
+          total_withdrawn: number
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       update_wallet_balance: {

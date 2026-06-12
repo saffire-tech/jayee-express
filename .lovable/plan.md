@@ -1,51 +1,60 @@
+## Goal
 
-# Payment Flow — Confirm & Harden Existing Wallet Model
+Subscription payments (store + rider monthly fees) land in the platform's main Paystack balance, not in user wallets. Right now there's no admin UI to see that balance or move it out. This plan adds a Finance page where admins can:
 
-Based on your answers, **the system already does what you described.** No Paystack subaccounts are needed. The work below is small hardening + clearer notifications so there are no unpaid clients or disputes.
+1. See total subscription revenue earned (all-time + this month).
+2. See the current withdrawable Paystack balance.
+3. Withdraw to an admin payout account (MoMo or bank) via Paystack Transfer.
+4. See a history of admin withdrawals.
 
-## What already works (no change needed)
+## What already exists
 
-1. **Subscriptions (store + rider)** → buyer pays Paystack → full amount lands in your main Paystack balance. ✓ (`initialize-store-subscription`, `initialize-delivery-subscription`, `paystack-webhook`)
-2. **Product purchases** → buyer pays Paystack → `paystack-webhook` (and `verify-payment` fallback) credits the **seller's in-app wallet** with the full items total and inserts a `notifications` row: *"New Order Received! ₵X from <buyer>."* Seller sees balance in dashboard wallet.
-3. **Delivery fee** → held by platform until buyer confirms receipt → then credited to rider's in-app wallet (see `Delivery Fulfillment Lifecycle` memory).
-4. **Withdrawals** → seller or rider taps Withdraw in their wallet → `request-withdrawal` debits wallet and uses **Paystack Transfer API** to push MoMo to their saved number. ✓
+- `store_subscriptions` and `delivery_subscriptions` tables record each paid subscription with amount + paystack reference.
+- `paystack-webhook` already credits these on `type: subscription / rider_subscription / store_subscription`.
+- Paystack Transfer API is already used in `request-withdrawal` for user MoMo payouts — same pattern reused here.
 
-## Gaps to fix (this is the actual work)
+## What to build
 
-### 1. Refund seller wallet when an order is cancelled after payment
-Today: if an order is cancelled in `cancel-order-refund`, the buyer is refunded but the seller's wallet stays credited — creates a phantom balance the seller could withdraw. Fix: when cancelling a paid order, debit the seller's wallet by the items total (and the rider's wallet by the delivery fee if already credited), with a `wallet_transactions` entry "Refund reversal — order #xxx".
+### 1. Database (one migration)
 
-### 2. Idempotency on seller wallet credit
-Today: webhook and `verify-payment` both credit the seller wallet on the same reference. If both fire (webhook + client fallback) the seller is paid twice. Fix: gate the `update_wallet_balance` call on whether a `wallet_transactions` row with `reference_id = order.id` and `description LIKE 'Sale from order%'` already exists. Same for rider crediting on delivery confirmation.
+- `platform_payouts` table: id, admin_user_id, amount, recipient_type (momo/bank), recipient_details (jsonb), paystack_transfer_code, paystack_recipient_code, status (pending/success/failed/reversed), failure_reason, created_at, updated_at. RLS: admins only.
+- `platform_payout_accounts` table: id, label, type (momo/bank), account_number, bank_code, account_name, paystack_recipient_code, is_default, created_by, created_at. RLS: admins only. Lets admin save one or more payout destinations.
+- View / RPC `platform_revenue_summary()` (SECURITY DEFINER, admin-only) returning:
+  - `total_subscription_revenue` = SUM(amount) from `store_subscriptions` + `delivery_subscriptions` where status='active' or paid
+  - `revenue_this_month`
+  - `total_withdrawn` = SUM(`platform_payouts`.amount where status='success')
+  - `net_earned` = total_subscription_revenue − total_withdrawn
 
-### 3. Wallet notification clarity
-Add the credited amount and order id to the seller notification body so they can reconcile: *"₵X credited to your wallet from order #abcd1234."* Same for rider: *"₵Y delivery fee credited from order #abcd1234."*
+### 2. Edge functions
 
-### 4. Block withdrawal of un-cleared funds
-Optional safety net: only count wallet balance from orders that are `completed` (buyer-confirmed) toward the withdrawable amount. Pending orders stay in wallet but are not withdrawable. This eliminates the biggest dispute risk (seller withdraws, then order is cancelled). Two ways:
-- **Strict (recommended):** add `cleared_balance` computed view = credits where `reference_id` joins to a `completed` order, minus debits. `request-withdrawal` checks `cleared_balance` instead of `wallets.balance`.
-- **Loose:** keep current behavior, just rely on fix #1 to claw back.
+- `get-platform-balance` (admin-only): calls Paystack `GET /balance`, returns available + pending in NGN/GHS. Also returns the revenue summary from the RPC above.
+- `create-platform-payout-recipient` (admin-only): given MoMo number/provider or bank account, calls Paystack `POST /transferrecipient`, stores the returned `recipient_code` in `platform_payout_accounts`.
+- `admin-withdraw` (admin-only): input `{ amount, account_id }`. Validates admin role, checks amount ≤ Paystack available balance, calls Paystack `POST /transfer` with the saved recipient code, inserts a `platform_payouts` row (status=pending), returns transfer reference.
+- Extend `paystack-webhook` to handle `transfer.success` / `transfer.failed` / `transfer.reversed` events targeting a `platform_payouts.paystack_transfer_code` and update status accordingly. (User withdrawals already use a different flow; we'll branch on whether the transfer code matches `withdrawal_requests` or `platform_payouts`.)
 
-I'll go with **strict** unless you prefer loose.
+### 3. Admin UI
 
-### 5. Remove the misleading `create-subaccount` name
-That edge function only saves MoMo number/provider — it doesn't create a Paystack subaccount. Rename to `save-payout-method` and clean up the wording so it's clear there's no Paystack subaccount being created.
+- New page `src/pages/admin/Finance.tsx` at route `/admin/finance` with three cards:
+  - **Subscription Revenue** — all-time, this month, net after withdrawals.
+  - **Paystack Available Balance** — live from `get-platform-balance`, with a "Withdraw" button.
+  - **Payout Accounts** — list + "Add account" dialog (MoMo number+provider or bank+account).
+- Withdraw dialog: pick saved account, enter amount (capped at available balance), confirm.
+- **Withdrawal History** table: date, amount, account, status, Paystack reference.
+- Add `Finance` entry to `AdminSidebar` (icon: `Wallet`).
+
+### 4. Security
+
+- All new functions check `has_role(auth.uid(), 'admin')` server-side (dual-client pattern).
+- RLS on both new tables: only admins can select/insert; service_role full access.
+- Amount validation: positive, ≤ Paystack available balance, ≤ remaining net revenue (defense-in-depth so admin can't withdraw user wallet float).
+
+## Out of scope
+
+- Automatic recurring payouts (admin triggers manually).
+- Splitting revenue across multiple admins.
+- Per-subscription commission reporting (already covered by existing tables; this just sums them).
 
 ## Files
 
-**Edited:**
-- `supabase/functions/paystack-webhook/index.ts` — idempotent seller credit, clearer notification body
-- `supabase/functions/verify-payment/index.ts` — same idempotency + notification copy
-- `supabase/functions/cancel-order-refund/index.ts` — debit seller (and rider if applicable) on refund
-- `supabase/functions/request-withdrawal/index.ts` — check `cleared_balance` (strict option)
-- `src/components/wallet/WalletCard.tsx` — show "Available" vs "Pending" balance
-- Rename `supabase/functions/create-subaccount/` → `save-payout-method/` (update callers)
-
-**Migration:**
-- View `public.wallet_cleared_balance(user_id)` returning numeric, security definer.
-- (No table changes.)
-
-## Out of scope
-- Real Paystack subaccounts / split payments — explicitly rejected.
-- Per-sale platform commission — you confirmed only the monthly subscription is revenue.
-- Auto-transfers to rider MoMo on completion — staying with manual wallet withdrawal.
+- New: migration, `supabase/functions/get-platform-balance/`, `create-platform-payout-recipient/`, `admin-withdraw/`, `src/pages/admin/Finance.tsx`.
+- Edited: `supabase/functions/paystack-webhook/index.ts`, `src/components/admin/AdminSidebar.tsx`, `src/App.tsx`.
