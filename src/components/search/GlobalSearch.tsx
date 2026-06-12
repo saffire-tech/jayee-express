@@ -56,7 +56,7 @@ const GlobalSearch = ({ variant = "navbar", placeholder = "Search products, stor
             .limit(5),
           supabase
             .from("stores")
-            .select("id, name, logo_url")
+            .select("id, slug, name, logo_url")
             .eq("is_active", true)
             .ilike("name", `%${query}%`)
             .limit(3),
