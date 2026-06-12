@@ -100,6 +100,32 @@ const RiderApplications = () => {
       toast.success(action === "approve" ? "Application approved" : "Application rejected");
       qc.invalidateQueries({ queryKey: ["rider-applications"] });
       setReviewing(null);
+      setAction(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateFee = useMutation({
+    mutationFn: async () => {
+      if (!reviewing) return;
+      const fee = parseFloat(monthlyFee);
+      if (!fee || fee <= 0) throw new Error("Set a valid monthly fee");
+      const { error } = await supabase
+        .from("rider_applications")
+        .update({ monthly_fee: fee } as any)
+        .eq("id", reviewing.id);
+      if (error) throw error;
+      // Also update any pending or active delivery subscriptions with the new fee
+      await supabase
+        .from("delivery_subscriptions")
+        .update({ monthly_fee: fee } as any)
+        .eq("user_id", reviewing.user_id)
+        .in("status", ["pending_payment", "active"]);
+    },
+    onSuccess: () => {
+      toast.success("Monthly fee updated");
+      qc.invalidateQueries({ queryKey: ["rider-applications"] });
+      setAction(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
