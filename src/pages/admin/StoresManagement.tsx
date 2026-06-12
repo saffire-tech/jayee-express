@@ -27,6 +27,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 type StoreRow = {
   id: string;
   user_id: string;
+  slug: string | null;
   name: string;
   description: string | null;
   logo_url: string | null;
