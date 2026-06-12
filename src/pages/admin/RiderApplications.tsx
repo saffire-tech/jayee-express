@@ -40,7 +40,7 @@ const RiderApplications = () => {
     setReviewing(app);
     setAction(null);
     setReason("");
-    setMonthlyFee("50");
+    setMonthlyFee(app.monthly_fee ? String(app.monthly_fee) : "50");
     const [cardSigned, photoSigned] = await Promise.all([
       supabase.storage.from("rider-documents").createSignedUrl(app.ghana_card_url, 3600),
       supabase.storage.from("rider-documents").createSignedUrl(app.photo_id_url, 3600),
