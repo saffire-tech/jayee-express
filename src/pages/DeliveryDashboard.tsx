@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '@/components/layout/Navbar';
 import AvailableOrders from '@/components/delivery/AvailableOrders';
 import ActiveDelivery from '@/components/delivery/ActiveDelivery';
+import RiderSubscriptionCard from '@/components/delivery/RiderSubscriptionCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,7 +22,7 @@ import { format } from 'date-fns';
 
 const DeliveryDashboard = () => {
   const { user, loading: authLoading } = useAuth();
-  const { isDeliveryPerson, loading: roleLoading } = useDeliveryRole();
+  const { isDeliveryPerson, hasActiveSubscription, loading: roleLoading } = useDeliveryRole();
   const navigate = useNavigate();
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -188,8 +189,17 @@ const DeliveryDashboard = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="available" className="mt-4">
-              <AvailableOrders onAccept={(id) => setActiveOrderId(id)} isOnline={isOnline} />
+            <TabsContent value="available" className="mt-4 space-y-4">
+              <RiderSubscriptionCard />
+              {hasActiveSubscription ? (
+                <AvailableOrders onAccept={(id) => setActiveOrderId(id)} isOnline={isOnline} />
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                    Pay your monthly subscription above to start receiving delivery orders.
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="wallet" className="mt-4">

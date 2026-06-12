@@ -1,58 +1,83 @@
-# City Segmentation: Tamale vs Wa
+# Delivery Rider Onboarding & Subscription
 
-Split the marketplace into two isolated regions. A user picks Tamale or Wa right after signup; their city determines every store, product, order, and delivery job they can see or interact with. Tamale users will never see Wa data, and vice versa — enforced both in the UI and at the database level (RLS).
+Riders self-apply from their Profile. Admin reviews the application, and on approval assigns a monthly fee. Riders renew monthly like store owners. Admin can no longer assign the `delivery` role directly — it's earned through this flow.
 
-## Data model changes (migration)
+## 1. Profile: Mode = Buyer / Seller / Delivery
 
-1. Add `city` column (text, check `city in ('Tamale','Wa')`) to:
-   - `profiles` — the user's chosen city
-   - `stores` — the store's operating city
-   - `orders` — snapshot of the order's city (denormalized from store for RLS speed)
-2. Backfill: set every existing row's `city = 'Tamale'`.
-3. Make `city` NOT NULL after backfill.
-4. Trigger on `orders` insert: auto-set `orders.city` from `stores.city`.
-5. Trigger on `products` insert/update: reject if `store.city <> buyer's city` is not needed — products inherit visibility from store via RLS.
+In `src/pages/Profile.tsx`, expand the Current Mode card from 2 buttons to 3: **Buyer**, **Seller**, **Delivery**.
 
-## RLS updates
+When the user picks **Delivery**:
+- If they have no `rider_applications` row → open the application form (below).
+- If application is `pending` → show "Application under review".
+- If `rejected` → show reason + allow re-apply.
+- If `approved` but no active subscription → show "Pay monthly fee to activate" CTA.
+- If `approved` AND active subscription → switch `current_mode = 'delivery'` (unlocks Delivery Dashboard tab).
 
-Add a security-definer helper `public.current_user_city()` that returns `profiles.city` for `auth.uid()`. Then update existing policies (combine with existing conditions, do not replace verification/suspension logic):
+## 2. Rider Application Form
 
-- `stores` SELECT: existing visibility AND `city = current_user_city()` (admins bypass).
-- `products` SELECT: store's city must match (`EXISTS (SELECT 1 FROM stores s WHERE s.id = products.store_id AND s.city = current_user_city())`).
-- `orders` SELECT/UPDATE for delivery couriers: existing acceptance/management policies AND `orders.city = current_user_city()`.
-- `cart_items` INSERT: block adding a product whose store city ≠ user's city (trigger or policy check).
-- Admins (has_role 'admin') see all cities.
+New component `src/components/delivery/RiderApplicationForm.tsx` collects:
+- Full name (prefilled from profile)
+- Ghana Card number (text, validated GHA-XXXXXXXXX-X format)
+- Ghana Card photo upload (front)
+- Photo ID / selfie upload
+- House address (text)
+- Motorbike registration number (text)
+- Phone number (prefilled)
 
-## Frontend changes
+Files upload to a new private `rider-documents` storage bucket. On submit, insert a `rider_applications` row with `status='pending'`.
 
-**New onboarding screen** (`src/pages/SelectCity.tsx`, route `/select-city`):
-- Two big cards: Tamale, Wa. On select → `UPDATE profiles SET city = ...` → navigate to `/`.
-- `AuthContext` gains `profile.city`. After sign-in, if `profile.city` is null → redirect to `/select-city` (guard in `App.tsx` / a `RequireCity` wrapper around app routes; exclude `/auth`, `/select-city`, public product/store pages).
+## 3. Admin Review
 
-**Profile page** (`src/pages/Profile.tsx`):
-- Add "City" section with a Tamale/Wa radio group, saved via `updateProfile({ city })`. Show a brief warning that switching changes which stores/products are visible.
+New admin page `src/pages/admin/RiderApplications.tsx` (linked in `AdminSidebar`):
+- Lists pending / approved / rejected applications with applicant info, document previews (signed URLs), and city.
+- **Approve**: opens dialog to set `monthly_fee` (₵), then sets `status='approved'`, grants `user_roles.role = 'delivery'`, and creates the user's first `delivery_subscriptions` row (1 month from approval, status `pending_payment` — rider pays to activate).
+- **Reject**: requires reason; stores it; does NOT grant role.
+- **Revoke**: removes role + cancels subscription.
 
-**Store creation / seller setup** (`StoreSetupWizard.tsx`, any "create store" flow):
-- Add required city field (Tamale/Wa). Default to the seller's `profile.city`. Lock or warn if changed.
+Remove any existing admin UI that assigns the delivery role manually (audit `UsersManagement.tsx` and strip the option if present).
 
-**Listing pages** (Home, `Products.tsx`, `Stores.tsx`, search, recommendations, featured sections):
-- Add `.eq('city', profile.city)` to queries. (RLS already enforces this; the explicit filter keeps queries efficient and indexable.)
+## 4. Monthly Subscription (mirrors store subs)
 
-**Delivery dashboard** (`DeliveryDashboard.tsx`, `AvailableOrders.tsx`):
-- Filter available orders by `city = courier's profile.city`. Distance sorting still applies within the city.
+New table `delivery_subscriptions` (user_id, monthly_fee, starts_at, expires_at, status, payment_reference). New edge function `initialize-delivery-subscription` (clone of `initialize-subscription` but for riders, using their assigned `monthly_fee`). Paystack webhook extended to credit rider subs on success.
 
-**Edge functions** (`get-recommendations`, `cart-reminder`, `send-push-notification` audience queries): filter by city using the requester's profile.
+Add `RiderSubscriptionCard` to the Delivery Dashboard showing days remaining + "Renew" button.
+
+## 5. Enforcement
+
+- `useDeliveryRole` hook extended to also require an active `delivery_subscriptions.expires_at > now()`. Expired riders lose access to `AvailableOrders`.
+- RLS on `orders` for couriers: existing policies already gate by `delivery_person_id`; we add an `EXISTS` check that the rider has an active subscription before allowing `UPDATE` for delivery actions.
+- City filter (already implemented) continues to scope available orders.
+
+## Database changes (one migration)
+
+```sql
+CREATE TABLE public.rider_applications (
+  id uuid PK, user_id uuid → auth.users, city text,
+  full_name, ghana_card_number, ghana_card_url, photo_id_url,
+  house_address, motor_registration, phone,
+  status text CHECK (pending|approved|rejected) DEFAULT 'pending',
+  monthly_fee numeric, rejection_reason text,
+  reviewed_by uuid, reviewed_at timestamptz,
+  created_at, updated_at
+);
+-- GRANTs, RLS: applicant can SELECT/INSERT own; admin full access.
+
+CREATE TABLE public.delivery_subscriptions (
+  id uuid PK, user_id uuid, monthly_fee numeric,
+  starts_at, expires_at, status text, payment_reference text, created_at
+);
+-- GRANTs, RLS: owner SELECT, admin full, service_role full.
+
+-- Storage bucket 'rider-documents' (private) + RLS allowing
+-- applicant to upload to {user_id}/* and admin to read all.
+```
+
+## Files
+
+**New:** `RiderApplicationForm.tsx`, `RiderSubscriptionCard.tsx`, `pages/admin/RiderApplications.tsx`, `supabase/functions/initialize-delivery-subscription/index.ts`, migration, storage bucket.
+
+**Edited:** `Profile.tsx` (3-way mode + delivery flow), `AdminSidebar.tsx` (new link), `useDeliveryRole.ts` (sub check), `DeliveryDashboard.tsx` (sub card + gate), `paystack-webhook/index.ts` (handle rider sub).
 
 ## Out of scope
 
-- Cross-city checkout, multi-city stores, automatic location detection (no IP/geolocation), adding more cities beyond Tamale/Wa, UI redesign, payments, auth flows.
-
-## Files touched
-
-- New: `supabase/migrations/<ts>_city_segmentation.sql`, `src/pages/SelectCity.tsx`, `src/components/auth/RequireCity.tsx`
-- Edited: `src/contexts/AuthContext.tsx` (expose `city`), `src/App.tsx` (route + guard), `src/pages/Profile.tsx`, `src/components/seller/StoreSetupWizard.tsx`, `src/pages/Index.tsx`, `src/pages/Products.tsx`, `src/pages/Stores.tsx`, `src/components/sections/FeaturedProducts.tsx`, `FeaturedStores.tsx`, `RecommendedProducts.tsx`, `SimilarProducts.tsx`, `src/components/search/GlobalSearch.tsx`, `src/pages/DeliveryDashboard.tsx`, `src/components/delivery/AvailableOrders.tsx`, edge functions listed above.
-- Memory: add `mem://features/city-segmentation` and update index Core line.
-
-## Verification
-
-After build: sign up new user → city screen appears → pick Tamale → home shows only Tamale stores. Switch city in Profile → list updates. As a Wa courier, available orders shows only Wa orders. Direct API call from a Tamale user for a Wa product id returns empty (RLS).
+- Refunds for partial months, automated reminders (can reuse existing notifications later), KYC verification beyond admin eyeballing docs, multi-city rider transfers.
