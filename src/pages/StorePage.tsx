@@ -49,41 +49,60 @@ interface WebService {
 }
 
 const StorePage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { addToCart } = useCart();
   const [store, setStore] = useState<Store | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [webServices, setWebServices] = useState<WebService[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Track store view
-  useStoreViewTracking(id);
+  // Track store view (uses real id once loaded)
+  useStoreViewTracking(store?.id);
 
   useEffect(() => {
-    if (id) {
+    if (slug) {
       fetchStoreData();
     }
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   const fetchStoreData = async () => {
-    // Fetch store info
-    const { data: storeData, error: storeError } = await supabase
-      .from('stores')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    if (!slug) return;
+    setLoading(true);
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const isUuid = uuidRegex.test(slug);
+
+    let storeQuery = supabase.from('stores').select('*');
+    storeQuery = isUuid ? storeQuery.eq('id', slug) : storeQuery.eq('slug', slug);
+
+    const { data: storeData, error: storeError } = await storeQuery.maybeSingle();
 
     if (storeError) {
       console.error('Error fetching store:', storeError);
-    } else {
-      setStore(storeData);
+      setLoading(false);
+      return;
+    }
+
+    if (!storeData) {
+      setStore(null);
+      setLoading(false);
+      return;
+    }
+
+    setStore(storeData as Store);
+
+    // If user landed on a UUID URL but the store has a slug, redirect to the pretty URL
+    if (isUuid && (storeData as Store).slug) {
+      navigate(`/store/${(storeData as Store).slug}`, { replace: true });
     }
 
     // Fetch store products
     const { data: productsData, error: productsError } = await supabase
       .from('products')
       .select('id, name, description, price, image_url, category, is_service, stock')
-      .eq('store_id', id)
+      .eq('store_id', storeData.id)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -97,7 +116,7 @@ const StorePage = () => {
     const { data: servicesData, error: servicesError } = await supabase
       .from('store_web_services')
       .select('id, name, description, url, icon')
-      .eq('store_id', id)
+      .eq('store_id', storeData.id)
       .eq('is_active', true)
       .order('display_order', { ascending: true });
 
