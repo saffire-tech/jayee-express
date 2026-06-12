@@ -1,36 +1,31 @@
-## Problem
+# Pretty store URLs (slug-based)
 
-When a seller fills the Store Setup wizard and clicks "Submit for Review", nothing visible happens. The store insert in `createStore` (in `src/hooks/useStore.ts`) is failing silently:
+Goal: shared store links look like `https://jayeeexpress.com/store/jayees-gadgets` instead of a UUID.
 
-- `createStore` has no `try/catch` around the Supabase insert and no error toast — it just re-throws.
-- The wizard's `handleSubmit` wraps the call in `try / finally` with no `catch`, so the rejected promise becomes an unhandled rejection and the user sees no feedback and no navigation.
-- The most likely root cause of the failed insert is the `city` value being sent. `formData.city` defaults to `profile?.city || "Tamale"`, but at the moment the wizard mounts `profile` may still be loading (`null`), so the saved city can mismatch the user's actual profile city. The `stores.city` column is `NOT NULL`, and downstream RLS / city-segmentation logic expects it to equal the profile's city.
+## Approach
 
-The pending-store admin flow (`/admin/stores` → Pending tab filtering `!is_verified && !rejection_reason`) is already wired correctly — once a row lands in `stores` with `is_verified=false`, it will appear for admin review, fee assignment, and approval, exactly like riders.
+1. **Add a `slug` column to `stores`**
+   - `slug text unique` (URL-safe, lowercase, hyphenated — e.g. `jayees-gadgets`).
+   - Backfill existing rows from `name` (deduplicate collisions by appending a short suffix).
+   - Add a trigger so every new store and every name change auto-generates/updates the slug, keeping it unique.
 
-## Fix
+2. **Route changes**
+   - Keep the existing `/store/:id` route working (so already-shared UUID links never break).
+   - Make `StorePage` accept either a slug or a UUID: look up by `slug` first, fall back to `id`. If a user lands on the UUID URL, redirect to the slug URL.
+   - Update internal `<Link to={`/store/...`}>` usages across the app (StorePage, Stores list, FeaturedStores, search results, seller dashboard, etc.) to use the slug.
 
-1. `src/hooks/useStore.ts` — `createStore`:
-   - Wrap the insert in `try / catch`. On error, show a `toast({ variant: "destructive", title: "Could not submit store", description: error.message })` and re-throw.
-   - Before inserting, if `data.city` is falsy, read the latest `profiles.city` for `user.id` and use that; if still null, surface a friendly error asking the user to pick a city (link to `/select-city`) instead of inserting an invalid row.
-   - Log the Supabase error to the console so future failures are debuggable.
+3. **Sharing**
+   - `ShareButton` builds the share URL from a `slug` (falls back to `id` if missing).
+   - The `og-redirect` edge function accepts `slug` in addition to `id` and resolves accordingly, so WhatsApp/Twitter/Facebook previews still work.
+   - `sitemap.xml` generator emits slug URLs.
 
-2. `src/components/seller/StoreSetupWizard.tsx` — `handleSubmit`:
-   - Add a `catch` that simply swallows the rethrow (toast is already shown by the hook) so loading resets cleanly and there is no unhandled rejection.
-   - Keep `setLoading(false)` in `finally`.
+4. **Out of scope** (can do later if you want): pretty URLs for products and services. Just ask and I'll extend the same pattern.
 
-3. `src/pages/SellerDashboard.tsx`:
-   - After a successful `createStore`, the hook already calls `setStore(newStore)`, which unmounts the wizard and shows the dashboard with the existing `SubscriptionCard` "Awaiting Admin Review" banner. No further change required, but verify by reading the file after the hook change.
+## Why slugs (not raw names)
 
-No database migration, no edge function changes, no admin-side changes — the existing pending → approve → assign fee → pay → activate flow already mirrors the rider flow.
+Browsers/social apps mangle spaces and apostrophes ("Jayee's Gadgets" becomes `Jayee%27s%20Gadgets`), which looks worse than the UUID. The standard fix is a slug: lowercased, hyphenated, ASCII. Same result you wanted, just clean.
 
-## Files touched
+## Questions before I build
 
-- `src/hooks/useStore.ts`
-- `src/components/seller/StoreSetupWizard.tsx`
-
-## Out of scope
-
-- Changing the admin review UI (already exists at `/admin/stores`).
-- Changes to subscription/payment flow.
-- Notifications to admins on new pending stores (can be added later if requested).
+- Slug format preference: `jayees-gadgets` (recommended) vs `Jayees-Gadgets` (preserve case)?
+- When a seller renames their store, should the slug update too (old slug stops working), or stay frozen at first creation?

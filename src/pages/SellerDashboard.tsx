@@ -193,11 +193,11 @@ const SellerDashboard = () => {
           </div>
           <div className="flex gap-2">
             <ShareButton 
-              url={`/store/${store.id}`}
+              url={`/store/${(store as any).slug || store.id}`}
               title={store.name}
               description={store.description || "Check out my store!"}
             />
-            <Button variant="outline" onClick={() => navigate(`/store/${store.id}`)}>
+            <Button variant="outline" onClick={() => navigate(`/store/${(store as any).slug || store.id}`)}>
               View Store
             </Button>
           </div>

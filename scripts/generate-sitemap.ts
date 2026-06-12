@@ -43,11 +43,11 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
   const entries: SitemapEntry[] = [];
   try {
     const stores = await supabaseSelect(
-      "stores?select=id,updated_at&is_verified=eq.true&is_active=eq.true&is_suspended=eq.false&limit=2000",
+      "stores?select=id,slug,updated_at&is_verified=eq.true&is_active=eq.true&is_suspended=eq.false&limit=2000",
     );
     for (const s of stores) {
       entries.push({
-        path: `/store/${s.id}`,
+        path: `/store/${s.slug || s.id}`,
         lastmod: s.updated_at ? new Date(s.updated_at).toISOString().split("T")[0] : undefined,
         changefreq: "weekly",
         priority: "0.7",

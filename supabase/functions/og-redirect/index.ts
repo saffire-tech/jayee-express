@@ -169,11 +169,14 @@ Deno.serve(async (req) => {
       imageUrl = product.image_url || imageUrl;
 
     } else if (type === 'store') {
-      const { data: store, error } = await supabase
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const isUuid = uuidRegex.test(id);
+      const lookup = supabase
         .from('stores')
-        .select('name, description, logo_url, cover_url, location')
-        .eq('id', id)
-        .single();
+        .select('id, slug, name, description, logo_url, cover_url, location');
+      const { data: store, error } = isUuid
+        ? await lookup.eq('id', id).single()
+        : await lookup.eq('slug', id).single();
 
       if (error || !store) {
         console.error('Store not found:', error);
@@ -182,6 +185,9 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Location': targetUrl },
         });
       }
+
+      // Redirect users to the pretty slug URL when available
+      targetUrl = `${origin}/store/${(store as any).slug || store.id}`;
 
       title = store.name;
       description = store.description 

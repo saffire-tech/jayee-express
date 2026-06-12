@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface SearchResult {
   id: string;
+  slug?: string | null;
   name: string;
   type: "product" | "store";
   image_url?: string | null;
@@ -55,7 +56,7 @@ const GlobalSearch = ({ variant = "navbar", placeholder = "Search products, stor
             .limit(5),
           supabase
             .from("stores")
-            .select("id, name, logo_url")
+            .select("id, slug, name, logo_url")
             .eq("is_active", true)
             .ilike("name", `%${query}%`)
             .limit(3),
@@ -70,8 +71,9 @@ const GlobalSearch = ({ variant = "navbar", placeholder = "Search products, stor
           category: p.category,
         }));
 
-        const storeResults: SearchResult[] = (storesRes.data || []).map((s) => ({
+        const storeResults: SearchResult[] = (storesRes.data || []).map((s: any) => ({
           id: s.id,
+          slug: s.slug,
           name: s.name,
           type: "store" as const,
           image_url: s.logo_url,
@@ -94,7 +96,7 @@ const GlobalSearch = ({ variant = "navbar", placeholder = "Search products, stor
     if (result.type === "product") {
       navigate(`/product/${result.id}`);
     } else {
-      navigate(`/store/${result.id}`);
+      navigate(`/store/${result.slug || result.id}`);
     }
   };
 

@@ -24,6 +24,7 @@ import {
 
 interface StoreData {
   id: string;
+  slug: string | null;
   name: string;
   description: string | null;
   logo_url: string | null;
@@ -46,7 +47,7 @@ const SORT_OPTIONS = [
 const fetchAllStores = async (): Promise<StoreData[]> => {
   const { data, error } = await supabase
     .from('stores')
-    .select('id, name, description, logo_url, cover_url, location, campus, is_verified, total_views')
+    .select('id, slug, name, description, logo_url, cover_url, location, campus, is_verified, total_views')
     .eq('is_active', true)
     .eq('is_verified', true)
     .eq('is_suspended', false);
@@ -355,7 +356,7 @@ const Stores = () => {
                           </span>
                         )}
                       </div>
-                      <Link to={`/store/${store.id}`}>
+                      <Link to={`/store/${store.slug || store.id}`}>
                         <Button size="sm" className="h-7 px-2 text-xs">Visit</Button>
                       </Link>
                     </div>
