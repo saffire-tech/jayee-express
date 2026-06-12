@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Eye, Check, X, Loader2 } from "lucide-react";
+import { Eye, Check, X, Loader2, Pencil } from "lucide-react";
 
 const RiderApplications = () => {
   const qc = useQueryClient();
