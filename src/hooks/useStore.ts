@@ -195,7 +195,7 @@ export const useStore = () => {
     };
   }, [user, store?.id]);
 
-  const createStore = async (data: { name: string; description: string; location: string; phone: string; campus: string; city: string; latitude?: number; longitude?: number }) => {
+  const createStore = async (data: { name: string; description: string; location: string; phone: string; campus: string; city: string; cover_url?: string; logo_url?: string; latitude?: number; longitude?: number }) => {
     if (!user) throw new Error("Not authenticated");
 
     const { data: newStore, error } = await supabase
@@ -208,6 +208,9 @@ export const useStore = () => {
         phone: data.phone,
         campus: data.campus,
         city: data.city,
+        is_verified: false,
+        ...(data.cover_url ? { cover_url: data.cover_url } : {}),
+        ...(data.logo_url ? { logo_url: data.logo_url } : {}),
         ...(data.latitude && data.longitude ? { latitude: data.latitude, longitude: data.longitude } : {}),
       } as any)
       .select()
@@ -216,7 +219,10 @@ export const useStore = () => {
     if (error) throw error;
     
     setStore(newStore);
-    toast({ title: "Store created!", description: "Your store is now live." });
+    toast({
+      title: "Store submitted for review!",
+      description: "An admin will review your store and assign your monthly subscription fee shortly.",
+    });
     return newStore;
   };
 

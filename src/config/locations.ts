@@ -4,53 +4,56 @@ export interface LocationGroup {
   locations: string[];
 }
 
+// Communities grouped by city/zone for Tamale and Wa.
 export const LOCATION_GROUPS: LocationGroup[] = [
   {
-    id: 'accra-central',
-    name: 'Accra Central',
+    id: 'tamale-central',
+    name: 'Tamale Central',
     locations: [
-      'Osu', 'Labadi', 'Cantonments', 'Airport Residential', 'Ridge',
-      'Dzorwulu', 'Abelemkpe', 'Roman Ridge', 'Circle', 'Asylum Down', 'Adabraka'
-    ]
+      'Aboabo', 'Sakasaka', 'Lamashegu', 'Choggu', 'Vittin', 'Nyohini',
+      'Gumbihini', 'Zogbeli', 'Tishigu', 'Kalpohin', 'Dakpema', 'Zongo',
+    ],
   },
   {
-    id: 'north-accra',
-    name: 'North Accra',
+    id: 'tamale-east',
+    name: 'Tamale East',
     locations: [
-      'Achimota', 'Lapaz', 'Dome', 'Haatso', 'Taifa',
-      'Agbogba', 'Kwabenya', 'Pokuase', 'Amasaman'
-    ]
+      'Kanvili', 'Gurugu', 'Gumani', 'Kpalsi', 'Kakpagyili', 'Sognaayili',
+      'Kanvili-Kukuo', 'Education Ridge',
+    ],
   },
   {
-    id: 'east-accra',
-    name: 'East Accra',
+    id: 'tamale-west-north',
+    name: 'Tamale West & North',
     locations: [
-      'East Legon', 'Madina', 'Adenta', 'Teshie', 'Nungua',
-      'Spintex', 'Baatsonaa', 'Adjiriganor'
-    ]
+      'Bulpiela', 'Changli', 'Kpene', 'Tugu', 'Nyanshegu', 'Jisonayili',
+      'Kpalga', 'Kpanvo', 'Builpela',
+    ],
   },
   {
-    id: 'west-accra',
-    name: 'West Accra',
+    id: 'tamale-outskirts',
+    name: 'Tamale Outskirts',
     locations: [
-      'Dansoman', 'Darkuman', 'Odorkor', 'Kaneshie', 'Tesano',
-      'Ablekuma', 'Bubiashie', 'Abeka'
-    ]
+      'Savelugu', 'Tolon', 'Kasalgu', 'Datoyili', 'Sangani', 'Diare',
+      'Nyankpala', 'Kumbungu',
+    ],
   },
   {
-    id: 'tema-surroundings',
-    name: 'Tema & Surroundings',
+    id: 'wa-central',
+    name: 'Wa Central',
     locations: [
-      'Tema', 'Ashaiman', 'Sakumono', 'Kpone', 'Prampram', 'Dawhenya', 'Afienya'
-    ]
+      'Wa Zongo', 'Dondoli', 'Kabanye', 'Kpaguri', 'Mangu', 'Nakori',
+      'SSNIT Flats', 'Kpongu', 'Dobile',
+    ],
   },
   {
-    id: 'kasoa-surroundings',
-    name: 'Kasoa & Surroundings',
+    id: 'wa-outskirts',
+    name: 'Wa Outskirts',
     locations: [
-      'Kasoa', 'Weija', 'Gbawe', 'Mallam', 'McCarthy Hill', 'Bortianor', 'Kokrobite'
-    ]
-  }
+      'Bamahu', 'Sing', 'Charia', 'Busa', 'Loho', 'Kperisi', 'Jujeyiri',
+      'Sombo', 'Nyagli',
+    ],
+  },
 ];
 
 // Get all locations as a flat array

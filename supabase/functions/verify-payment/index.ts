@@ -68,6 +68,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Admin-assigned store subscription branch
+    if (metadata?.type === "store_subscription") {
+      const { data: existingStoreSub } = await supabase
+        .from("store_subscriptions")
+        .select("id")
+        .eq("payment_reference", reference)
+        .limit(1);
+      if (!existingStoreSub || existingStoreSub.length === 0) {
+        await processStoreAdminSubscription(supabase, metadata, reference, Number(txData.amount) / 100);
+      }
+      return new Response(JSON.stringify({ verified: true, store_subscription: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!metadata?.buyer_id || !metadata?.store_groups) {
       return new Response(JSON.stringify({ verified: false, error: "Missing metadata" }), {
         status: 400,
@@ -234,6 +249,48 @@ async function processSubscription(supabase: any, metadata: any, reference: stri
     title: "Subscription Active",
     body: `Your ${plan.name} plan is active until ${newExpiry.toLocaleDateString()}.`,
     data: { store_id, plan_id },
+  });
+}
+
+async function processStoreAdminSubscription(supabase: any, metadata: any, reference: string, amountPaid: number) {
+  const { user_id, store_id, monthly_fee, months } = metadata;
+  const monthsInt = parseInt(months) || 1;
+
+  const { data: store } = await supabase
+    .from("stores")
+    .select("subscription_expires_at, name")
+    .eq("id", store_id)
+    .maybeSingle();
+
+  const now = new Date();
+  const baseDate = store?.subscription_expires_at && new Date(store.subscription_expires_at) > now
+    ? new Date(store.subscription_expires_at)
+    : now;
+  const newExpiry = new Date(baseDate);
+  newExpiry.setMonth(newExpiry.getMonth() + monthsInt);
+
+  await supabase.from("store_subscriptions").insert({
+    store_id,
+    user_id,
+    monthly_fee: Number(monthly_fee),
+    months: monthsInt,
+    amount_paid: amountPaid,
+    starts_at: baseDate.toISOString(),
+    expires_at: newExpiry.toISOString(),
+    status: "active",
+    payment_reference: reference,
+  });
+
+  await supabase.from("stores").update({
+    subscription_expires_at: newExpiry.toISOString(),
+  }).eq("id", store_id);
+
+  await supabase.from("notifications").insert({
+    user_id,
+    type: "subscription",
+    title: "Store Subscription Active",
+    body: `${store?.name || "Your store"} is now live until ${newExpiry.toLocaleDateString()}.`,
+    data: { store_id },
   });
 }
 
