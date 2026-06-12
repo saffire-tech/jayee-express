@@ -42,5 +42,10 @@ verify_jwt = false
 [functions.cart-reminder]
 verify_jwt = false
 
+[functions.reconcile-wallet]
+verify_jwt = false
+
+
+
 [functions.notify-new-device]
 verify_jwt = true
