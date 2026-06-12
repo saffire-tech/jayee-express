@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
       summary: Array.isArray(summary) ? summary[0] : summary,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
+    console.error("get-platform-balance error:", e);
+    return new Response(JSON.stringify({ error: (e as Error).message, stack: (e as Error).stack }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
