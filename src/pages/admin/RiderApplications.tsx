@@ -160,7 +160,12 @@ const RiderApplications = () => {
                     Submitted {format(new Date(a.created_at), "MMM d, yyyy HH:mm")}
                   </p>
                   {a.status === "approved" && (
-                    <p className="font-medium">Monthly Fee: ₵{Number(a.monthly_fee).toFixed(2)}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">Monthly Fee: ₵{Number(a.monthly_fee).toFixed(2)}</p>
+                      <Button size="sm" variant="ghost" onClick={() => { openReview(a); setAction("edit-fee"); }}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                   {a.status === "rejected" && a.rejection_reason && (
                     <p className="text-destructive">Reason: {a.rejection_reason}</p>
