@@ -12,13 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Eye, Check, X, Loader2 } from "lucide-react";
+import { Eye, Check, X, Loader2, Pencil } from "lucide-react";
 
 const RiderApplications = () => {
   const qc = useQueryClient();
   const [tab, setTab] = useState("pending");
   const [reviewing, setReviewing] = useState<any>(null);
-  const [action, setAction] = useState<"approve" | "reject" | null>(null);
+  const [action, setAction] = useState<"approve" | "reject" | "edit-fee" | null>(null);
   const [monthlyFee, setMonthlyFee] = useState("50");
   const [reason, setReason] = useState("");
   const [docs, setDocs] = useState<{ card?: string; photo?: string }>({});
@@ -40,7 +40,7 @@ const RiderApplications = () => {
     setReviewing(app);
     setAction(null);
     setReason("");
-    setMonthlyFee("50");
+    setMonthlyFee(app.monthly_fee ? String(app.monthly_fee) : "50");
     const [cardSigned, photoSigned] = await Promise.all([
       supabase.storage.from("rider-documents").createSignedUrl(app.ghana_card_url, 3600),
       supabase.storage.from("rider-documents").createSignedUrl(app.photo_id_url, 3600),
@@ -100,6 +100,32 @@ const RiderApplications = () => {
       toast.success(action === "approve" ? "Application approved" : "Application rejected");
       qc.invalidateQueries({ queryKey: ["rider-applications"] });
       setReviewing(null);
+      setAction(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateFee = useMutation({
+    mutationFn: async () => {
+      if (!reviewing) return;
+      const fee = parseFloat(monthlyFee);
+      if (!fee || fee <= 0) throw new Error("Set a valid monthly fee");
+      const { error } = await supabase
+        .from("rider_applications")
+        .update({ monthly_fee: fee } as any)
+        .eq("id", reviewing.id);
+      if (error) throw error;
+      // Also update any pending or active delivery subscriptions with the new fee
+      await supabase
+        .from("delivery_subscriptions")
+        .update({ monthly_fee: fee } as any)
+        .eq("user_id", reviewing.user_id)
+        .in("status", ["pending_payment", "active"]);
+    },
+    onSuccess: () => {
+      toast.success("Monthly fee updated");
+      qc.invalidateQueries({ queryKey: ["rider-applications"] });
+      setAction(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -134,7 +160,12 @@ const RiderApplications = () => {
                     Submitted {format(new Date(a.created_at), "MMM d, yyyy HH:mm")}
                   </p>
                   {a.status === "approved" && (
-                    <p className="font-medium">Monthly Fee: ₵{Number(a.monthly_fee).toFixed(2)}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">Monthly Fee: ₵{Number(a.monthly_fee).toFixed(2)}</p>
+                      <Button size="sm" variant="ghost" onClick={() => { openReview(a); setAction("edit-fee"); }}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                   {a.status === "rejected" && a.rejection_reason && (
                     <p className="text-destructive">Reason: {a.rejection_reason}</p>
@@ -199,14 +230,36 @@ const RiderApplications = () => {
                   )}
                 </>
               )}
+
+              {reviewing.status === "approved" && action === "edit-fee" && (
+                <div>
+                  <Label>Monthly Subscription Fee (₵)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={monthlyFee}
+                    onChange={(e) => setMonthlyFee(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           )}
-          {action && (
+          {action && action !== "edit-fee" && (
             <DialogFooter>
               <Button variant="outline" onClick={() => setAction(null)}>Back</Button>
               <Button onClick={() => submitAction.mutate()} disabled={submitAction.isPending}>
                 {submitAction.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 Confirm {action === "approve" ? "Approval" : "Rejection"}
+              </Button>
+            </DialogFooter>
+          )}
+          {action === "edit-fee" && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAction(null)}>Back</Button>
+              <Button onClick={() => updateFee.mutate()} disabled={updateFee.isPending}>
+                {updateFee.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Update Fee
               </Button>
             </DialogFooter>
           )}
