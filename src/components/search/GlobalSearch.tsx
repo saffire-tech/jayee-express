@@ -96,7 +96,7 @@ const GlobalSearch = ({ variant = "navbar", placeholder = "Search products, stor
     if (result.type === "product") {
       navigate(`/product/${result.id}`);
     } else {
-      navigate(`/store/${result.id}`);
+      navigate(`/store/${result.slug || result.id}`);
     }
   };
 
