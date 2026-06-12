@@ -154,31 +154,84 @@ const Profile = () => {
         {/* Mode Switcher */}
         <div className="bg-card rounded-2xl border border-border p-6 mb-8">
           <h2 className="font-semibold mb-4">Current Mode</h2>
-          <div className="flex gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={() => handleModeSwitch("buyer")}
-              className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+              className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${
                 profile?.current_mode === "buyer"
                   ? "border-primary bg-accent"
                   : "border-border hover:border-primary/50"
               }`}
             >
               <ShoppingBag className={`h-5 w-5 ${profile?.current_mode === "buyer" ? "text-primary" : ""}`} />
-              <span className="font-medium">Buyer</span>
+              <span className="font-medium text-sm">Buyer</span>
             </button>
             <button
               onClick={() => handleModeSwitch("seller")}
-              className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all ${
+              className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${
                 profile?.current_mode === "seller"
                   ? "border-primary bg-accent"
                   : "border-border hover:border-primary/50"
               }`}
             >
               <Store className={`h-5 w-5 ${profile?.current_mode === "seller" ? "text-primary" : ""}`} />
-              <span className="font-medium">Seller</span>
+              <span className="font-medium text-sm">Seller</span>
+            </button>
+            <button
+              onClick={() => handleModeSwitch("delivery")}
+              className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                profile?.current_mode === "delivery"
+                  ? "border-primary bg-accent"
+                  : "border-border hover:border-primary/50"
+              }`}
+            >
+              <Truck className={`h-5 w-5 ${profile?.current_mode === "delivery" ? "text-primary" : ""}`} />
+              <span className="font-medium text-sm">Delivery</span>
             </button>
           </div>
+
+          {/* Rider application status */}
+          {!riderLoading && (
+            <div className="mt-4">
+              {riderApp?.status === "pending" && (
+                <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-3 text-sm">
+                  <Badge variant="outline" className="mb-2 border-yellow-600 text-yellow-700">Under Review</Badge>
+                  <p className="text-muted-foreground">Your rider application is being reviewed by an admin.</p>
+                </div>
+              )}
+              {riderApp?.status === "rejected" && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm space-y-2">
+                  <Badge variant="destructive">Rejected</Badge>
+                  {riderApp.rejection_reason && <p className="text-muted-foreground">Reason: {riderApp.rejection_reason}</p>}
+                  <Button size="sm" variant="outline" onClick={() => setShowRiderForm(true)}>Re-apply</Button>
+                </div>
+              )}
+              {riderApp?.status === "approved" && (
+                <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-sm">
+                  <Badge variant="outline" className="mb-2 border-green-600 text-green-700">Approved Rider</Badge>
+                  <p className="text-muted-foreground">
+                    Monthly fee: ₵{Number(riderApp.monthly_fee).toFixed(2)}. Visit the Delivery Dashboard to pay & start receiving orders.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Rider Application Form Dialog */}
+        <Dialog open={showRiderForm} onOpenChange={setShowRiderForm}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Become a Delivery Rider</DialogTitle>
+            </DialogHeader>
+            <RiderApplicationForm
+              onSubmitted={() => {
+                setShowRiderForm(false);
+                loadRiderApp();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
 
         {/* City Selector */}
         <div className="bg-card rounded-2xl border border-border p-6 mb-8">
