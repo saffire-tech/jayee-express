@@ -5,11 +5,23 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import LocationSelector from "@/components/ui/LocationSelector";
 import MapPicker from "@/components/maps/MapPicker";
-import { Store, MapPin, Phone, Loader2, ArrowRight, Check, Navigation } from "lucide-react";
+import StoreImageUpload from "@/components/seller/StoreImageUpload";
+import { Store, MapPin, Phone, Loader2, ArrowRight, Check, Navigation, ImageIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface StoreSetupWizardProps {
-  onComplete: (data: { name: string; description: string; location: string; phone: string; campus: string; city: string; latitude?: number; longitude?: number }) => Promise<unknown>;
+  onComplete: (data: {
+    name: string;
+    description: string;
+    location: string;
+    phone: string;
+    campus: string;
+    city: string;
+    cover_url?: string;
+    logo_url?: string;
+    latitude?: number;
+    longitude?: number;
+  }) => Promise<unknown>;
 }
 
 const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
@@ -23,11 +35,13 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
     phone: "",
     campus: "",
     city: profile?.city || "Tamale",
+    cover_url: "",
+    logo_url: "",
     latitude: undefined as number | undefined,
     longitude: undefined as number | undefined,
   });
 
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   const handleNext = () => {
     if (step < totalSteps) setStep(step + 1);
@@ -49,10 +63,11 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
   const isStepValid = () => {
     switch (step) {
       case 1: return formData.name.trim().length > 0;
-      case 2: return formData.description.trim().length > 0;
-      case 3: return formData.campus.length > 0;
-      case 4: return formData.location.trim().length > 0;
-      case 5: return true; // Map step is optional
+      case 2: return formData.cover_url.trim().length > 0;
+      case 3: return formData.description.trim().length > 0;
+      case 4: return formData.campus.length > 0;
+      case 5: return formData.location.trim().length > 0;
+      case 6: return true; // Map step is optional
       default: return false;
     }
   };
@@ -64,18 +79,14 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
         {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
           <div key={s} className="flex items-center">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
-                s < step
-                  ? "bg-primary text-primary-foreground"
-                  : s === step
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
+              className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold transition-colors ${
+                s <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               }`}
             >
               {s < step ? <Check className="h-5 w-5" /> : s}
             </div>
             {s < totalSteps && (
-              <div className={`w-8 h-1 mx-1 ${s < step ? "bg-primary" : "bg-muted"}`} />
+              <div className={`w-6 h-1 mx-1 ${s < step ? "bg-primary" : "bg-muted"}`} />
             )}
           </div>
         ))}
@@ -96,8 +107,28 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
         </div>
       )}
 
-      {/* Step 2: Description */}
+      {/* Step 2: Store Photo */}
       {step === 2 && (
+        <div className="text-center animate-fade-up">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent mb-6">
+            <ImageIcon className="h-8 w-8 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Add a Store Photo</h2>
+          <p className="text-muted-foreground mb-8">A clear cover photo helps customers recognise your store.</p>
+          <div className="text-left">
+            <Label className="mb-3 block">Store Cover Photo</Label>
+            <StoreImageUpload
+              type="cover"
+              currentImageUrl={formData.cover_url || null}
+              onImageUploaded={(url) => setFormData({ ...formData, cover_url: url, logo_url: formData.logo_url || url })}
+              onImageRemoved={() => setFormData({ ...formData, cover_url: "" })}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Description */}
+      {step === 3 && (
         <div className="text-center animate-fade-up">
           <h2 className="text-2xl font-bold mb-2">Describe Your Store</h2>
           <p className="text-muted-foreground mb-8">Tell customers what you offer and why they should choose you</p>
@@ -108,14 +139,14 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
         </div>
       )}
 
-      {/* Step 3: Campus Selection */}
-      {step === 3 && (
+      {/* Step 4: Area Selection */}
+      {step === 4 && (
         <div className="text-center animate-fade-up">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent mb-6">
             <MapPin className="h-8 w-8 text-primary" />
           </div>
           <h2 className="text-2xl font-bold mb-2">Select Your Area</h2>
-          <p className="text-muted-foreground mb-8">Choose the area where your store is located</p>
+          <p className="text-muted-foreground mb-8">Choose the community where your store is located</p>
           <div className="text-left">
             <Label htmlFor="campus">Area</Label>
             <LocationSelector value={formData.campus} onChange={(value) => setFormData({ ...formData, campus: value })} placeholder="Select your area" className="mt-2" />
@@ -123,8 +154,8 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
         </div>
       )}
 
-      {/* Step 4: Location & Contact */}
-      {step === 4 && (
+      {/* Step 5: Location & Contact */}
+      {step === 5 && (
         <div className="text-center animate-fade-up">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent mb-6">
             <MapPin className="h-8 w-8 text-primary" />
@@ -136,7 +167,7 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
               <Label htmlFor="location">Address</Label>
               <div className="relative mt-2">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="e.g., 24 Oxford St, Osu" className="pl-10" />
+                <Input id="location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="e.g., Near Aboabo market" className="pl-10" />
               </div>
             </div>
             <div>
@@ -150,8 +181,8 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
         </div>
       )}
 
-      {/* Step 5: Map Location */}
-      {step === 5 && (
+      {/* Step 6: Map Location */}
+      {step === 6 && (
         <div className="text-center animate-fade-up">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent mb-6">
             <Navigation className="h-8 w-8 text-primary" />
@@ -169,6 +200,10 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
                 📍 {formData.latitude.toFixed(5)}, {formData.longitude.toFixed(5)}
               </p>
             )}
+            <p className="text-xs text-muted-foreground mt-4 p-3 bg-muted/50 rounded-lg">
+              ℹ️ After you submit, an admin will review your store and assign your monthly subscription fee.
+              Your products will go live once you pay the subscription.
+            </p>
           </div>
         </div>
       )}
@@ -186,7 +221,7 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
         ) : (
           <Button variant="hero" onClick={handleSubmit} disabled={loading} className="flex-1 gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Create Store
+            Submit for Review
           </Button>
         )}
       </div>

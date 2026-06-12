@@ -795,9 +795,10 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
+          monthly_fee: number | null
           months: number
           payment_reference: string | null
-          plan_id: string
+          plan_id: string | null
           starts_at: string
           status: string
           store_id: string
@@ -808,9 +809,10 @@ export type Database = {
           created_at?: string
           expires_at: string
           id?: string
+          monthly_fee?: number | null
           months: number
           payment_reference?: string | null
-          plan_id: string
+          plan_id?: string | null
           starts_at?: string
           status?: string
           store_id: string
@@ -821,9 +823,10 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          monthly_fee?: number | null
           months?: number
           payment_reference?: string | null
-          plan_id?: string
+          plan_id?: string | null
           starts_at?: string
           status?: string
           store_id?: string
@@ -908,10 +911,12 @@ export type Database = {
           longitude: number | null
           momo_number: string | null
           momo_provider: string | null
+          monthly_fee: number | null
           name: string
           paystack_subaccount_code: string | null
           phone: string | null
           product_limit: number
+          rejection_reason: string | null
           subscription_expires_at: string | null
           total_sales: number | null
           total_views: number | null
@@ -936,10 +941,12 @@ export type Database = {
           longitude?: number | null
           momo_number?: string | null
           momo_provider?: string | null
+          monthly_fee?: number | null
           name: string
           paystack_subaccount_code?: string | null
           phone?: string | null
           product_limit?: number
+          rejection_reason?: string | null
           subscription_expires_at?: string | null
           total_sales?: number | null
           total_views?: number | null
@@ -964,10 +971,12 @@ export type Database = {
           longitude?: number | null
           momo_number?: string | null
           momo_provider?: string | null
+          monthly_fee?: number | null
           name?: string
           paystack_subaccount_code?: string | null
           phone?: string | null
           product_limit?: number
+          rejection_reason?: string | null
           subscription_expires_at?: string | null
           total_sales?: number | null
           total_views?: number | null
