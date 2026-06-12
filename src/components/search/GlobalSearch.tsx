@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface SearchResult {
   id: string;
+  slug?: string | null;
   name: string;
   type: "product" | "store";
   image_url?: string | null;
