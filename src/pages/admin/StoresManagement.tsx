@@ -183,7 +183,7 @@ export default function StoresManagement() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-popover">
         <DropdownMenuItem asChild>
-          <Link to={`/store/${store.id}`} className="flex items-center">
+          <Link to={`/store/${store.slug || store.id}`} className="flex items-center">
             <ExternalLink className="mr-2 h-4 w-4" />View Store
           </Link>
         </DropdownMenuItem>

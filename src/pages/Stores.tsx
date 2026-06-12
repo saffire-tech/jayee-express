@@ -355,7 +355,7 @@ const Stores = () => {
                           </span>
                         )}
                       </div>
-                      <Link to={`/store/${store.id}`}>
+                      <Link to={`/store/${store.slug || store.id}`}>
                         <Button size="sm" className="h-7 px-2 text-xs">Visit</Button>
                       </Link>
                     </div>

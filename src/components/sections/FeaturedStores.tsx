@@ -105,7 +105,7 @@ const FeaturedStores = () => {
               className="flex-shrink-0 w-[78%] snap-start"
             >
               <Link
-                to={`/store/${store.id}`}
+                to={`/store/${store.slug || store.id}`}
                 className="group block relative rounded-2xl overflow-hidden border border-border/60 bg-card shadow-sm h-44"
               >
                 {store.cover_url ? (
@@ -151,7 +151,7 @@ const FeaturedStores = () => {
               transition={{ delay: i * 0.06, duration: 0.3 }}
             >
               <Link
-                to={`/store/${store.id}`}
+                to={`/store/${store.slug || store.id}`}
                 className="group block bg-card rounded-2xl overflow-hidden border border-border/60 hover:border-primary/20 transition-all duration-300 hover:shadow-lg"
               >
                 <div className="relative h-32 overflow-hidden bg-muted">
