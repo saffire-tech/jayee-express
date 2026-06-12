@@ -56,6 +56,10 @@ const DeliveryDashboard = () => {
 
   const toggleOnline = async (next: boolean) => {
     if (!user) return;
+    if (next && !hasActiveSubscription) {
+      toast.error('Pay your monthly rider subscription before going online.');
+      return;
+    }
     setTogglingOnline(true);
     const prev = isOnline;
     setIsOnline(next);
