@@ -24,6 +24,9 @@ const Profile = () => {
   const [momoNumber, setMomoNumber] = useState("");
   const [momoProvider, setMomoProvider] = useState("");
   const [saving, setSaving] = useState(false);
+  const [riderApp, setRiderApp] = useState<any>(null);
+  const [riderLoading, setRiderLoading] = useState(true);
+  const [showRiderForm, setShowRiderForm] = useState(false);
 
   const { 
     isSupported, 
@@ -75,8 +78,35 @@ const Profile = () => {
     }
   };
 
-  const handleModeSwitch = async (mode: "buyer" | "seller") => {
-    await switchMode(mode);
+  const loadRiderApp = async () => {
+    if (!user) return;
+    setRiderLoading(true);
+    const { data } = await supabase
+      .from("rider_applications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setRiderApp(data);
+    setRiderLoading(false);
+  };
+
+  useEffect(() => {
+    loadRiderApp();
+  }, [user]);
+
+  const handleModeSwitch = async (mode: "buyer" | "seller" | "delivery") => {
+    if (mode === "delivery") {
+      if (!riderApp) {
+        setShowRiderForm(true);
+        return;
+      }
+      if (riderApp.status !== "approved") {
+        return; // status banners explain
+      }
+    }
+    await switchMode(mode as any);
   };
 
   const handleNotificationToggle = async () => {
