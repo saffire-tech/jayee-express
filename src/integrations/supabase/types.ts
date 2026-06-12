@@ -1110,6 +1110,7 @@ export type Database = {
           phone: string | null
           product_limit: number
           rejection_reason: string | null
+          slug: string
           subscription_expires_at: string | null
           total_sales: number | null
           total_views: number | null
@@ -1140,6 +1141,7 @@ export type Database = {
           phone?: string | null
           product_limit?: number
           rejection_reason?: string | null
+          slug: string
           subscription_expires_at?: string | null
           total_sales?: number | null
           total_views?: number | null
@@ -1170,6 +1172,7 @@ export type Database = {
           phone?: string | null
           product_limit?: number
           rejection_reason?: string | null
+          slug?: string
           subscription_expires_at?: string | null
           total_sales?: number | null
           total_views?: number | null
@@ -1442,6 +1445,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      slugify: { Args: { _input: string }; Returns: string }
       update_wallet_balance: {
         Args: {
           _amount: number
