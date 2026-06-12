@@ -24,6 +24,7 @@ import {
 
 interface StoreData {
   id: string;
+  slug: string | null;
   name: string;
   description: string | null;
   logo_url: string | null;
