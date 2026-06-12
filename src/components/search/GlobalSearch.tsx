@@ -71,8 +71,9 @@ const GlobalSearch = ({ variant = "navbar", placeholder = "Search products, stor
           category: p.category,
         }));
 
-        const storeResults: SearchResult[] = (storesRes.data || []).map((s) => ({
+        const storeResults: SearchResult[] = (storesRes.data || []).map((s: any) => ({
           id: s.id,
+          slug: s.slug,
           name: s.name,
           type: "store" as const,
           image_url: s.logo_url,
