@@ -47,7 +47,7 @@ const SORT_OPTIONS = [
 const fetchAllStores = async (): Promise<StoreData[]> => {
   const { data, error } = await supabase
     .from('stores')
-    .select('id, name, description, logo_url, cover_url, location, campus, is_verified, total_views')
+    .select('id, slug, name, description, logo_url, cover_url, location, campus, is_verified, total_views')
     .eq('is_active', true)
     .eq('is_verified', true)
     .eq('is_suspended', false);
