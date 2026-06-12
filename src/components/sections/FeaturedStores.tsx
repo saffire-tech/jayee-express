@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 
 interface StoreData {
   id: string;
+  slug: string | null;
   name: string;
   description: string | null;
   logo_url: string | null;
@@ -20,7 +21,7 @@ interface StoreData {
 const fetchFeaturedStores = async (): Promise<StoreData[]> => {
   const { data, error } = await supabase
     .from('stores')
-    .select('id, name, description, logo_url, cover_url, location, is_verified')
+    .select('id, slug, name, description, logo_url, cover_url, location, is_verified')
     .eq('is_active', true)
     .eq('is_featured', true)
     .eq('is_verified', true)
