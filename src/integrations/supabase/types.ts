@@ -1247,6 +1247,7 @@ export type Database = {
         }
         Returns: number
       }
+      wallet_cleared_balance: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "delivery"
