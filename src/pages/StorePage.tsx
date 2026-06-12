@@ -275,7 +275,7 @@ const StorePage = () => {
                       storeName={store.name}
                     />
                     <ShareButton 
-                      url={`/store/${store.id}`}
+                      url={`/store/${store.slug || store.id}`}
                       title={store.name}
                       description={store.description || undefined}
                     />
