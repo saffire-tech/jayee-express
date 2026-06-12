@@ -230,6 +230,19 @@ const RiderApplications = () => {
                   )}
                 </>
               )}
+
+              {reviewing.status === "approved" && action === "edit-fee" && (
+                <div>
+                  <Label>Monthly Subscription Fee (₵)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={monthlyFee}
+                    onChange={(e) => setMonthlyFee(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           )}
           {action && (
