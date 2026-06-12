@@ -1,60 +1,36 @@
-## Goal
+## Problem
 
-Subscription payments (store + rider monthly fees) land in the platform's main Paystack balance, not in user wallets. Right now there's no admin UI to see that balance or move it out. This plan adds a Finance page where admins can:
+When a seller fills the Store Setup wizard and clicks "Submit for Review", nothing visible happens. The store insert in `createStore` (in `src/hooks/useStore.ts`) is failing silently:
 
-1. See total subscription revenue earned (all-time + this month).
-2. See the current withdrawable Paystack balance.
-3. Withdraw to an admin payout account (MoMo or bank) via Paystack Transfer.
-4. See a history of admin withdrawals.
+- `createStore` has no `try/catch` around the Supabase insert and no error toast — it just re-throws.
+- The wizard's `handleSubmit` wraps the call in `try / finally` with no `catch`, so the rejected promise becomes an unhandled rejection and the user sees no feedback and no navigation.
+- The most likely root cause of the failed insert is the `city` value being sent. `formData.city` defaults to `profile?.city || "Tamale"`, but at the moment the wizard mounts `profile` may still be loading (`null`), so the saved city can mismatch the user's actual profile city. The `stores.city` column is `NOT NULL`, and downstream RLS / city-segmentation logic expects it to equal the profile's city.
 
-## What already exists
+The pending-store admin flow (`/admin/stores` → Pending tab filtering `!is_verified && !rejection_reason`) is already wired correctly — once a row lands in `stores` with `is_verified=false`, it will appear for admin review, fee assignment, and approval, exactly like riders.
 
-- `store_subscriptions` and `delivery_subscriptions` tables record each paid subscription with amount + paystack reference.
-- `paystack-webhook` already credits these on `type: subscription / rider_subscription / store_subscription`.
-- Paystack Transfer API is already used in `request-withdrawal` for user MoMo payouts — same pattern reused here.
+## Fix
 
-## What to build
+1. `src/hooks/useStore.ts` — `createStore`:
+   - Wrap the insert in `try / catch`. On error, show a `toast({ variant: "destructive", title: "Could not submit store", description: error.message })` and re-throw.
+   - Before inserting, if `data.city` is falsy, read the latest `profiles.city` for `user.id` and use that; if still null, surface a friendly error asking the user to pick a city (link to `/select-city`) instead of inserting an invalid row.
+   - Log the Supabase error to the console so future failures are debuggable.
 
-### 1. Database (one migration)
+2. `src/components/seller/StoreSetupWizard.tsx` — `handleSubmit`:
+   - Add a `catch` that simply swallows the rethrow (toast is already shown by the hook) so loading resets cleanly and there is no unhandled rejection.
+   - Keep `setLoading(false)` in `finally`.
 
-- `platform_payouts` table: id, admin_user_id, amount, recipient_type (momo/bank), recipient_details (jsonb), paystack_transfer_code, paystack_recipient_code, status (pending/success/failed/reversed), failure_reason, created_at, updated_at. RLS: admins only.
-- `platform_payout_accounts` table: id, label, type (momo/bank), account_number, bank_code, account_name, paystack_recipient_code, is_default, created_by, created_at. RLS: admins only. Lets admin save one or more payout destinations.
-- View / RPC `platform_revenue_summary()` (SECURITY DEFINER, admin-only) returning:
-  - `total_subscription_revenue` = SUM(amount) from `store_subscriptions` + `delivery_subscriptions` where status='active' or paid
-  - `revenue_this_month`
-  - `total_withdrawn` = SUM(`platform_payouts`.amount where status='success')
-  - `net_earned` = total_subscription_revenue − total_withdrawn
+3. `src/pages/SellerDashboard.tsx`:
+   - After a successful `createStore`, the hook already calls `setStore(newStore)`, which unmounts the wizard and shows the dashboard with the existing `SubscriptionCard` "Awaiting Admin Review" banner. No further change required, but verify by reading the file after the hook change.
 
-### 2. Edge functions
+No database migration, no edge function changes, no admin-side changes — the existing pending → approve → assign fee → pay → activate flow already mirrors the rider flow.
 
-- `get-platform-balance` (admin-only): calls Paystack `GET /balance`, returns available + pending in NGN/GHS. Also returns the revenue summary from the RPC above.
-- `create-platform-payout-recipient` (admin-only): given MoMo number/provider or bank account, calls Paystack `POST /transferrecipient`, stores the returned `recipient_code` in `platform_payout_accounts`.
-- `admin-withdraw` (admin-only): input `{ amount, account_id }`. Validates admin role, checks amount ≤ Paystack available balance, calls Paystack `POST /transfer` with the saved recipient code, inserts a `platform_payouts` row (status=pending), returns transfer reference.
-- Extend `paystack-webhook` to handle `transfer.success` / `transfer.failed` / `transfer.reversed` events targeting a `platform_payouts.paystack_transfer_code` and update status accordingly. (User withdrawals already use a different flow; we'll branch on whether the transfer code matches `withdrawal_requests` or `platform_payouts`.)
+## Files touched
 
-### 3. Admin UI
-
-- New page `src/pages/admin/Finance.tsx` at route `/admin/finance` with three cards:
-  - **Subscription Revenue** — all-time, this month, net after withdrawals.
-  - **Paystack Available Balance** — live from `get-platform-balance`, with a "Withdraw" button.
-  - **Payout Accounts** — list + "Add account" dialog (MoMo number+provider or bank+account).
-- Withdraw dialog: pick saved account, enter amount (capped at available balance), confirm.
-- **Withdrawal History** table: date, amount, account, status, Paystack reference.
-- Add `Finance` entry to `AdminSidebar` (icon: `Wallet`).
-
-### 4. Security
-
-- All new functions check `has_role(auth.uid(), 'admin')` server-side (dual-client pattern).
-- RLS on both new tables: only admins can select/insert; service_role full access.
-- Amount validation: positive, ≤ Paystack available balance, ≤ remaining net revenue (defense-in-depth so admin can't withdraw user wallet float).
+- `src/hooks/useStore.ts`
+- `src/components/seller/StoreSetupWizard.tsx`
 
 ## Out of scope
 
-- Automatic recurring payouts (admin triggers manually).
-- Splitting revenue across multiple admins.
-- Per-subscription commission reporting (already covered by existing tables; this just sums them).
-
-## Files
-
-- New: migration, `supabase/functions/get-platform-balance/`, `create-platform-payout-recipient/`, `admin-withdraw/`, `src/pages/admin/Finance.tsx`.
-- Edited: `supabase/functions/paystack-webhook/index.ts`, `src/components/admin/AdminSidebar.tsx`, `src/App.tsx`.
+- Changing the admin review UI (already exists at `/admin/stores`).
+- Changes to subscription/payment flow.
+- Notifications to admins on new pending stores (can be added later if requested).
