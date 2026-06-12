@@ -87,7 +87,7 @@ export default function ReconciliationPage() {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Wallet Reconciliation">
       <div className="space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
