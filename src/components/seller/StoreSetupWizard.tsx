@@ -55,6 +55,9 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
     setLoading(true);
     try {
       await onComplete(formData);
+    } catch (err) {
+      // Error toast is shown by the hook; just reset loading.
+      console.error("Store submit failed:", err);
     } finally {
       setLoading(false);
     }

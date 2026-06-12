@@ -198,32 +198,60 @@ export const useStore = () => {
   const createStore = async (data: { name: string; description: string; location: string; phone: string; campus: string; city: string; cover_url?: string; logo_url?: string; latitude?: number; longitude?: number }) => {
     if (!user) throw new Error("Not authenticated");
 
-    const { data: newStore, error } = await supabase
-      .from("stores")
-      .insert({
-        user_id: user.id,
-        name: data.name,
-        description: data.description,
-        location: data.location,
-        phone: data.phone,
-        campus: data.campus,
-        city: data.city,
-        is_verified: false,
-        ...(data.cover_url ? { cover_url: data.cover_url } : {}),
-        ...(data.logo_url ? { logo_url: data.logo_url } : {}),
-        ...(data.latitude && data.longitude ? { latitude: data.latitude, longitude: data.longitude } : {}),
-      } as any)
-      .select()
-      .single();
+    let city = data.city;
+    if (!city) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("city")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      city = (prof as any)?.city || "";
+    }
+    if (!city) {
+      toast({
+        title: "Select your city first",
+        description: "Please pick your city before creating a store.",
+        variant: "destructive",
+      });
+      throw new Error("Missing city");
+    }
 
-    if (error) throw error;
-    
-    setStore(newStore);
-    toast({
-      title: "Store submitted for review!",
-      description: "An admin will review your store and assign your monthly subscription fee shortly.",
-    });
-    return newStore;
+    try {
+      const { data: newStore, error } = await supabase
+        .from("stores")
+        .insert({
+          user_id: user.id,
+          name: data.name,
+          description: data.description,
+          location: data.location,
+          phone: data.phone,
+          campus: data.campus,
+          city,
+          is_verified: false,
+          ...(data.cover_url ? { cover_url: data.cover_url } : {}),
+          ...(data.logo_url ? { logo_url: data.logo_url } : {}),
+          ...(data.latitude && data.longitude ? { latitude: data.latitude, longitude: data.longitude } : {}),
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setStore(newStore);
+      toast({
+        title: "Store submitted for review!",
+        description: "An admin will review your store and assign your monthly subscription fee shortly.",
+      });
+      return newStore;
+    } catch (err: any) {
+      console.error("createStore error:", err);
+      toast({
+        title: "Could not submit store",
+        description: err?.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+      throw err;
+    }
   };
 
   const updateStore = async (updates: Partial<Store>) => {
