@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   Shield,
   AlertTriangle,
+  Truck,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -28,6 +29,7 @@ const menuItems = [
   { title: 'Products', url: '/admin/products', icon: Package },
   { title: 'Orders', url: '/admin/orders', icon: ShoppingCart },
   { title: 'Reports', url: '/admin/reports', icon: AlertTriangle },
+  { title: 'Rider Applications', url: '/admin/riders', icon: Truck },
 ];
 
 export const AdminSidebar = () => {
