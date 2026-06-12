@@ -37,8 +37,8 @@ Deno.serve(async (req) => {
     const balanceJson = await balanceRes.json();
     const balances = balanceJson?.data ?? [];
 
-    // Revenue summary
-    const { data: summary, error: sumErr } = await adminClient.rpc("platform_revenue_summary");
+    // Revenue summary — must use userClient so auth.uid() works inside SECURITY DEFINER
+    const { data: summary, error: sumErr } = await userClient.rpc("platform_revenue_summary");
     if (sumErr) throw new Error(sumErr.message);
 
     return new Response(JSON.stringify({
@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
       summary: Array.isArray(summary) ? summary[0] : summary,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
+    console.error("get-platform-balance error:", e);
+    return new Response(JSON.stringify({ error: (e as Error).message, stack: (e as Error).stack }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
