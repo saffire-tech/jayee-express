@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
       .eq("id", order_id);
 
-    // Reverse seller wallet credit
+    // Reverse seller wallet credit — only if the original credit actually happened
     const { data: store } = await adminClient
       .from("stores")
       .select("user_id")
@@ -67,24 +67,86 @@ Deno.serve(async (req) => {
       .single();
 
     if (store) {
-      // No commission - full items total was credited to seller
-      const itemsTotal = order.total_amount - (order.delivery_fee || 0);
+      const itemsTotal = Number(order.total_amount) - Number(order.delivery_fee || 0);
       const sellerShare = itemsTotal;
 
       if (sellerShare > 0) {
-        try {
-          await adminClient.rpc("update_wallet_balance", {
-            _user_id: store.user_id,
-            _amount: sellerShare,
-            _type: "debit",
-            _description: `Order cancelled - refund reversal`,
-            _reference_id: order_id,
-          });
-        } catch (e) {
-          console.error("Seller wallet reversal error:", e);
+        const { data: priorCredit } = await adminClient
+          .from("wallet_transactions")
+          .select("id")
+          .eq("user_id", store.user_id)
+          .eq("reference_id", order_id)
+          .eq("type", "credit")
+          .ilike("description", "Sale from order%")
+          .limit(1);
+
+        const { data: priorReversal } = await adminClient
+          .from("wallet_transactions")
+          .select("id")
+          .eq("user_id", store.user_id)
+          .eq("reference_id", order_id)
+          .eq("type", "debit")
+          .ilike("description", "Order cancelled%")
+          .limit(1);
+
+        if (priorCredit?.length && !priorReversal?.length) {
+          try {
+            await adminClient.rpc("update_wallet_balance", {
+              _user_id: store.user_id,
+              _amount: sellerShare,
+              _type: "debit",
+              _description: `Order cancelled - refund reversal`,
+              _reference_id: order_id,
+            });
+          } catch (e) {
+            console.error("Seller wallet reversal error:", e);
+          }
         }
       }
     }
+
+    // Reverse rider wallet credit if the delivery fee was already paid out
+    if (order.delivery_person_id && Number(order.delivery_fee || 0) > 0) {
+      const { data: riderCredit } = await adminClient
+        .from("wallet_transactions")
+        .select("id")
+        .eq("user_id", order.delivery_person_id)
+        .eq("reference_id", order_id)
+        .eq("type", "credit")
+        .ilike("description", "Delivery fee for order%")
+        .limit(1);
+
+      const { data: riderReversal } = await adminClient
+        .from("wallet_transactions")
+        .select("id")
+        .eq("user_id", order.delivery_person_id)
+        .eq("reference_id", order_id)
+        .eq("type", "debit")
+        .ilike("description", "Delivery cancelled%")
+        .limit(1);
+
+      if (riderCredit?.length && !riderReversal?.length) {
+        try {
+          await adminClient.rpc("update_wallet_balance", {
+            _user_id: order.delivery_person_id,
+            _amount: Number(order.delivery_fee),
+            _type: "debit",
+            _description: `Delivery cancelled - refund reversal`,
+            _reference_id: order_id,
+          });
+          await adminClient.from("notifications").insert({
+            user_id: order.delivery_person_id,
+            type: "payout",
+            title: "Delivery Refunded",
+            body: `Order #${order_id.slice(0, 8)} was cancelled. ₵${Number(order.delivery_fee).toLocaleString()} delivery fee has been reversed.`,
+            data: { order_id },
+          });
+        } catch (e) {
+          console.error("Rider wallet reversal error:", e);
+        }
+      }
+    }
+
 
     // Initiate Paystack refund if there's a payment reference
     if (order.payment_reference) {

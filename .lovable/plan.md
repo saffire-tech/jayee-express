@@ -1,105 +1,51 @@
-# Tamale/Wa Localization + Store Approval & Admin Subscriptions
 
-## 1. Replace all preloaded location data with Tamale & Wa communities
+# Payment Flow — Confirm & Harden Existing Wallet Model
 
-**File:** `src/config/locations.ts`
+Based on your answers, **the system already does what you described.** No Paystack subaccounts are needed. The work below is small hardening + clearer notifications so there are no unpaid clients or disputes.
 
-Replace the Accra-centric `LOCATION_GROUPS` with real Tamale and Wa zones/communities. Keep the same interface so every consumer (LocationSelector, StoreSetupWizard step 3, MapPicker fallback, admin LocationsManager) keeps working unchanged.
+## What already works (no change needed)
 
-Proposed groups:
+1. **Subscriptions (store + rider)** → buyer pays Paystack → full amount lands in your main Paystack balance. ✓ (`initialize-store-subscription`, `initialize-delivery-subscription`, `paystack-webhook`)
+2. **Product purchases** → buyer pays Paystack → `paystack-webhook` (and `verify-payment` fallback) credits the **seller's in-app wallet** with the full items total and inserts a `notifications` row: *"New Order Received! ₵X from <buyer>."* Seller sees balance in dashboard wallet.
+3. **Delivery fee** → held by platform until buyer confirms receipt → then credited to rider's in-app wallet (see `Delivery Fulfillment Lifecycle` memory).
+4. **Withdrawals** → seller or rider taps Withdraw in their wallet → `request-withdrawal` debits wallet and uses **Paystack Transfer API** to push MoMo to their saved number. ✓
 
-- **Tamale Central** — Aboabo, Sakasaka, Lamashegu, Choggu, Vittin, Nyohini, Gumbihini, Zogbeli, Tishigu, Kalpohin
-- **Tamale East** — Kanvili, Gurugu, Gumani, Kpalsi, Kakpagyili, Sognaayili
-- **Tamale West / North** — Bulpiela, Changli, Kpene, Tugu, Nyanshegu, Jisonayili, Kpalga
-- **Tamale Outskirts** — Savelugu, Tolon, Yendi-road communities (Kasalgu, Datoyili, Sangani)
-- **Wa Central** — Wa Zongo, Dondoli, Kabanye, Kpaguri, Mangu, Nakori, SSNIT Flats
-- **Wa Outskirts** — Bamahu, Sing, Charia, Busa, Loho, Kperisi, Jujeyiri
+## Gaps to fix (this is the actual work)
 
-Also remove the `CampusGroup` data (`src/config/campuses.ts`) Accra dependency where used by stores, but keep university campus data as-is since it serves a different purpose (campus identifier). The store wizard step 3 (`LocationSelector`) is what changes.
+### 1. Refund seller wallet when an order is cancelled after payment
+Today: if an order is cancelled in `cancel-order-refund`, the buyer is refunded but the seller's wallet stays credited — creates a phantom balance the seller could withdraw. Fix: when cancelling a paid order, debit the seller's wallet by the items total (and the rider's wallet by the delivery fee if already credited), with a `wallet_transactions` entry "Refund reversal — order #xxx".
 
-Note: `delivery_locations` is admin-managed data; we only replace the static config. Existing user-typed addresses in DB are untouched.
+### 2. Idempotency on seller wallet credit
+Today: webhook and `verify-payment` both credit the seller wallet on the same reference. If both fire (webhook + client fallback) the seller is paid twice. Fix: gate the `update_wallet_balance` call on whether a `wallet_transactions` row with `reference_id = order.id` and `description LIKE 'Sale from order%'` already exists. Same for rider crediting on delivery confirmation.
 
-## 2. Store Setup Wizard — add store photo upload + submit for admin review
+### 3. Wallet notification clarity
+Add the credited amount and order id to the seller notification body so they can reconcile: *"₵X credited to your wallet from order #abcd1234."* Same for rider: *"₵Y delivery fee credited from order #abcd1234."*
 
-**Files:** `src/components/seller/StoreSetupWizard.tsx`, `src/hooks/useStore.ts`
+### 4. Block withdrawal of un-cleared funds
+Optional safety net: only count wallet balance from orders that are `completed` (buyer-confirmed) toward the withdrawable amount. Pending orders stay in wallet but are not withdrawable. This eliminates the biggest dispute risk (seller withdraws, then order is cancelled). Two ways:
+- **Strict (recommended):** add `cleared_balance` computed view = credits where `reference_id` joins to a `completed` order, minus debits. `request-withdrawal` checks `cleared_balance` instead of `wallets.balance`.
+- **Loose:** keep current behavior, just rely on fix #1 to claw back.
 
-- Insert a new step (between current step 1 "Name" and step 2 "Description"): **Store Photo**. Reuses existing `StoreImageUpload` component, writes to existing `store-images` bucket, returns the public URL into `formData.cover_url` (and optionally `logo_url`). Total steps becomes 6.
-- `createStore` in `useStore.ts`: accept `cover_url`, insert with `is_verified: false`. After submit, the wizard shows a "Submitted for review" success screen instead of redirecting straight to dashboard.
-- Seller Dashboard already gates UI by `is_verified` indirectly through RLS; add an explicit "Pending admin review" banner when `store.is_verified === false`.
+I'll go with **strict** unless you prefer loose.
 
-## 3. Subscription gating — block products of un-subscribed stores
-
-Visibility rule: a product is public **only if** the store is `is_verified = true` AND `is_suspended = false` AND `subscription_expires_at > now()`.
-
-**Migration:** update `Stores visible by city` and `Products visible by store city` RLS policies to add `s.subscription_expires_at > now()` to the public branch. Owner/admin branches are unchanged so the seller still sees their own store in their dashboard while expired.
-
-Frontend list queries (`Stores.tsx`, `FeaturedStores.tsx`, `FeaturedProducts.tsx`, etc.) keep their existing `is_verified` filter; RLS now also enforces the sub check, so no client change is strictly required, but `Stores.tsx` will add `.gt('subscription_expires_at', new Date().toISOString())` for clarity.
-
-## 4. Admin store approval + admin-assigned monthly subscription
-
-**File:** `src/pages/admin/StoresManagement.tsx`
-
-- Add a **Pending** tab listing stores with `is_verified = false`. Each row shows store details, photos, owner, city.
-- **Approve dialog**: numeric input for monthly fee (₵), defaults to 50. On confirm:
-  - sets `is_verified = true`
-  - inserts `store_subscriptions` row with `monthly_fee`, `status = 'pending_payment'`, `starts_at = now()`, `expires_at = now()` (so products stay hidden until they pay) — same shape as `delivery_subscriptions`.
-  - updates `stores.subscription_expires_at = now()` (kept expired until payment).
-  - sends notification to owner: "Store approved. Please pay your monthly subscription to go live."
-- **Reject dialog**: reason text → notification to owner; store stays `is_verified=false`.
-- **Edit fee** (on already-approved stores): updates the latest `store_subscriptions.monthly_fee` and any pending row, mirroring rider `Edit Fee` flow.
-
-Existing self-serve subscription plan UI (`SubscribeDialog.tsx`, `SubscriptionCard.tsx`) keeps working for sellers who want to upgrade beyond their admin-assigned fee; admin assignment is the new baseline.
-
-## 5. Seller-side: pay the admin-assigned subscription
-
-**Files:** `src/components/seller/SubscriptionCard.tsx` (or new `StoreSubscriptionCard.tsx`)
-
-Show the admin-assigned `monthly_fee` and a Renew/Activate button that calls a new edge function `initialize-store-subscription` (clone of `initialize-delivery-subscription`, reads the store's pending `store_subscriptions` row to determine the amount). `paystack-webhook` extended with a `type=store_subscription` branch that activates the sub and sets `stores.subscription_expires_at = expires_at`. `verify-payment` gets the matching client-side fallback branch.
-
-## Database changes (one migration)
-
-```sql
--- 1) Tighten store visibility: require active subscription for public viewing
-DROP POLICY "Stores visible by city" ON public.stores;
-CREATE POLICY "Stores visible by city" ON public.stores FOR SELECT
-USING (
-  has_role(auth.uid(),'admin') OR user_id = auth.uid()
-  OR (is_verified = true
-      AND COALESCE(is_suspended,false) = false
-      AND subscription_expires_at IS NOT NULL
-      AND subscription_expires_at > now()
-      AND (current_user_city() IS NULL OR city = current_user_city()))
-);
-
--- 2) Same for products via store check
-DROP POLICY "Products visible by store city" ON public.products;
-CREATE POLICY "Products visible by store city" ON public.products FOR SELECT
-USING (
-  has_role(auth.uid(),'admin')
-  OR EXISTS (SELECT 1 FROM stores s WHERE s.id = products.store_id AND (
-    s.user_id = auth.uid()
-    OR (s.is_verified = true
-        AND COALESCE(s.is_suspended,false) = false
-        AND s.subscription_expires_at IS NOT NULL
-        AND s.subscription_expires_at > now()
-        AND (current_user_city() IS NULL OR s.city = current_user_city()))
-  ))
-);
-
--- 3) New stores start unverified
-ALTER TABLE public.stores ALTER COLUMN is_verified SET DEFAULT false;
-```
-
-`store_subscriptions` table already exists, so we don't recreate it.
+### 5. Remove the misleading `create-subaccount` name
+That edge function only saves MoMo number/provider — it doesn't create a Paystack subaccount. Rename to `save-payout-method` and clean up the wording so it's clear there's no Paystack subaccount being created.
 
 ## Files
 
-**New:** `supabase/functions/initialize-store-subscription/index.ts`, migration.
+**Edited:**
+- `supabase/functions/paystack-webhook/index.ts` — idempotent seller credit, clearer notification body
+- `supabase/functions/verify-payment/index.ts` — same idempotency + notification copy
+- `supabase/functions/cancel-order-refund/index.ts` — debit seller (and rider if applicable) on refund
+- `supabase/functions/request-withdrawal/index.ts` — check `cleared_balance` (strict option)
+- `src/components/wallet/WalletCard.tsx` — show "Available" vs "Pending" balance
+- Rename `supabase/functions/create-subaccount/` → `save-payout-method/` (update callers)
 
-**Edited:** `src/config/locations.ts`, `src/components/seller/StoreSetupWizard.tsx`, `src/hooks/useStore.ts`, `src/pages/SellerDashboard.tsx` (pending banner + new SubscriptionCard wiring), `src/pages/admin/StoresManagement.tsx` (Pending tab, Approve/Reject/Edit-fee dialogs), `src/components/seller/SubscriptionCard.tsx`, `supabase/functions/paystack-webhook/index.ts`, `supabase/functions/verify-payment/index.ts`.
+**Migration:**
+- View `public.wallet_cleared_balance(user_id)` returning numeric, security definer.
+- (No table changes.)
 
 ## Out of scope
-
-- Migrating existing live stores to the new approval flow (existing `is_verified=true` stores stay live; if their `subscription_expires_at` is null, RLS will hide them — I'll backfill those to `now() + 30 days` as a grace window in the migration).
-- Re-locating existing user addresses that mention Accra communities (DB data left alone).
-- Refunds for partial months.
+- Real Paystack subaccounts / split payments — explicitly rejected.
+- Per-sale platform commission — you confirmed only the monthly subscription is revenue.
+- Auto-transfers to rider MoMo on completion — staying with manual wallet withdrawal.
