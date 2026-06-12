@@ -172,7 +172,7 @@ const StorePage = () => {
     name: store.name,
     description: storeDescription,
     image: storeImage,
-    url: `https://jayeeexpress.com/store/${store.id}`,
+    url: `https://jayeeexpress.com/store/${store.slug || store.id}`,
     address: store.location
       ? { "@type": "PostalAddress", addressLocality: store.location, addressCountry: "GH" }
       : undefined,
@@ -184,7 +184,7 @@ const StorePage = () => {
       <SEO
         title={`${store.name} | Jayee Express`}
         description={storeDescription}
-        canonicalPath={`/store/${store.id}`}
+        canonicalPath={`/store/${store.slug || store.id}`}
         image={storeImage}
         jsonLd={storeJsonLd}
       />
