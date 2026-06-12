@@ -245,12 +245,21 @@ const RiderApplications = () => {
               )}
             </div>
           )}
-          {action && (
+          {action && action !== "edit-fee" && (
             <DialogFooter>
               <Button variant="outline" onClick={() => setAction(null)}>Back</Button>
               <Button onClick={() => submitAction.mutate()} disabled={submitAction.isPending}>
                 {submitAction.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 Confirm {action === "approve" ? "Approval" : "Rejection"}
+              </Button>
+            </DialogFooter>
+          )}
+          {action === "edit-fee" && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAction(null)}>Back</Button>
+              <Button onClick={() => updateFee.mutate()} disabled={updateFee.isPending}>
+                {updateFee.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Update Fee
               </Button>
             </DialogFooter>
           )}
