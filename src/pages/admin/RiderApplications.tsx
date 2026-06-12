@@ -18,7 +18,7 @@ const RiderApplications = () => {
   const qc = useQueryClient();
   const [tab, setTab] = useState("pending");
   const [reviewing, setReviewing] = useState<any>(null);
-  const [action, setAction] = useState<"approve" | "reject" | null>(null);
+  const [action, setAction] = useState<"approve" | "reject" | "edit-fee" | null>(null);
   const [monthlyFee, setMonthlyFee] = useState("50");
   const [reason, setReason] = useState("");
   const [docs, setDocs] = useState<{ card?: string; photo?: string }>({});
