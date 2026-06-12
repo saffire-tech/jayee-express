@@ -53,6 +53,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Rider subscription branch
+    if (metadata?.type === "rider_subscription") {
+      const { data: existingRider } = await supabase
+        .from("delivery_subscriptions")
+        .select("id")
+        .eq("payment_reference", reference)
+        .limit(1);
+      if (!existingRider || existingRider.length === 0) {
+        await processRiderSubscription(supabase, metadata, reference, Number(txData.amount) / 100);
+      }
+      return new Response(JSON.stringify({ verified: true, rider_subscription: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!metadata?.buyer_id || !metadata?.store_groups) {
       return new Response(JSON.stringify({ verified: false, error: "Missing metadata" }), {
         status: 400,
