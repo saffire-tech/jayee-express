@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Truck,
   Scale,
+  Wallet,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -32,6 +33,7 @@ const menuItems = [
   { title: 'Reports', url: '/admin/reports', icon: AlertTriangle },
   { title: 'Rider Applications', url: '/admin/riders', icon: Truck },
   { title: 'Reconciliation', url: '/admin/reconciliation', icon: Scale },
+  { title: 'Finance', url: '/admin/finance', icon: Wallet },
 ];
 
 
