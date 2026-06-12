@@ -1,83 +1,105 @@
-# Delivery Rider Onboarding & Subscription
+# Tamale/Wa Localization + Store Approval & Admin Subscriptions
 
-Riders self-apply from their Profile. Admin reviews the application, and on approval assigns a monthly fee. Riders renew monthly like store owners. Admin can no longer assign the `delivery` role directly — it's earned through this flow.
+## 1. Replace all preloaded location data with Tamale & Wa communities
 
-## 1. Profile: Mode = Buyer / Seller / Delivery
+**File:** `src/config/locations.ts`
 
-In `src/pages/Profile.tsx`, expand the Current Mode card from 2 buttons to 3: **Buyer**, **Seller**, **Delivery**.
+Replace the Accra-centric `LOCATION_GROUPS` with real Tamale and Wa zones/communities. Keep the same interface so every consumer (LocationSelector, StoreSetupWizard step 3, MapPicker fallback, admin LocationsManager) keeps working unchanged.
 
-When the user picks **Delivery**:
-- If they have no `rider_applications` row → open the application form (below).
-- If application is `pending` → show "Application under review".
-- If `rejected` → show reason + allow re-apply.
-- If `approved` but no active subscription → show "Pay monthly fee to activate" CTA.
-- If `approved` AND active subscription → switch `current_mode = 'delivery'` (unlocks Delivery Dashboard tab).
+Proposed groups:
 
-## 2. Rider Application Form
+- **Tamale Central** — Aboabo, Sakasaka, Lamashegu, Choggu, Vittin, Nyohini, Gumbihini, Zogbeli, Tishigu, Kalpohin
+- **Tamale East** — Kanvili, Gurugu, Gumani, Kpalsi, Kakpagyili, Sognaayili
+- **Tamale West / North** — Bulpiela, Changli, Kpene, Tugu, Nyanshegu, Jisonayili, Kpalga
+- **Tamale Outskirts** — Savelugu, Tolon, Yendi-road communities (Kasalgu, Datoyili, Sangani)
+- **Wa Central** — Wa Zongo, Dondoli, Kabanye, Kpaguri, Mangu, Nakori, SSNIT Flats
+- **Wa Outskirts** — Bamahu, Sing, Charia, Busa, Loho, Kperisi, Jujeyiri
 
-New component `src/components/delivery/RiderApplicationForm.tsx` collects:
-- Full name (prefilled from profile)
-- Ghana Card number (text, validated GHA-XXXXXXXXX-X format)
-- Ghana Card photo upload (front)
-- Photo ID / selfie upload
-- House address (text)
-- Motorbike registration number (text)
-- Phone number (prefilled)
+Also remove the `CampusGroup` data (`src/config/campuses.ts`) Accra dependency where used by stores, but keep university campus data as-is since it serves a different purpose (campus identifier). The store wizard step 3 (`LocationSelector`) is what changes.
 
-Files upload to a new private `rider-documents` storage bucket. On submit, insert a `rider_applications` row with `status='pending'`.
+Note: `delivery_locations` is admin-managed data; we only replace the static config. Existing user-typed addresses in DB are untouched.
 
-## 3. Admin Review
+## 2. Store Setup Wizard — add store photo upload + submit for admin review
 
-New admin page `src/pages/admin/RiderApplications.tsx` (linked in `AdminSidebar`):
-- Lists pending / approved / rejected applications with applicant info, document previews (signed URLs), and city.
-- **Approve**: opens dialog to set `monthly_fee` (₵), then sets `status='approved'`, grants `user_roles.role = 'delivery'`, and creates the user's first `delivery_subscriptions` row (1 month from approval, status `pending_payment` — rider pays to activate).
-- **Reject**: requires reason; stores it; does NOT grant role.
-- **Revoke**: removes role + cancels subscription.
+**Files:** `src/components/seller/StoreSetupWizard.tsx`, `src/hooks/useStore.ts`
 
-Remove any existing admin UI that assigns the delivery role manually (audit `UsersManagement.tsx` and strip the option if present).
+- Insert a new step (between current step 1 "Name" and step 2 "Description"): **Store Photo**. Reuses existing `StoreImageUpload` component, writes to existing `store-images` bucket, returns the public URL into `formData.cover_url` (and optionally `logo_url`). Total steps becomes 6.
+- `createStore` in `useStore.ts`: accept `cover_url`, insert with `is_verified: false`. After submit, the wizard shows a "Submitted for review" success screen instead of redirecting straight to dashboard.
+- Seller Dashboard already gates UI by `is_verified` indirectly through RLS; add an explicit "Pending admin review" banner when `store.is_verified === false`.
 
-## 4. Monthly Subscription (mirrors store subs)
+## 3. Subscription gating — block products of un-subscribed stores
 
-New table `delivery_subscriptions` (user_id, monthly_fee, starts_at, expires_at, status, payment_reference). New edge function `initialize-delivery-subscription` (clone of `initialize-subscription` but for riders, using their assigned `monthly_fee`). Paystack webhook extended to credit rider subs on success.
+Visibility rule: a product is public **only if** the store is `is_verified = true` AND `is_suspended = false` AND `subscription_expires_at > now()`.
 
-Add `RiderSubscriptionCard` to the Delivery Dashboard showing days remaining + "Renew" button.
+**Migration:** update `Stores visible by city` and `Products visible by store city` RLS policies to add `s.subscription_expires_at > now()` to the public branch. Owner/admin branches are unchanged so the seller still sees their own store in their dashboard while expired.
 
-## 5. Enforcement
+Frontend list queries (`Stores.tsx`, `FeaturedStores.tsx`, `FeaturedProducts.tsx`, etc.) keep their existing `is_verified` filter; RLS now also enforces the sub check, so no client change is strictly required, but `Stores.tsx` will add `.gt('subscription_expires_at', new Date().toISOString())` for clarity.
 
-- `useDeliveryRole` hook extended to also require an active `delivery_subscriptions.expires_at > now()`. Expired riders lose access to `AvailableOrders`.
-- RLS on `orders` for couriers: existing policies already gate by `delivery_person_id`; we add an `EXISTS` check that the rider has an active subscription before allowing `UPDATE` for delivery actions.
-- City filter (already implemented) continues to scope available orders.
+## 4. Admin store approval + admin-assigned monthly subscription
+
+**File:** `src/pages/admin/StoresManagement.tsx`
+
+- Add a **Pending** tab listing stores with `is_verified = false`. Each row shows store details, photos, owner, city.
+- **Approve dialog**: numeric input for monthly fee (₵), defaults to 50. On confirm:
+  - sets `is_verified = true`
+  - inserts `store_subscriptions` row with `monthly_fee`, `status = 'pending_payment'`, `starts_at = now()`, `expires_at = now()` (so products stay hidden until they pay) — same shape as `delivery_subscriptions`.
+  - updates `stores.subscription_expires_at = now()` (kept expired until payment).
+  - sends notification to owner: "Store approved. Please pay your monthly subscription to go live."
+- **Reject dialog**: reason text → notification to owner; store stays `is_verified=false`.
+- **Edit fee** (on already-approved stores): updates the latest `store_subscriptions.monthly_fee` and any pending row, mirroring rider `Edit Fee` flow.
+
+Existing self-serve subscription plan UI (`SubscribeDialog.tsx`, `SubscriptionCard.tsx`) keeps working for sellers who want to upgrade beyond their admin-assigned fee; admin assignment is the new baseline.
+
+## 5. Seller-side: pay the admin-assigned subscription
+
+**Files:** `src/components/seller/SubscriptionCard.tsx` (or new `StoreSubscriptionCard.tsx`)
+
+Show the admin-assigned `monthly_fee` and a Renew/Activate button that calls a new edge function `initialize-store-subscription` (clone of `initialize-delivery-subscription`, reads the store's pending `store_subscriptions` row to determine the amount). `paystack-webhook` extended with a `type=store_subscription` branch that activates the sub and sets `stores.subscription_expires_at = expires_at`. `verify-payment` gets the matching client-side fallback branch.
 
 ## Database changes (one migration)
 
 ```sql
-CREATE TABLE public.rider_applications (
-  id uuid PK, user_id uuid → auth.users, city text,
-  full_name, ghana_card_number, ghana_card_url, photo_id_url,
-  house_address, motor_registration, phone,
-  status text CHECK (pending|approved|rejected) DEFAULT 'pending',
-  monthly_fee numeric, rejection_reason text,
-  reviewed_by uuid, reviewed_at timestamptz,
-  created_at, updated_at
+-- 1) Tighten store visibility: require active subscription for public viewing
+DROP POLICY "Stores visible by city" ON public.stores;
+CREATE POLICY "Stores visible by city" ON public.stores FOR SELECT
+USING (
+  has_role(auth.uid(),'admin') OR user_id = auth.uid()
+  OR (is_verified = true
+      AND COALESCE(is_suspended,false) = false
+      AND subscription_expires_at IS NOT NULL
+      AND subscription_expires_at > now()
+      AND (current_user_city() IS NULL OR city = current_user_city()))
 );
--- GRANTs, RLS: applicant can SELECT/INSERT own; admin full access.
 
-CREATE TABLE public.delivery_subscriptions (
-  id uuid PK, user_id uuid, monthly_fee numeric,
-  starts_at, expires_at, status text, payment_reference text, created_at
+-- 2) Same for products via store check
+DROP POLICY "Products visible by store city" ON public.products;
+CREATE POLICY "Products visible by store city" ON public.products FOR SELECT
+USING (
+  has_role(auth.uid(),'admin')
+  OR EXISTS (SELECT 1 FROM stores s WHERE s.id = products.store_id AND (
+    s.user_id = auth.uid()
+    OR (s.is_verified = true
+        AND COALESCE(s.is_suspended,false) = false
+        AND s.subscription_expires_at IS NOT NULL
+        AND s.subscription_expires_at > now()
+        AND (current_user_city() IS NULL OR s.city = current_user_city()))
+  ))
 );
--- GRANTs, RLS: owner SELECT, admin full, service_role full.
 
--- Storage bucket 'rider-documents' (private) + RLS allowing
--- applicant to upload to {user_id}/* and admin to read all.
+-- 3) New stores start unverified
+ALTER TABLE public.stores ALTER COLUMN is_verified SET DEFAULT false;
 ```
+
+`store_subscriptions` table already exists, so we don't recreate it.
 
 ## Files
 
-**New:** `RiderApplicationForm.tsx`, `RiderSubscriptionCard.tsx`, `pages/admin/RiderApplications.tsx`, `supabase/functions/initialize-delivery-subscription/index.ts`, migration, storage bucket.
+**New:** `supabase/functions/initialize-store-subscription/index.ts`, migration.
 
-**Edited:** `Profile.tsx` (3-way mode + delivery flow), `AdminSidebar.tsx` (new link), `useDeliveryRole.ts` (sub check), `DeliveryDashboard.tsx` (sub card + gate), `paystack-webhook/index.ts` (handle rider sub).
+**Edited:** `src/config/locations.ts`, `src/components/seller/StoreSetupWizard.tsx`, `src/hooks/useStore.ts`, `src/pages/SellerDashboard.tsx` (pending banner + new SubscriptionCard wiring), `src/pages/admin/StoresManagement.tsx` (Pending tab, Approve/Reject/Edit-fee dialogs), `src/components/seller/SubscriptionCard.tsx`, `supabase/functions/paystack-webhook/index.ts`, `supabase/functions/verify-payment/index.ts`.
 
 ## Out of scope
 
-- Refunds for partial months, automated reminders (can reuse existing notifications later), KYC verification beyond admin eyeballing docs, multi-city rider transfers.
+- Migrating existing live stores to the new approval flow (existing `is_verified=true` stores stay live; if their `subscription_expires_at` is null, RLS will hide them — I'll backfill those to `now() + 30 days` as a grace window in the migration).
+- Re-locating existing user addresses that mention Accra communities (DB data left alone).
+- Refunds for partial months.
