@@ -193,8 +193,8 @@ Deno.serve(async (req) => {
       description = store.description 
         ? `${store.description.substring(0, 150)}${store.description.length > 150 ? '...' : ''}`
         : `Shop at ${store.name}${store.location ? ` - ${store.location}` : ''} on Jayee Express`;
-      // Prefer cover image for stores, fall back to logo
-      imageUrl = store.cover_url || store.logo_url || imageUrl;
+      // Prefer the store's profile (logo) image for social previews, fall back to cover
+      imageUrl = store.logo_url || store.cover_url || imageUrl;
     } else if (type === 'service') {
       const { data: service, error } = await supabase
         .from('store_web_services')
