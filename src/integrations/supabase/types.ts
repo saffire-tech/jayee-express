@@ -147,6 +147,45 @@ export type Database = {
           },
         ]
       }
+      delivery_subscriptions: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          expires_at: string
+          id: string
+          monthly_fee: number
+          months: number
+          payment_reference: string | null
+          starts_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid?: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          monthly_fee: number
+          months?: number
+          payment_reference?: string | null
+          starts_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          monthly_fee?: number
+          months?: number
+          payment_reference?: string | null
+          starts_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       delivery_zones: {
         Row: {
           created_at: string
@@ -690,6 +729,66 @@ export type Database = {
           },
         ]
       }
+      rider_applications: {
+        Row: {
+          city: string | null
+          created_at: string
+          full_name: string
+          ghana_card_number: string
+          ghana_card_url: string
+          house_address: string
+          id: string
+          monthly_fee: number | null
+          motor_registration: string
+          phone: string
+          photo_id_url: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          full_name: string
+          ghana_card_number: string
+          ghana_card_url: string
+          house_address: string
+          id?: string
+          monthly_fee?: number | null
+          motor_registration: string
+          phone: string
+          photo_id_url: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          full_name?: string
+          ghana_card_number?: string
+          ghana_card_url?: string
+          house_address?: string
+          id?: string
+          monthly_fee?: number | null
+          motor_registration?: string
+          phone?: string
+          photo_id_url?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       store_subscriptions: {
         Row: {
           amount_paid: number
@@ -1110,6 +1209,10 @@ export type Database = {
           momo_provider: string
           paystack_subaccount_code: string
         }[]
+      }
+      has_active_rider_subscription: {
+        Args: { _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
