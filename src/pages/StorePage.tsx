@@ -15,6 +15,7 @@ import ContactSellerDialog from '@/components/messaging/ContactSellerDialog';
 
 interface Store {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   logo_url: string | null;
