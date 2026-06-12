@@ -10,7 +10,7 @@ interface Profile {
   avatar_url: string | null;
   phone: string | null;
   campus: string | null;
-  current_mode: "buyer" | "seller" | null;
+  current_mode: "buyer" | "seller" | "delivery" | null;
   is_suspended: boolean | null;
   city: string | null;
 }
@@ -24,7 +24,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
-  switchMode: (mode: "buyer" | "seller") => Promise<void>;
+  switchMode: (mode: "buyer" | "seller" | "delivery") => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
