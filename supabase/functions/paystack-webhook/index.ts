@@ -47,6 +47,12 @@ Deno.serve(async (req) => {
       return new Response("OK", { status: 200 });
     }
 
+    // Rider subscription branch
+    if (metadata?.type === "rider_subscription") {
+      await processRiderSubscription(supabase, metadata, reference, Number(data.amount) / 100);
+      return new Response("OK", { status: 200 });
+    }
+
     if (!metadata?.buyer_id || !metadata?.store_groups) {
       return new Response("Missing metadata", { status: 400 });
     }

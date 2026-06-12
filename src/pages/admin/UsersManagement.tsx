@@ -148,10 +148,7 @@ export default function UsersManagement() {
                 <Shield className="mr-2 h-4 w-4" />
                 Make Admin
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => roleMutation.mutate({ userId: user.user_id, role: 'delivery', action: 'add' })}>
-                <Truck className="mr-2 h-4 w-4" />
-                Make Delivery Person
-              </DropdownMenuItem>
+              {/* Delivery role is now self-applied via Profile → Rider Application */}
             </>
           )}
           {userRole && (
