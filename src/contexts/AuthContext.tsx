@@ -165,7 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { error } = await supabase
       .from("profiles")
-      .update(updates)
+      .update(updates as any)
       .eq("user_id", user.id);
 
     if (error) throw error;
@@ -179,7 +179,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const switchMode = async (mode: "buyer" | "seller") => {
+  const switchMode = async (mode: "buyer" | "seller" | "delivery") => {
     await updateProfile({ current_mode: mode });
   };
 
