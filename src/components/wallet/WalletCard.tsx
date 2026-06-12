@@ -16,6 +16,7 @@ interface WalletCardProps {
 const WalletCard = ({ role, storeId }: WalletCardProps) => {
   const { user } = useAuth();
   const [balance, setBalance] = useState<number | null>(null);
+  const [cleared, setCleared] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [momoDetails, setMomoDetails] = useState<{ momo_number: string; momo_provider: string } | null>(null);
@@ -23,12 +24,12 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
   const fetchWallet = async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    setBalance(data?.balance ?? 0);
+    const [{ data: walletData }, { data: clearedData }] = await Promise.all([
+      supabase.from("wallets").select("balance").eq("user_id", user.id).maybeSingle(),
+      supabase.rpc("wallet_cleared_balance", { _user_id: user.id }),
+    ]);
+    setBalance(walletData?.balance ?? 0);
+    setCleared(Number(clearedData) || 0);
     setLoading(false);
   };
 
@@ -49,11 +50,14 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
     }
   };
 
-
   useEffect(() => {
     fetchWallet();
     fetchMomoDetails();
   }, [user, storeId]);
+
+  const total = Number(balance || 0);
+  const available = Number(cleared || 0);
+  const pending = Math.max(total - available, 0);
 
   return (
     <div className="space-y-6">
@@ -68,18 +72,32 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
           {loading ? (
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           ) : (
-            <div className="flex items-center justify-between">
-              <p className="text-3xl font-bold text-primary">
-                ₵{Number(balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Available to withdraw</p>
+                  <p className="text-3xl font-bold text-primary">
+                    ₵{available.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setShowWithdraw(true)}
+                  disabled={available <= 0 || !momoDetails}
+                  className="gap-2"
+                >
+                  <ArrowDownToLine className="h-4 w-4" />
+                  Withdraw
+                </Button>
+              </div>
+              {pending > 0 && (
+                <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+                  <span className="font-medium">₵{pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-muted-foreground"> pending — released when the buyer confirms delivery.</span>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Total balance: ₵{total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
-              <Button
-                onClick={() => setShowWithdraw(true)}
-                disabled={!balance || balance <= 0 || !momoDetails}
-                className="gap-2"
-              >
-                <ArrowDownToLine className="h-4 w-4" />
-                Withdraw
-              </Button>
             </div>
           )}
           {!momoDetails && !loading && (
@@ -96,7 +114,7 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
         <WithdrawDialog
           open={showWithdraw}
           onOpenChange={setShowWithdraw}
-          balance={balance || 0}
+          balance={available}
           momoNumber={momoDetails.momo_number}
           momoProvider={momoDetails.momo_provider}
           onSuccess={fetchWallet}
@@ -107,3 +125,4 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
 };
 
 export default WalletCard;
+

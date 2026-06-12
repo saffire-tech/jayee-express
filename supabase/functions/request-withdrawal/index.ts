@@ -34,16 +34,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check wallet balance
-    const { data: wallet } = await adminClient
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Check cleared (withdrawable) balance — excludes credits tied to non-completed orders
+    const { data: clearedData, error: clearedErr } = await adminClient.rpc("wallet_cleared_balance", {
+      _user_id: user.id,
+    });
+    if (clearedErr) throw new Error(clearedErr.message || "Failed to read wallet balance");
+    const cleared = Number(clearedData) || 0;
 
-    if (!wallet || wallet.balance < amount) {
-      throw new Error("Insufficient balance");
+    if (cleared < amount) {
+      throw new Error(`Insufficient cleared balance. Available to withdraw: ₵${cleared.toFixed(2)}. Pending funds become available once buyers confirm delivery.`);
     }
+
 
     // Get MoMo details - check profile first, then store
     let momoNumber: string | null = null;

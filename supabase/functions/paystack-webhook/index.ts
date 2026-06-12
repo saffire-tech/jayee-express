@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
 
       await supabase.from("order_items").insert(orderItems);
 
-      // Credit seller's wallet with full items total (no commission)
+      // Credit seller's wallet with full items total (no commission) — idempotent per order
       const { data: storeData } = await supabase
         .from("stores")
         .select("user_id, name")
@@ -126,16 +126,28 @@ Deno.serve(async (req) => {
       if (storeData?.user_id) {
         const sellerShare = itemsTotal;
         if (sellerShare > 0) {
-          try {
-            await supabase.rpc("update_wallet_balance", {
-              _user_id: storeData.user_id,
-              _amount: sellerShare,
-              _type: "credit",
-              _description: `Sale from order #${order.id.slice(0, 8)}`,
-              _reference_id: order.id,
-            });
-          } catch (e) {
-            console.error("Wallet credit error for seller:", e);
+          // Idempotency guard: skip if we've already credited for this order
+          const { data: existingCredit } = await supabase
+            .from("wallet_transactions")
+            .select("id")
+            .eq("user_id", storeData.user_id)
+            .eq("reference_id", order.id)
+            .eq("type", "credit")
+            .ilike("description", "Sale from order%")
+            .limit(1);
+
+          if (!existingCredit || existingCredit.length === 0) {
+            try {
+              await supabase.rpc("update_wallet_balance", {
+                _user_id: storeData.user_id,
+                _amount: sellerShare,
+                _type: "credit",
+                _description: `Sale from order #${order.id.slice(0, 8)}`,
+                _reference_id: order.id,
+              });
+            } catch (e) {
+              console.error("Wallet credit error for seller:", e);
+            }
           }
         }
 
@@ -143,10 +155,11 @@ Deno.serve(async (req) => {
           user_id: storeData.user_id,
           type: "order",
           title: "New Order Received!",
-          body: `New order of ₵${orderTotal.toLocaleString()} from ${buyerProfile?.full_name || "a buyer"}. Payment confirmed.`,
+          body: `₵${itemsTotal.toLocaleString()} credited to your wallet from order #${order.id.slice(0, 8)} (${buyerProfile?.full_name || "a buyer"}).`,
           data: { order_id: order.id },
         });
       }
+
     }
 
     // Clear buyer's cart

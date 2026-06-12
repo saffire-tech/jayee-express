@@ -43,17 +43,28 @@ Deno.serve(async (req) => {
     if (!order.delivery_person_id) throw new Error("No delivery person assigned");
     if (order.delivery_fee <= 0) throw new Error("No delivery fee to pay out");
 
-    // Credit delivery person's wallet instead of direct MoMo transfer
-    try {
-      await adminClient.rpc("update_wallet_balance", {
-        _user_id: order.delivery_person_id,
-        _amount: order.delivery_fee,
-        _type: "credit",
-        _description: `Delivery fee for order #${order_id.slice(0, 8)}`,
-        _reference_id: order_id,
-      });
-    } catch (e) {
-      throw new Error("Failed to credit delivery wallet");
+    // Credit delivery person's wallet — idempotent per order
+    const { data: existingCredit } = await adminClient
+      .from("wallet_transactions")
+      .select("id")
+      .eq("user_id", order.delivery_person_id)
+      .eq("reference_id", order_id)
+      .eq("type", "credit")
+      .ilike("description", "Delivery fee for order%")
+      .limit(1);
+
+    if (!existingCredit || existingCredit.length === 0) {
+      try {
+        await adminClient.rpc("update_wallet_balance", {
+          _user_id: order.delivery_person_id,
+          _amount: order.delivery_fee,
+          _type: "credit",
+          _description: `Delivery fee for order #${order_id.slice(0, 8)}`,
+          _reference_id: order_id,
+        });
+      } catch (e) {
+        throw new Error("Failed to credit delivery wallet");
+      }
     }
 
     // Mark as paid
@@ -67,9 +78,10 @@ Deno.serve(async (req) => {
       user_id: order.delivery_person_id,
       type: "payout",
       title: "Delivery Payment Received!",
-      body: `₵${order.delivery_fee} has been added to your wallet for delivery #${order_id.slice(0, 8)}.`,
+      body: `₵${Number(order.delivery_fee).toLocaleString()} delivery fee credited to your wallet from order #${order_id.slice(0, 8)}.`,
       data: { order_id },
     });
+
 
     return new Response(JSON.stringify({ success: true, message: "Delivery fee credited to wallet" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
