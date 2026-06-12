@@ -37,8 +37,8 @@ Deno.serve(async (req) => {
     const balanceJson = await balanceRes.json();
     const balances = balanceJson?.data ?? [];
 
-    // Revenue summary
-    const { data: summary, error: sumErr } = await adminClient.rpc("platform_revenue_summary");
+    // Revenue summary — must use userClient so auth.uid() works inside SECURITY DEFINER
+    const { data: summary, error: sumErr } = await userClient.rpc("platform_revenue_summary");
     if (sumErr) throw new Error(sumErr.message);
 
     return new Response(JSON.stringify({
