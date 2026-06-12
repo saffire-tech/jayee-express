@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Search, MoreHorizontal, Shield, ShieldOff, UserX, UserCheck, Truck } from 'lucide-react';
+import { Search, MoreHorizontal, Shield, ShieldOff, UserX, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
