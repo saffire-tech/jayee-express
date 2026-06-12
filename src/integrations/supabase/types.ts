@@ -655,6 +655,107 @@ export type Database = {
         }
         Relationships: []
       }
+      reconciliation_issues: {
+        Row: {
+          actual_amount: number | null
+          created_at: string
+          details: Json | null
+          expected_amount: number | null
+          id: string
+          issue_type: string
+          order_id: string | null
+          payment_reference: string | null
+          resolved: boolean
+          resolved_at: string | null
+          run_id: string
+          severity: string
+          transaction_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          actual_amount?: number | null
+          created_at?: string
+          details?: Json | null
+          expected_amount?: number | null
+          id?: string
+          issue_type: string
+          order_id?: string | null
+          payment_reference?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          run_id: string
+          severity?: string
+          transaction_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          actual_amount?: number | null
+          created_at?: string
+          details?: Json | null
+          expected_amount?: number | null
+          id?: string
+          issue_type?: string
+          order_id?: string | null
+          payment_reference?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          run_id?: string
+          severity?: string
+          transaction_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_issues_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "reconciliation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliation_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          mismatches_found: number
+          notes: string | null
+          paystack_calls: number
+          started_at: string
+          status: string
+          transactions_checked: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          mismatches_found?: number
+          notes?: string | null
+          paystack_calls?: number
+          started_at?: string
+          status?: string
+          transactions_checked?: number
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          mismatches_found?: number
+          notes?: string | null
+          paystack_calls?: number
+          started_at?: string
+          status?: string
+          transactions_checked?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           admin_notes: string | null
