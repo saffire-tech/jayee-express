@@ -28,6 +28,27 @@ Deno.serve(async (req) => {
 
     const event = JSON.parse(body);
 
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Handle Paystack transfer events for platform admin payouts
+    if (event.event === "transfer.success" || event.event === "transfer.failed" || event.event === "transfer.reversed") {
+      const transferCode = event.data?.transfer_code;
+      if (transferCode) {
+        const newStatus = event.event === "transfer.success" ? "success"
+          : event.event === "transfer.failed" ? "failed" : "reversed";
+        await supabase.from("platform_payouts")
+          .update({
+            status: newStatus,
+            failure_reason: event.event !== "transfer.success" ? (event.data?.reason || event.event) : null,
+          })
+          .eq("paystack_transfer_code", transferCode);
+      }
+      return new Response("OK", { status: 200 });
+    }
+
     if (event.event !== "charge.success") {
       return new Response("OK", { status: 200 });
     }
@@ -35,11 +56,6 @@ Deno.serve(async (req) => {
     const data = event.data;
     const metadata = data.metadata;
     const reference = data.reference;
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     // Subscription payment branch
     if (metadata?.type === "subscription") {
