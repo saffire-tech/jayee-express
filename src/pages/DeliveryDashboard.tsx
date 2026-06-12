@@ -33,6 +33,24 @@ const DeliveryDashboard = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
 
+  // Verify rider subscription payment on Paystack callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get('reference') || params.get('trxref');
+    if (!reference) return;
+    (async () => {
+      try {
+        await supabase.functions.invoke('verify-payment', { body: { reference } });
+        toast.success('Subscription activated!');
+      } catch (e: any) {
+        toast.error(e.message || 'Could not verify payment');
+      } finally {
+        window.history.replaceState({}, '', '/delivery');
+        window.location.reload();
+      }
+    })();
+  }, []);
+
   // Load existing MoMo details + online status
   useEffect(() => {
     if (!user) return;
@@ -56,6 +74,10 @@ const DeliveryDashboard = () => {
 
   const toggleOnline = async (next: boolean) => {
     if (!user) return;
+    if (next && !hasActiveSubscription) {
+      toast.error('Pay your monthly rider subscription before going online.');
+      return;
+    }
     setTogglingOnline(true);
     const prev = isOnline;
     setIsOnline(next);
