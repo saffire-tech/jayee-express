@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     }
 
     // Defense in depth: cap to net earned revenue
-    const { data: summary } = await adminClient.rpc("platform_revenue_summary");
+    const { data: summary } = await userClient.rpc("platform_revenue_summary");
     const net = Array.isArray(summary) ? Number(summary[0]?.net_earned ?? 0) : 0;
     if (net < amount) {
       throw new Error(`Withdrawal exceeds net subscription revenue (₵${net.toFixed(2)}). User funds cannot be withdrawn.`);
