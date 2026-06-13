@@ -9,9 +9,7 @@ import {
   Shield,
   AlertTriangle,
   Truck,
-  Scale,
   Wallet,
-} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
