@@ -1359,35 +1359,53 @@ export type Database = {
       }
       withdrawal_requests: {
         Row: {
+          admin_note: string | null
+          admin_payment_reference: string | null
           amount: number
           created_at: string
           id: string
           momo_number: string
           momo_provider: string
+          paid_at: string | null
+          payment_method: string | null
           paystack_transfer_code: string | null
           processed_at: string | null
+          rejection_reason: string | null
+          reviewed_by: string | null
           status: string
           user_id: string
         }
         Insert: {
+          admin_note?: string | null
+          admin_payment_reference?: string | null
           amount: number
           created_at?: string
           id?: string
           momo_number: string
           momo_provider: string
+          paid_at?: string | null
+          payment_method?: string | null
           paystack_transfer_code?: string | null
           processed_at?: string | null
+          rejection_reason?: string | null
+          reviewed_by?: string | null
           status?: string
           user_id: string
         }
         Update: {
+          admin_note?: string | null
+          admin_payment_reference?: string | null
           amount?: number
           created_at?: string
           id?: string
           momo_number?: string
           momo_provider?: string
+          paid_at?: string | null
+          payment_method?: string | null
           paystack_transfer_code?: string | null
           processed_at?: string | null
+          rejection_reason?: string | null
+          reviewed_by?: string | null
           status?: string
           user_id?: string
         }

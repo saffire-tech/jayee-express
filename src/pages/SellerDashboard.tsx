@@ -131,22 +131,17 @@ const SellerDashboard = () => {
     }
     setSavingMomo(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-subaccount', {
-        body: {
-          store_id: store.id,
-          business_name: store.name,
+      const { error } = await supabase
+        .from('stores')
+        .update({
           momo_number: storeSettings.momo_number,
           momo_provider: storeSettings.momo_provider,
-        },
-      });
+        })
+        .eq('id', store.id);
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      
-      // Update local state
-      setStoreSettings(prev => ({ ...prev, momo_number: storeSettings.momo_number, momo_provider: storeSettings.momo_provider }));
-      toast.success("MoMo payout set up! You'll receive payments directly to your mobile money.");
+      toast.success("MoMo details saved. Withdrawals will be sent here after admin approval.");
     } catch (err: any) {
-      toast.error(err.message || "Failed to set up MoMo payout");
+      toast.error(err.message || "Failed to save MoMo details");
     } finally {
       setSavingMomo(false);
     }
@@ -412,7 +407,7 @@ const SellerDashboard = () => {
                     className="mt-4"
                   >
                     {savingMomo && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    {(store as any)?.paystack_subaccount_code ? 'Update MoMo' : 'Set Up MoMo Payout'}
+                    Save MoMo Details
                   </Button>
                 </div>
               </div>

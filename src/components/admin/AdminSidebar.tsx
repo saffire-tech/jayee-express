@@ -9,7 +9,6 @@ import {
   Shield,
   AlertTriangle,
   Truck,
-  Scale,
   Wallet,
 } from 'lucide-react';
 import {
@@ -32,8 +31,7 @@ const menuItems = [
   { title: 'Orders', url: '/admin/orders', icon: ShoppingCart },
   { title: 'Reports', url: '/admin/reports', icon: AlertTriangle },
   { title: 'Rider Applications', url: '/admin/riders', icon: Truck },
-  { title: 'Reconciliation', url: '/admin/reconciliation', icon: Scale },
-  { title: 'Finance', url: '/admin/finance', icon: Wallet },
+  { title: 'Payouts', url: '/admin/payouts', icon: Wallet },
 ];
 
 

@@ -33,21 +33,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Handle Paystack transfer events for platform admin payouts
-    if (event.event === "transfer.success" || event.event === "transfer.failed" || event.event === "transfer.reversed") {
-      const transferCode = event.data?.transfer_code;
-      if (transferCode) {
-        const newStatus = event.event === "transfer.success" ? "success"
-          : event.event === "transfer.failed" ? "failed" : "reversed";
-        await supabase.from("platform_payouts")
-          .update({
-            status: newStatus,
-            failure_reason: event.event !== "transfer.success" ? (event.data?.reason || event.event) : null,
-          })
-          .eq("paystack_transfer_code", transferCode);
-      }
-      return new Response("OK", { status: 200 });
-    }
+    // Payouts are now manual — no transfer events to handle.
 
     if (event.event !== "charge.success") {
       return new Response("OK", { status: 200 });

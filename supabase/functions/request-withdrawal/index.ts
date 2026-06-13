@@ -5,15 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MIN_WITHDRAWAL = 20;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY not set");
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
@@ -27,29 +26,28 @@ Deno.serve(async (req) => {
     if (authError || !user) throw new Error("Unauthorized");
 
     const { amount } = await req.json();
-    if (!amount || amount <= 0) throw new Error("Invalid amount");
+    const amt = Number(amount);
+    if (!amt || amt <= 0) throw new Error("Invalid amount");
+    if (amt < MIN_WITHDRAWAL) throw new Error(`Minimum withdrawal is ₵${MIN_WITHDRAWAL}`);
 
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check cleared (withdrawable) balance — excludes credits tied to non-completed orders
+    // Check cleared (withdrawable) balance
     const { data: clearedData, error: clearedErr } = await adminClient.rpc("wallet_cleared_balance", {
       _user_id: user.id,
     });
     if (clearedErr) throw new Error(clearedErr.message || "Failed to read wallet balance");
     const cleared = Number(clearedData) || 0;
-
-    if (cleared < amount) {
-      throw new Error(`Insufficient cleared balance. Available to withdraw: ₵${cleared.toFixed(2)}. Pending funds become available once buyers confirm delivery.`);
+    if (cleared < amt) {
+      throw new Error(`Insufficient cleared balance. Available: ₵${cleared.toFixed(2)}.`);
     }
 
-
-    // Get MoMo details - check profile first, then store
+    // Resolve MoMo details (profile first, then store)
     let momoNumber: string | null = null;
     let momoProvider: string | null = null;
-    let recipientName = "User";
 
     const { data: profile } = await adminClient
       .from("profiles")
@@ -60,130 +58,76 @@ Deno.serve(async (req) => {
     if (profile?.momo_number && profile?.momo_provider) {
       momoNumber = profile.momo_number;
       momoProvider = profile.momo_provider;
-      recipientName = profile.full_name || "User";
     } else {
-      // Check store
       const { data: store } = await adminClient
         .from("stores")
         .select("momo_number, momo_provider, name")
         .eq("user_id", user.id)
         .maybeSingle();
-
       if (store?.momo_number && store?.momo_provider) {
         momoNumber = store.momo_number;
         momoProvider = store.momo_provider;
-        recipientName = store.name || "Store Owner";
       }
     }
 
     if (!momoNumber || !momoProvider) {
-      throw new Error("MoMo details not configured");
+      throw new Error("MoMo details not configured. Please add them in your profile or store settings.");
     }
 
-    const providerMap: Record<string, string> = {
-      "MTN": "MTN",
-      "Vodafone": "VOD",
-      "AirtelTigo": "ATL",
-    };
-    const bankCode = providerMap[momoProvider];
-    if (!bankCode) throw new Error("Invalid MoMo provider");
-
-    // Debit wallet first (atomic)
+    // Debit wallet (hold the funds until admin pays or rejects)
     const { error: debitError } = await adminClient.rpc("update_wallet_balance", {
       _user_id: user.id,
-      _amount: amount,
+      _amount: amt,
       _type: "debit",
-      _description: `Withdrawal to ${momoProvider} ${momoNumber}`,
+      _description: `Withdrawal request to ${momoProvider} ${momoNumber}`,
     });
+    if (debitError) throw new Error(debitError.message || "Failed to hold funds");
 
-    if (debitError) throw new Error(debitError.message || "Failed to debit wallet");
-
-    // Create withdrawal request
+    // Create request
     const { data: withdrawal, error: wdError } = await adminClient
       .from("withdrawal_requests")
       .insert({
         user_id: user.id,
-        amount,
+        amount: amt,
         momo_number: momoNumber,
         momo_provider: momoProvider,
-        status: "processing",
+        status: "pending",
       })
       .select()
       .single();
 
-    if (wdError) throw new Error("Failed to create withdrawal request");
-
-    // Create transfer recipient on Paystack
-    const recipientRes = await fetch("https://api.paystack.co/transferrecipient", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: "mobile_money",
-        name: recipientName,
-        account_number: momoNumber,
-        bank_code: bankCode,
-        currency: "GHS",
-      }),
-    });
-
-    const recipientData = await recipientRes.json();
-    if (!recipientData.status) {
-      // Reverse the debit
+    if (wdError) {
+      // Refund hold
       await adminClient.rpc("update_wallet_balance", {
         _user_id: user.id,
-        _amount: amount,
+        _amount: amt,
         _type: "credit",
-        _description: "Withdrawal reversal - transfer failed",
+        _description: "Refund — failed to create withdrawal request",
       });
-      await adminClient.from("withdrawal_requests").update({ status: "failed" }).eq("id", withdrawal.id);
-      throw new Error(recipientData.message || "Failed to create recipient");
+      throw new Error("Failed to create withdrawal request");
     }
 
-    // Initiate transfer
-    const transferAmount = Math.round(amount * 100);
-    const transferRes = await fetch("https://api.paystack.co/transfer", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        source: "balance",
-        amount: transferAmount,
-        recipient: recipientData.data.recipient_code,
-        reason: `Wallet withdrawal`,
-        currency: "GHS",
-      }),
+    // Notify admins
+    const { data: admins } = await adminClient
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+    if (admins && admins.length > 0) {
+      const notifications = admins.map((a: any) => ({
+        user_id: a.user_id,
+        type: "payout",
+        title: "New Withdrawal Request",
+        body: `${profile?.full_name || "A user"} requested ₵${amt.toLocaleString()} to ${momoProvider} ${momoNumber}.`,
+        data: { withdrawal_id: withdrawal.id },
+      }));
+      await adminClient.from("notifications").insert(notifications);
+    }
+
+    return new Response(JSON.stringify({ success: true, withdrawal_id: withdrawal.id }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
-    const transferData = await transferRes.json();
-
-    if (transferData.status) {
-      await adminClient.from("withdrawal_requests").update({
-        status: "completed",
-        paystack_transfer_code: transferData.data.transfer_code,
-        processed_at: new Date().toISOString(),
-      }).eq("id", withdrawal.id);
-
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } else {
-      // Reverse the debit
-      await adminClient.rpc("update_wallet_balance", {
-        _user_id: user.id,
-        _amount: amount,
-        _type: "credit",
-        _description: "Withdrawal reversal - transfer failed",
-      });
-      await adminClient.from("withdrawal_requests").update({ status: "failed" }).eq("id", withdrawal.id);
-      throw new Error(transferData.message || "Transfer failed");
-    }
   } catch (error: unknown) {
-    console.error("Withdrawal error:", error);
+    console.error("Withdrawal request error:", error);
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
