@@ -95,14 +95,14 @@ const DeliveryDashboard = () => {
   };
 
   const handleSaveMomo = async () => {
-    if (!momoNumber || !momoProvider) return;
+    if (!momoNumber || !momoProvider || !user) return;
     setSavingMomo(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-subaccount', {
-        body: { momo_number: momoNumber, momo_provider: momoProvider },
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({ momo_number: momoNumber, momo_provider: momoProvider } as any)
+        .eq('user_id', user.id);
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
       toast.success('MoMo details saved for withdrawals!');
     } catch (err: any) {
       toast.error(err.message || 'Failed to save MoMo');
