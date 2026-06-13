@@ -36,8 +36,7 @@ const ProductsManagement = lazy(() => import("./pages/admin/ProductsManagement")
 const OrdersManagement = lazy(() => import("./pages/admin/OrdersManagement"));
 const ReportsManagement = lazy(() => import("./pages/admin/ReportsManagement"));
 const RiderApplications = lazy(() => import("./pages/admin/RiderApplications"));
-const Reconciliation = lazy(() => import("./pages/admin/Reconciliation"));
-const Finance = lazy(() => import("./pages/admin/Finance"));
+const PayoutsManagement = lazy(() => import("./pages/admin/PayoutsManagement"));
 
 const ReportIssue = lazy(() => import("./pages/ReportIssue"));
 const Download = lazy(() => import("./pages/Download"));
