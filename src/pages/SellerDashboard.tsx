@@ -407,7 +407,7 @@ const SellerDashboard = () => {
                     className="mt-4"
                   >
                     {savingMomo && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    {(store as any)?.paystack_subaccount_code ? 'Update MoMo' : 'Set Up MoMo Payout'}
+                    Save MoMo Details
                   </Button>
                 </div>
               </div>
