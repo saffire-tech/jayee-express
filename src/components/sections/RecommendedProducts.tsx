@@ -64,10 +64,13 @@ const RecommendedProducts = () => {
           category,
           price,
           image_url,
-          store:stores(name, campus)
+          store:stores!inner(name, campus, is_verified, is_suspended, subscription_expires_at)
         `)
         .eq('is_active', true)
         .eq('is_featured', true)
+        .eq('store.is_verified', true)
+        .eq('store.is_suspended', false)
+        .gt('store.subscription_expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
         .limit(8);
       
