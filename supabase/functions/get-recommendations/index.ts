@@ -68,8 +68,19 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(20) : { data: [] };
 
-    // Fetch all active products
-    const { data: allProducts } = await supabase
+    // Fetch user's city so recommendations match the rest of the home feed
+    let userCity: string | null = null;
+    {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('city')
+        .eq('user_id', userId)
+        .maybeSingle();
+      userCity = (prof as { city?: string | null } | null)?.city ?? null;
+    }
+
+    // Fetch all active products from verified, non-suspended, currently-subscribed stores
+    let productsQuery = supabase
       .from('products')
       .select(`
         id,
@@ -78,10 +89,19 @@ serve(async (req) => {
         category,
         price,
         image_url,
-        store:stores(name, campus)
+        store:stores!inner(name, campus, city, is_verified, is_suspended, subscription_expires_at)
       `)
       .eq('is_active', true)
-      .limit(100);
+      .eq('store.is_verified', true)
+      .eq('store.is_suspended', false)
+      .gt('store.subscription_expires_at', new Date().toISOString())
+      .limit(200);
+
+    if (userCity) {
+      productsQuery = productsQuery.eq('store.city', userCity);
+    }
+
+    const { data: allProducts } = await productsQuery;
 
     if (!allProducts || allProducts.length === 0) {
       return new Response(JSON.stringify({ recommendations: [] }), {

@@ -1,54 +1,34 @@
-# Fix "link has expired" on password reset
+# Plan
 
-## Root cause
+## 1. Recommended products leak from unsubscribed stores
 
-Supabase JS v2 defaults to the **PKCE auth flow**. When a user requests a password reset, the email link points to our `/reset-password` page with a `?code=...` query parameter (not the older hash-based `#access_token=...` recovery token).
+The "Recommended for You" section pulls products in two places, and neither enforces the store's subscription/verification gate that the public product RLS policy applies.
 
-Our current `src/pages/ResetPassword.tsx` only waits for `onAuthStateChange('PASSWORD_RECOVERY')` and an existing session — it never calls `supabase.auth.exchangeCodeForSession(code)`. Result:
+**Fix `supabase/functions/get-recommendations/index.ts`:**
+- The `allProducts` query uses the service role (bypasses RLS), so we must add the filters manually.
+- Change the join to `stores!inner(name, campus, is_verified, is_suspended, subscription_expires_at, city)` and after fetching, filter out products where the joined store is not verified, is suspended, or has `subscription_expires_at <= now()`.
+- Also scope to the user's city when known (read `profiles.city` for `userId`) so recommendations match the rest of the home feed.
 
-- The `?code` is never redeemed.
-- The page falls through to the "invalid/expired" branch after the 1.5s timeout.
-- If the user clicks again, the code is now actually consumed/expired → same error forever.
+**Fix `src/components/sections/RecommendedProducts.tsx` fallback query:**
+- The "Trending Now" fallback selects featured products with no store gating. Switch the join to `store:stores!inner(name, campus, is_verified, is_suspended, subscription_expires_at)`, add `.eq('store.is_verified', true)`, `.eq('store.is_suspended', false)`, and `.gt('store.subscription_expires_at', new Date().toISOString())`.
 
-This matches the symptom: email arrives fine, link opens the page, page says "expired".
+No DB or RLS changes — the public RLS policy already enforces this; we're only aligning the service-role edge function and the client fallback with it.
 
-A secondary contributor: PKCE binds the code to the browser that requested the reset (via `code_verifier` in `localStorage`). Opening the link on a different browser/device (or after clearing storage) will also fail with "expired".
+## 2. Announcement banner hidden under the navbar
 
-## Fix
+`AnnouncementBanner` renders inside `Index` page content, but `Navbar` is `fixed top-0` (h-14 mobile / h-16 desktop), so the banner slides under it. The close button is also absolutely positioned over the text, causing long messages to clip into the corner.
 
-Update `src/pages/ResetPassword.tsx` to:
+**Fix `src/components/announcements/AnnouncementBanner.tsx`:**
+- Make the banner itself `fixed top-14 md:top-16 left-0 right-0 z-40` so it sits flush below the navbar on every page.
+- Replace `line-clamp-1` with normal wrapping (`whitespace-normal break-words`) and use a flex row with `items-start`, giving the text container `flex-1 min-w-0` and right padding (`pr-8`) so it never runs under the close button.
+- Move the close button out of `absolute` positioning into the flex row (still right-aligned) so it doesn't overlay text.
 
-1. On mount, read `?code` from `window.location.search`.
-2. If present, call `await supabase.auth.exchangeCodeForSession(code)`.
-   - On success → `setReady(true)` and clean the `code` param out of the URL.
-   - On failure → show the existing "invalid or expired" UI with a clearer message ("Open the link in the same browser you requested it from, or request a new link").
-3. Keep the existing `onAuthStateChange` + `getSession` fallback for legacy hash-based links so older outstanding emails still work.
-4. Remove the brittle 1.5s `setTimeout` race; only mark `invalid` after the exchange attempt resolves (or, with no `code`/hash and no session, immediately).
+**Fix `src/pages/Index.tsx` (and any other page that mounts the banner, if needed):**
+- Because the banner is now fixed, add a spacer/offset so page content isn't covered. Simplest: render an invisible `h-10` placeholder where `<AnnouncementBanner />` is mounted when an announcement is active. Implementation detail: have `AnnouncementBanner` itself render a sibling spacer of matching height when visible, so no page-level changes are required.
 
-No other files need to change. Supabase redirect URLs are already configured (`${window.location.origin}/reset-password` is passed in `resetPasswordForEmail` from `Auth.tsx`), and `/reset-password` is already a public route.
+No backend or data changes for #2 — purely presentation.
 
-## Technical details
-
-- File touched: `src/pages/ResetPassword.tsx` only.
-- New logic sketch:
-  ```ts
-  const url = new URL(window.location.href);
-  const code = url.searchParams.get("code");
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) setInvalid(true);
-    else {
-      url.searchParams.delete("code");
-      window.history.replaceState({}, "", url.pathname + url.hash);
-      setReady(true);
-    }
-    return;
-  }
-  // fall back to hash/session detection (existing behavior)
-  ```
-- No DB, edge function, or Supabase config changes required.
-
-## Out of scope
-
-- Switching auth to the implicit flow (PKCE is the secure default; we just need to handle it).
-- Customizing the auth email template — link format stays the same.
+## Files touched
+- `supabase/functions/get-recommendations/index.ts`
+- `src/components/sections/RecommendedProducts.tsx`
+- `src/components/announcements/AnnouncementBanner.tsx`
