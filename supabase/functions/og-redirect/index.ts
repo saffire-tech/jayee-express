@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
 
     let title = 'Jayee Express';
     let description = 'Community Marketplace';
-    let imageUrl = 'https://uniplug.app/og-image.png';
+    let imageUrl = 'https://storage.googleapis.com/gpt-engineer-file-uploads/pUKptGpdl1OV5MDWb5P8hRjCVWI2/social-images/social-1781157791512-ChatGPT_Image_May_6,_2026,_03_29_35_PM.webp';
 
     if (type === 'product') {
       const { data: product, error } = await supabase
