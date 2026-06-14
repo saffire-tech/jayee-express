@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       const isUuid = uuidRegex.test(id);
       const lookup = supabase
         .from('stores')
-        .select('id, slug, name, description, logo_url, cover_url, location');
+        .select('id, slug, name, description, logo_url, cover_url, location, updated_at');
       const { data: store, error } = isUuid
         ? await lookup.eq('id', id).single()
         : await lookup.eq('slug', id).single();
@@ -193,8 +193,11 @@ Deno.serve(async (req) => {
       description = store.description 
         ? `${store.description.substring(0, 150)}${store.description.length > 150 ? '...' : ''}`
         : `Shop at ${store.name}${store.location ? ` - ${store.location}` : ''} on Jayee Express`;
-      // Prefer the store's profile (logo) image for social previews, fall back to cover
-      imageUrl = store.logo_url || store.cover_url || imageUrl;
+      // Always prefer the store's own logo for social previews; fall back to cover, then default
+      const rawImg = store.logo_url || store.cover_url || imageUrl;
+      // Append updated_at as a cache-buster so social platforms refresh when the store updates its logo
+      const v = (store as any).updated_at ? `v=${encodeURIComponent(new Date((store as any).updated_at).getTime())}` : '';
+      imageUrl = v ? `${rawImg}${rawImg.includes('?') ? '&' : '?'}${v}` : rawImg;
     } else if (type === 'service') {
       const { data: service, error } = await supabase
         .from('store_web_services')
