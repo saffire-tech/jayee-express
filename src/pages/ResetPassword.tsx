@@ -19,29 +19,64 @@ const ResetPassword = () => {
   const [invalid, setInvalid] = useState(false);
 
   useEffect(() => {
-    // Supabase places recovery tokens in the URL hash; the client picks them up
-    // automatically and emits a PASSWORD_RECOVERY event.
+    let cancelled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setReady(true);
       }
     });
 
-    // Also check existing session in case the event fired before we mounted.
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-      else {
-        // Give the client a brief moment to parse the hash before declaring invalid.
-        setTimeout(() => {
-          supabase.auth.getSession().then(({ data: d2 }) => {
-            if (!d2.session) setInvalid(true);
-          });
-        }, 1500);
-      }
-    });
+    (async () => {
+      try {
+        // PKCE flow: Supabase sends ?code=... to the redirect URL.
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const errorDesc = url.searchParams.get("error_description") || url.hash.includes("error");
 
-    return () => subscription.unsubscribe();
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (cancelled) return;
+          if (error) {
+            setInvalid(true);
+          } else {
+            url.searchParams.delete("code");
+            url.searchParams.delete("type");
+            window.history.replaceState({}, "", url.pathname + url.hash);
+            setReady(true);
+          }
+          return;
+        }
+
+        if (errorDesc) {
+          setInvalid(true);
+          return;
+        }
+
+        // Legacy hash-based recovery token — Supabase parses it automatically.
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (data.session) {
+          setReady(true);
+        } else {
+          // Give the client a brief moment to parse the hash before declaring invalid.
+          setTimeout(async () => {
+            if (cancelled) return;
+            const { data: d2 } = await supabase.auth.getSession();
+            if (!d2.session && !cancelled) setInvalid(true);
+          }, 1500);
+        }
+      } catch {
+        if (!cancelled) setInvalid(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
