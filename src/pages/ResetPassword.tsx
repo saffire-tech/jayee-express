@@ -125,8 +125,9 @@ const ResetPassword = () => {
         {invalid && !ready ? (
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-destructive/10 text-destructive text-sm">
-              This reset link is invalid or has expired. Please request a new one.
+              This reset link is invalid or has expired. Open the link in the same browser you requested it from, or request a new one.
             </div>
+
             <Button variant="hero" size="lg" className="w-full" onClick={() => navigate("/auth")}>
               Request a new link
             </Button>
