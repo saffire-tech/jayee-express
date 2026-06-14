@@ -1,54 +1,54 @@
-# Centralized Payments & Manual Payouts
+# Fix "link has expired" on password reset
 
-All money (purchases + store subs + rider subs) is collected in one Paystack account. Sellers and riders earn into in-app wallets. Withdrawals are reviewed and marked paid manually by an admin from a new **Payouts** tab.
+## Root cause
 
-## 1. Payment collection (simplify)
+Supabase JS v2 defaults to the **PKCE auth flow**. When a user requests a password reset, the email link points to our `/reset-password` page with a `?code=...` query parameter (not the older hash-based `#access_token=...` recovery token).
 
-- `initialize-payment`, `initialize-store-subscription`, `initialize-delivery-subscription` keep using Paystack checkout, but **stop sending `subaccount` / `split` data**. Everything lands in the platform's Paystack balance.
-- `paystack-webhook` and `verify-payment` no longer touch subaccount routing. They only:
-  - Mark orders as `paid` / activate subscriptions.
-  - On purchase: credit the seller's wallet with `(item subtotal of that store)` and credit the assigned rider's wallet (if any) with `delivery_fee` once delivery is `confirmed` (existing `payout-delivery` logic stays — still wallet-credit, no Paystack transfer).
-- Drop subaccount-on-store requirement: `stores.paystack_subaccount_code` becomes unused (kept in DB for now, just ignored).
+Our current `src/pages/ResetPassword.tsx` only waits for `onAuthStateChange('PASSWORD_RECOVERY')` and an existing session — it never calls `supabase.auth.exchangeCodeForSession(code)`. Result:
 
-## 2. Manual withdrawal flow
+- The `?code` is never redeemed.
+- The page falls through to the "invalid/expired" branch after the 1.5s timeout.
+- If the user clicks again, the code is now actually consumed/expired → same error forever.
 
-- `request-withdrawal` (rewritten): validates wallet balance ≥ amount, inserts a row into `withdrawal_requests` with status `pending`, debits the wallet immediately (held), notifies admins. No Paystack transfer call.
-- `withdrawal_requests`: extend with `admin_note`, `reviewed_by`, `paid_at`, `rejection_reason`, `payment_method` (admin can record "MoMo manual"), `payment_reference` (admin-entered confirmation code). Statuses: `pending`, `approved`, `paid`, `rejected`.
-- On `rejected`: refund the held amount back to the user's wallet and notify them.
-- On `paid`: keep wallet debit, mark `paid_at`, notify user "Payout sent".
-- RLS: admins can `SELECT`/`UPDATE` all; user can `SELECT` own + `INSERT` own.
+This matches the symptom: email arrives fine, link opens the page, page says "expired".
 
-## 3. Admin "Payouts" tab
+A secondary contributor: PKCE binds the code to the browser that requested the reset (via `code_verifier` in `localStorage`). Opening the link on a different browser/device (or after clearing storage) will also fail with "expired".
 
-- New sidebar item `/admin/payouts` (replaces current Finance/Reconciliation payout bits where overlapping). Tabs: **Pending / Approved / Paid / Rejected**.
-- Each row shows: requester (name, role badge seller/rider), amount, MoMo number + provider, requested date, current wallet balance.
-- Actions per row: **Approve**, **Mark as Paid** (opens dialog for `payment_reference` + note), **Reject** (reason required).
-- Bulk export to CSV for a payout batch.
+## Fix
 
-## 4. Remove unused payment pieces
+Update `src/pages/ResetPassword.tsx` to:
 
-Delete or strip these so only the new flow remains:
-- Edge functions: `create-subaccount`, `create-platform-payout-recipient`, `admin-withdraw`, `get-platform-balance`, `reconcile-wallet` (no longer needed — single account, single source of truth).
-- Frontend: subaccount setup UI on the store wizard / seller dashboard, "Platform balance" widgets, current Reconciliation page.
-- Keep: `WalletCard`, `TransactionHistory`, `WithdrawDialog` (just calls new request flow).
+1. On mount, read `?code` from `window.location.search`.
+2. If present, call `await supabase.auth.exchangeCodeForSession(code)`.
+   - On success → `setReady(true)` and clean the `code` param out of the URL.
+   - On failure → show the existing "invalid or expired" UI with a clearer message ("Open the link in the same browser you requested it from, or request a new link").
+3. Keep the existing `onAuthStateChange` + `getSession` fallback for legacy hash-based links so older outstanding emails still work.
+4. Remove the brittle 1.5s `setTimeout` race; only mark `invalid` after the exchange attempt resolves (or, with no `code`/hash and no session, immediately).
 
-## 5. Technical details
+No other files need to change. Supabase redirect URLs are already configured (`${window.location.origin}/reset-password` is passed in `resetPasswordForEmail` from `Auth.tsx`), and `/reset-password` is already a public route.
 
-- Migration:
-  - `ALTER TABLE withdrawal_requests` add `admin_note`, `reviewed_by uuid`, `paid_at timestamptz`, `rejection_reason text`, `payment_method text`, `payment_reference text`; widen status check to include `approved`, `paid`, `rejected`.
-  - Add admin RLS policies on `withdrawal_requests` (select all, update all).
-  - Optional: drop `platform_payouts` + `platform_payout_accounts` policies/usages from UI (table can stay).
-- Wallet credit on purchase: handled inside `paystack-webhook` + `verify-payment` (idempotent per `order_id` via existing `wallet_transactions.reference_id` check).
-- All wallet mutations continue through `update_wallet_balance()` RPC for atomicity.
+## Technical details
 
-## 6. Out of scope
+- File touched: `src/pages/ResetPassword.tsx` only.
+- New logic sketch:
+  ```ts
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("code");
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) setInvalid(true);
+    else {
+      url.searchParams.delete("code");
+      window.history.replaceState({}, "", url.pathname + url.hash);
+      setReady(true);
+    }
+    return;
+  }
+  // fall back to hash/session detection (existing behavior)
+  ```
+- No DB, edge function, or Supabase config changes required.
 
-- Automatic Paystack transfers (intentionally removed — payouts are manual).
-- Currency conversion, multi-currency.
-- Changes to commission % (current 5% platform cut on store earnings stays unless you say otherwise).
+## Out of scope
 
-## Open questions
-
-1. Confirm: keep the **5% platform commission** on seller wallet credits, or move to 0% / different rate?
-2. Should riders' delivery fee credit happen at **buyer-confirmed-receipt** (current) or **admin-marked-paid**? Recommended: keep current.
-3. Minimum withdrawal amount? (e.g. ₵20)
+- Switching auth to the implicit flow (PKCE is the secure default; we just need to handle it).
+- Customizing the auth email template — link format stays the same.
