@@ -352,45 +352,6 @@ const Profile = () => {
               />
             </div>
 
-            {/* MoMo Payout Settings */}
-            <div className="pt-4 border-t border-border">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Smartphone className="h-4 w-4" />
-                Mobile Money (Payout)
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Set up your MoMo details to receive delivery payouts and seller payments.
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="momoProvider">MoMo Provider</Label>
-                  <Select value={momoProvider} onValueChange={setMomoProvider}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MTN">MTN Mobile Money</SelectItem>
-                      <SelectItem value="Vodafone">Vodafone Cash</SelectItem>
-                      <SelectItem value="AirtelTigo">AirtelTigo Money</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="momoNumber">MoMo Number</Label>
-                  <div className="relative mt-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="momoNumber"
-                      type="tel"
-                      value={momoNumber}
-                      onChange={(e) => setMomoNumber(e.target.value)}
-                      placeholder="e.g., 0241234567"
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <Button type="submit" variant="hero" className="w-full" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
