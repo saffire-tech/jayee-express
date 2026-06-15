@@ -96,19 +96,6 @@ const SellerDashboard = () => {
         cover_url: store.cover_url || "",
         latitude: (store as any).latitude || null,
         longitude: (store as any).longitude || null,
-        momo_number: "",
-        momo_provider: "",
-      });
-      // Fetch payout details via secure RPC (owner-only)
-      supabase.rpc('get_my_store_payout', { _store_id: store.id }).then(({ data }) => {
-        const row = Array.isArray(data) ? data[0] : data;
-        if (row) {
-          setStoreSettings(prev => ({
-            ...prev,
-            momo_number: (row as any).momo_number || "",
-            momo_provider: (row as any).momo_provider || "",
-          }));
-        }
       });
     }
   }, [store]);
@@ -117,34 +104,12 @@ const SellerDashboard = () => {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      const { momo_number, momo_provider, ...rest } = storeSettings;
-      await updateStore(rest);
+      await updateStore(storeSettings);
     } finally {
       setSavingSettings(false);
     }
   };
 
-  const handleSaveMomo = async () => {
-    if (!store || !storeSettings.momo_number || !storeSettings.momo_provider) {
-      return;
-    }
-    setSavingMomo(true);
-    try {
-      const { error } = await supabase
-        .from('stores')
-        .update({
-          momo_number: storeSettings.momo_number,
-          momo_provider: storeSettings.momo_provider,
-        })
-        .eq('id', store.id);
-      if (error) throw error;
-      toast.success("MoMo details saved. Withdrawals will be sent here after admin approval.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save MoMo details");
-    } finally {
-      setSavingMomo(false);
-    }
-  };
 
   if (authLoading || loading) {
     return (
