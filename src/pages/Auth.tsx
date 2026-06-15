@@ -299,7 +299,7 @@ const Auth = () => {
                 By continuing, you agree to our{" "}
                 <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
                 {" "}and{" "}
-                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>.
               </p>
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
