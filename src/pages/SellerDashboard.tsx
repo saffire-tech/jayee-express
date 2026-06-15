@@ -45,6 +45,13 @@ const SellerDashboard = () => {
     refetch,
   } = useStore();
 
+  const {
+    webServices,
+    createWebService,
+    updateWebService,
+    deleteWebService,
+  } = useWebServices(store?.id || null);
+
   // Real-time order notifications
   const handleNewOrder = useCallback(() => {
     refetch();
