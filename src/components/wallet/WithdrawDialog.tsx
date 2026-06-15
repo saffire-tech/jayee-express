@@ -99,13 +99,16 @@ const WithdrawDialog = ({ open, onOpenChange, balance, destinationLabel, destina
               id="amount"
               type="number"
               step="0.01"
-              min="1"
+              min={MIN_WITHDRAWAL}
               max={balance}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount"
+              placeholder={`Minimum ₵${MIN_WITHDRAWAL}`}
               className="mt-1"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Minimum withdrawal: ₵{MIN_WITHDRAWAL}
+            </p>
           </div>
         </div>
         <DialogFooter>
