@@ -87,7 +87,7 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
                 </div>
                 <Button
                   onClick={() => setShowWithdraw(true)}
-                  disabled={available <= 0 || !momoDetails}
+                  disabled={available <= 0 || !destination}
                   className="gap-2"
                 >
                   <ArrowDownToLine className="h-4 w-4" />
@@ -105,9 +105,9 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
               </p>
             </div>
           )}
-          {!momoDetails && !loading && (
+          {!destination && !loading && (
             <p className="text-sm text-destructive mt-2">
-              Set up your MoMo details in Settings to enable withdrawals.
+              Set up your payout method in Settings to enable withdrawals.
             </p>
           )}
         </CardContent>
@@ -115,13 +115,13 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
 
       <TransactionHistory />
 
-      {showWithdraw && momoDetails && (
+      {showWithdraw && destination && (
         <WithdrawDialog
           open={showWithdraw}
           onOpenChange={setShowWithdraw}
           balance={available}
-          momoNumber={momoDetails.momo_number}
-          momoProvider={momoDetails.momo_provider}
+          destinationLabel={destination.label}
+          destinationDetail={destination.detail}
           onSuccess={fetchWallet}
         />
       )}
