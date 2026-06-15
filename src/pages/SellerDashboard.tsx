@@ -17,7 +17,7 @@ import StoreImageUpload from "@/components/seller/StoreImageUpload";
 import MapPicker from "@/components/maps/MapPicker";
 import WebServicesManager from "@/components/seller/WebServicesManager";
 import LocationSelector from "@/components/ui/LocationSelector";
-import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe, Smartphone, Wallet } from "lucide-react";
+import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe, Wallet, Banknote } from "lucide-react";
 import WalletCard from "@/components/wallet/WalletCard";
 import SubscriptionCard from "@/components/seller/SubscriptionCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import PayoutMethodForm from "@/components/wallet/PayoutMethodForm";
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
