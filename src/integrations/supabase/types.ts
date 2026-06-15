@@ -669,6 +669,9 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
           campus: string | null
           city: string | null
           created_at: string
@@ -679,12 +682,16 @@ export type Database = {
           is_suspended: boolean | null
           momo_number: string | null
           momo_provider: string | null
+          payout_method: string | null
           phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           campus?: string | null
           city?: string | null
           created_at?: string
@@ -695,12 +702,16 @@ export type Database = {
           is_suspended?: boolean | null
           momo_number?: string | null
           momo_provider?: string | null
+          payout_method?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           campus?: string | null
           city?: string | null
           created_at?: string
@@ -711,6 +722,7 @@ export type Database = {
           is_suspended?: boolean | null
           momo_number?: string | null
           momo_provider?: string | null
+          payout_method?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -1087,6 +1099,9 @@ export type Database = {
       }
       stores: {
         Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
           campus: string | null
           city: string
           cover_url: string | null
@@ -1106,6 +1121,7 @@ export type Database = {
           momo_provider: string | null
           monthly_fee: number | null
           name: string
+          payout_method: string | null
           paystack_subaccount_code: string | null
           phone: string | null
           product_limit: number
@@ -1118,6 +1134,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           campus?: string | null
           city: string
           cover_url?: string | null
@@ -1137,6 +1156,7 @@ export type Database = {
           momo_provider?: string | null
           monthly_fee?: number | null
           name: string
+          payout_method?: string | null
           paystack_subaccount_code?: string | null
           phone?: string | null
           product_limit?: number
@@ -1149,6 +1169,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           campus?: string | null
           city?: string
           cover_url?: string | null
@@ -1168,6 +1191,7 @@ export type Database = {
           momo_provider?: string | null
           monthly_fee?: number | null
           name?: string
+          payout_method?: string | null
           paystack_subaccount_code?: string | null
           phone?: string | null
           product_limit?: number
@@ -1421,15 +1445,23 @@ export type Database = {
       get_my_momo: {
         Args: never
         Returns: {
+          bank_account_name: string
+          bank_account_number: string
+          bank_name: string
           momo_number: string
           momo_provider: string
+          payout_method: string
         }[]
       }
       get_my_store_payout: {
         Args: { _store_id: string }
         Returns: {
+          bank_account_name: string
+          bank_account_number: string
+          bank_name: string
           momo_number: string
           momo_provider: string
+          payout_method: string
           paystack_subaccount_code: string
         }[]
       }
