@@ -25,9 +25,6 @@ const DeliveryDashboard = () => {
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [momoNumber, setMomoNumber] = useState('');
-  const [momoProvider, setMomoProvider] = useState('');
-  const [savingMomo, setSavingMomo] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
 
