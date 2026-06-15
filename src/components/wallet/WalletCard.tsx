@@ -19,7 +19,7 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
   const [cleared, setCleared] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
-  const [momoDetails, setMomoDetails] = useState<{ momo_number: string; momo_provider: string } | null>(null);
+  const [destination, setDestination] = useState<{ label: string; detail: string } | null>(null);
 
   const fetchWallet = async () => {
     if (!user) return;
@@ -33,26 +33,31 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
     setLoading(false);
   };
 
-  const fetchMomoDetails = async () => {
+  const fetchDestination = async () => {
     if (!user) return;
+    let row: any = null;
     if (role === "seller" && storeId) {
       const { data } = await supabase.rpc("get_my_store_payout", { _store_id: storeId });
-      const row = Array.isArray(data) ? data[0] : data;
-      if (row?.momo_number && row?.momo_provider) {
-        setMomoDetails({ momo_number: row.momo_number, momo_provider: row.momo_provider });
-      }
+      row = Array.isArray(data) ? data[0] : data;
     } else {
       const { data } = await supabase.rpc("get_my_momo");
-      const row = Array.isArray(data) ? data[0] : data;
-      if (row?.momo_number && row?.momo_provider) {
-        setMomoDetails({ momo_number: row.momo_number, momo_provider: row.momo_provider });
-      }
+      row = Array.isArray(data) ? data[0] : data;
+    }
+    if (!row) return;
+    if (row.payout_method === "momo" && row.momo_number && row.momo_provider) {
+      setDestination({ label: row.momo_provider, detail: row.momo_number });
+    } else if (row.payout_method === "bank" && row.bank_account_number && row.bank_name) {
+      setDestination({ label: row.bank_name, detail: `${row.bank_account_number} (${row.bank_account_name || ""})` });
+    } else if (row.momo_number && row.momo_provider) {
+      // legacy: MoMo saved before payout_method existed
+      setDestination({ label: row.momo_provider, detail: row.momo_number });
     }
   };
 
   useEffect(() => {
     fetchWallet();
-    fetchMomoDetails();
+    fetchDestination();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, storeId]);
 
   const total = Number(balance || 0);
