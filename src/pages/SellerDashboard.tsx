@@ -329,51 +329,18 @@ const SellerDashboard = () => {
                   Save Changes
                 </Button>
 
-                {/* MoMo Payout Settings */}
+                {/* Payout Method */}
                 <div className="pt-6 border-t border-border">
                   <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
-                    MoMo Payout Settings
+                    <Banknote className="h-5 w-5" />
+                    Payout Method
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Set up your mobile money to receive instant payments when buyers purchase from your store.
+                    Choose how you want to receive withdrawals from your wallet. You can pick mobile money or a bank account. Once saved, your details are locked — contact support to change them.
                   </p>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>MoMo Provider</Label>
-                      <Select 
-                        value={storeSettings.momo_provider} 
-                        onValueChange={(value) => setStoreSettings({ ...storeSettings, momo_provider: value })}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select provider" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MTN">MTN Mobile Money</SelectItem>
-                          <SelectItem value="Vodafone">Vodafone Cash</SelectItem>
-                          <SelectItem value="AirtelTigo">AirtelTigo Money</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>MoMo Number</Label>
-                      <Input
-                        value={storeSettings.momo_number}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, momo_number: e.target.value })}
-                        placeholder="e.g., 0241234567"
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handleSaveMomo} 
-                    disabled={savingMomo || !storeSettings.momo_number || !storeSettings.momo_provider}
-                    className="mt-4"
-                  >
-                    {savingMomo && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    Save MoMo Details
-                  </Button>
+                  {store && <PayoutMethodForm target={{ kind: "store", storeId: store.id }} />}
                 </div>
+
               </div>
             </div>
           </TabsContent>
