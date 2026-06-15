@@ -56,13 +56,6 @@ const DeliveryDashboard = () => {
         .eq('user_id', user.id)
         .maybeSingle();
       if (prof) setIsOnline(!!(prof as any).is_online);
-
-      const { data: momo } = await supabase.rpc('get_my_momo');
-      const row = Array.isArray(momo) ? momo[0] : momo;
-      if (row) {
-        setMomoNumber(row.momo_number || '');
-        setMomoProvider(row.momo_provider || '');
-      }
     };
     load();
   }, [user]);
@@ -89,22 +82,6 @@ const DeliveryDashboard = () => {
     }
   };
 
-  const handleSaveMomo = async () => {
-    if (!momoNumber || !momoProvider || !user) return;
-    setSavingMomo(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ momo_number: momoNumber, momo_provider: momoProvider } as any)
-        .eq('user_id', user.id);
-      if (error) throw error;
-      toast.success('MoMo details saved for withdrawals!');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save MoMo');
-    } finally {
-      setSavingMomo(false);
-    }
-  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
