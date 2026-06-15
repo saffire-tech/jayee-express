@@ -10,13 +10,11 @@ import RiderSubscriptionCard from '@/components/delivery/RiderSubscriptionCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Package, History, Wallet, Smartphone, Radio } from 'lucide-react';
+import { Loader2, Truck, Package, History, Wallet, Banknote, Radio } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import WalletCard from '@/components/wallet/WalletCard';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PayoutMethodForm from '@/components/wallet/PayoutMethodForm';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
