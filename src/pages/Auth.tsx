@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -295,6 +295,13 @@ const Auth = () => {
                 </Button>
               </form>
 
+              <p className="mt-4 text-center text-xs text-muted-foreground leading-relaxed">
+                By continuing, you agree to our{" "}
+                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                {" "}and{" "}
+                <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>.
+              </p>
+
               <p className="mt-6 text-center text-sm text-muted-foreground">
                 {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                 <button
@@ -304,6 +311,7 @@ const Auth = () => {
                   {isLogin ? "Sign up" : "Sign in"}
                 </button>
               </p>
+
             </>
           )}
         </div>

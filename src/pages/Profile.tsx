@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { User, Phone, ArrowLeft, Loader2, Store, ShoppingBag, Bell, BellOff, History, Smartphone, MapPin, Truck } from "lucide-react";
+import { User, Phone, ArrowLeft, Loader2, Store, ShoppingBag, Bell, BellOff, History, MapPin, Truck } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import LocationSelector from "@/components/ui/LocationSelector";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -21,8 +21,6 @@ const Profile = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [campus, setCampus] = useState("");
-  const [momoNumber, setMomoNumber] = useState("");
-  const [momoProvider, setMomoProvider] = useState("");
   const [saving, setSaving] = useState(false);
   const [riderApp, setRiderApp] = useState<any>(null);
   const [riderLoading, setRiderLoading] = useState(true);
@@ -51,17 +49,6 @@ const Profile = () => {
     }
   }, [profile]);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase.rpc("get_my_momo").then(({ data }) => {
-      const row = Array.isArray(data) ? data[0] : data;
-      if (row) {
-        setMomoNumber(row.momo_number || "");
-        setMomoProvider(row.momo_provider || "");
-      }
-    });
-  }, [user]);
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -70,13 +57,12 @@ const Profile = () => {
         full_name: fullName,
         phone,
         campus,
-        momo_number: momoNumber || null,
-        momo_provider: momoProvider || null,
       } as any);
     } finally {
       setSaving(false);
     }
   };
+
 
   const loadRiderApp = async () => {
     if (!user) return;
@@ -352,45 +338,6 @@ const Profile = () => {
               />
             </div>
 
-            {/* MoMo Payout Settings */}
-            <div className="pt-4 border-t border-border">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Smartphone className="h-4 w-4" />
-                Mobile Money (Payout)
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Set up your MoMo details to receive delivery payouts and seller payments.
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="momoProvider">MoMo Provider</Label>
-                  <Select value={momoProvider} onValueChange={setMomoProvider}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MTN">MTN Mobile Money</SelectItem>
-                      <SelectItem value="Vodafone">Vodafone Cash</SelectItem>
-                      <SelectItem value="AirtelTigo">AirtelTigo Money</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="momoNumber">MoMo Number</Label>
-                  <div className="relative mt-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="momoNumber"
-                      type="tel"
-                      value={momoNumber}
-                      onChange={(e) => setMomoNumber(e.target.value)}
-                      placeholder="e.g., 0241234567"
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <Button type="submit" variant="hero" className="w-full" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

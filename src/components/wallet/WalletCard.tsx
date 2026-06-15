@@ -19,7 +19,7 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
   const [cleared, setCleared] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
-  const [momoDetails, setMomoDetails] = useState<{ momo_number: string; momo_provider: string } | null>(null);
+  const [destination, setDestination] = useState<{ label: string; detail: string } | null>(null);
 
   const fetchWallet = async () => {
     if (!user) return;
@@ -33,26 +33,31 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
     setLoading(false);
   };
 
-  const fetchMomoDetails = async () => {
+  const fetchDestination = async () => {
     if (!user) return;
+    let row: any = null;
     if (role === "seller" && storeId) {
       const { data } = await supabase.rpc("get_my_store_payout", { _store_id: storeId });
-      const row = Array.isArray(data) ? data[0] : data;
-      if (row?.momo_number && row?.momo_provider) {
-        setMomoDetails({ momo_number: row.momo_number, momo_provider: row.momo_provider });
-      }
+      row = Array.isArray(data) ? data[0] : data;
     } else {
       const { data } = await supabase.rpc("get_my_momo");
-      const row = Array.isArray(data) ? data[0] : data;
-      if (row?.momo_number && row?.momo_provider) {
-        setMomoDetails({ momo_number: row.momo_number, momo_provider: row.momo_provider });
-      }
+      row = Array.isArray(data) ? data[0] : data;
+    }
+    if (!row) return;
+    if (row.payout_method === "momo" && row.momo_number && row.momo_provider) {
+      setDestination({ label: row.momo_provider, detail: row.momo_number });
+    } else if (row.payout_method === "bank" && row.bank_account_number && row.bank_name) {
+      setDestination({ label: row.bank_name, detail: `${row.bank_account_number} (${row.bank_account_name || ""})` });
+    } else if (row.momo_number && row.momo_provider) {
+      // legacy: MoMo saved before payout_method existed
+      setDestination({ label: row.momo_provider, detail: row.momo_number });
     }
   };
 
   useEffect(() => {
     fetchWallet();
-    fetchMomoDetails();
+    fetchDestination();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, storeId]);
 
   const total = Number(balance || 0);
@@ -82,7 +87,7 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
                 </div>
                 <Button
                   onClick={() => setShowWithdraw(true)}
-                  disabled={available <= 0 || !momoDetails}
+                  disabled={available <= 0 || !destination}
                   className="gap-2"
                 >
                   <ArrowDownToLine className="h-4 w-4" />
@@ -100,9 +105,9 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
               </p>
             </div>
           )}
-          {!momoDetails && !loading && (
+          {!destination && !loading && (
             <p className="text-sm text-destructive mt-2">
-              Set up your MoMo details in Settings to enable withdrawals.
+              Set up your payout method in Settings to enable withdrawals.
             </p>
           )}
         </CardContent>
@@ -110,13 +115,13 @@ const WalletCard = ({ role, storeId }: WalletCardProps) => {
 
       <TransactionHistory />
 
-      {showWithdraw && momoDetails && (
+      {showWithdraw && destination && (
         <WithdrawDialog
           open={showWithdraw}
           onOpenChange={setShowWithdraw}
           balance={available}
-          momoNumber={momoDetails.momo_number}
-          momoProvider={momoDetails.momo_provider}
+          destinationLabel={destination.label}
+          destinationDetail={destination.detail}
           onSuccess={fetchWallet}
         />
       )}

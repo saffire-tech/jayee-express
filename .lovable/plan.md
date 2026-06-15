@@ -1,34 +1,42 @@
-# Plan
+# Payout method overhaul + Auth legal links
 
-## 1. Recommended products leak from unsubscribed stores
+## 1. Payout details (MoMo OR Bank), locked after first save
 
-The "Recommended for You" section pulls products in two places, and neither enforces the store's subscription/verification gate that the public product RLS policy applies.
+### Database (migration)
+Add to both `public.profiles` and `public.stores`:
+- `payout_method text` — `'momo'` or `'bank'`
+- `bank_name text`
+- `bank_account_number text`
+- `bank_account_name text`
 
-**Fix `supabase/functions/get-recommendations/index.ts`:**
-- The `allProducts` query uses the service role (bypasses RLS), so we must add the filters manually.
-- Change the join to `stores!inner(name, campus, is_verified, is_suspended, subscription_expires_at, city)` and after fetching, filter out products where the joined store is not verified, is suspended, or has `subscription_expires_at <= now()`.
-- Also scope to the user's city when known (read `profiles.city` for `userId`) so recommendations match the rest of the home feed.
+Add a `BEFORE UPDATE` trigger on each table: once `payout_method` is set (not null), block changes to any of the payout columns (`payout_method`, `momo_number`, `momo_provider`, `bank_name`, `bank_account_number`, `bank_account_name`). Admins (`has_role(auth.uid(),'admin')`) bypass the lock so support can correct mistakes.
 
-**Fix `src/components/sections/RecommendedProducts.tsx` fallback query:**
-- The "Trending Now" fallback selects featured products with no store gating. Switch the join to `store:stores!inner(name, campus, is_verified, is_suspended, subscription_expires_at)`, add `.eq('store.is_verified', true)`, `.eq('store.is_suspended', false)`, and `.gt('store.subscription_expires_at', new Date().toISOString())`.
+Regenerate types after migration.
 
-No DB or RLS changes — the public RLS policy already enforces this; we're only aligning the service-role edge function and the client fallback with it.
+### Seller dashboard (`src/pages/SellerDashboard.tsx`)
+Replace the MoMo-only block with a "Payout method" section:
+- Radio/Tabs: **Mobile Money** vs **Bank Account**.
+- MoMo fields shown when `payout_method='momo'`; bank fields (bank name, account number, account holder name) when `'bank'`.
+- If `payout_method` already set, render all fields read-only with a "Locked — contact support to change" note. Save button hidden.
+- On save: write `payout_method` + the chosen-side fields in one update.
 
-## 2. Announcement banner hidden under the navbar
+### Delivery dashboard (`src/pages/DeliveryDashboard.tsx`)
+Same UI swap against `profiles`. Same lock behavior after first save.
 
-`AnnouncementBanner` renders inside `Index` page content, but `Navbar` is `fixed top-0` (h-14 mobile / h-16 desktop), so the banner slides under it. The close button is also absolutely positioned over the text, causing long messages to clip into the corner.
+### Withdrawal flow (`src/components/wallet/WithdrawDialog.tsx`, `supabase/functions/request-withdrawal/index.ts`, `supabase/functions/process-payout/index.ts`)
+- Dialog shows destination as either MoMo (number + provider) or Bank (bank + account #).
+- `request-withdrawal` reads `payout_method` and validates that the relevant side is filled; rejects if none set. Stores `payment_method` on the withdrawal row accordingly so admins see the right destination at `/admin/payouts`.
 
-**Fix `src/components/announcements/AnnouncementBanner.tsx`:**
-- Make the banner itself `fixed top-14 md:top-16 left-0 right-0 z-40` so it sits flush below the navbar on every page.
-- Replace `line-clamp-1` with normal wrapping (`whitespace-normal break-words`) and use a flex row with `items-start`, giving the text container `flex-1 min-w-0` and right padding (`pr-8`) so it never runs under the close button.
-- Move the close button out of `absolute` positioning into the flex row (still right-aligned) so it doesn't overlay text.
+## 2. Buyer profile cleanup (`src/pages/Profile.tsx`)
+Remove the MoMo card and any payout-info UI from the buyer Profile page entirely (the helper text "Set up your MoMo details to receive delivery payouts and seller payments" goes too). Payout setup lives only in the seller dashboard and the rider/delivery dashboard. Drop the related state and save logic from this file.
 
-**Fix `src/pages/Index.tsx` (and any other page that mounts the banner, if needed):**
-- Because the banner is now fixed, add a spacer/offset so page content isn't covered. Simplest: render an invisible `h-10` placeholder where `<AnnouncementBanner />` is mounted when an announcement is active. Implementation detail: have `AnnouncementBanner` itself render a sibling spacer of matching height when visible, so no page-level changes are required.
+## 3. Auth page legal links (`src/pages/Auth.tsx`)
+Below the submit button (both sign-in and sign-up views), add a small muted line:
 
-No backend or data changes for #2 — purely presentation.
+> By continuing, you agree to our [Terms of Service](/terms) and [Privacy Policy](/privacy).
 
-## Files touched
-- `supabase/functions/get-recommendations/index.ts`
-- `src/components/sections/RecommendedProducts.tsx`
-- `src/components/announcements/AnnouncementBanner.tsx`
+Use `react-router-dom` `Link` components pointing to existing `/terms` and `/privacy` routes. Also include the same line on the "Reset your password" view footer.
+
+## Out of scope
+- No change to admin payout UI beyond it now displaying bank vs MoMo from the existing `payment_method` field.
+- No change to commission / fee logic.

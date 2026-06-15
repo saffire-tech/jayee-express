@@ -17,7 +17,7 @@ import StoreImageUpload from "@/components/seller/StoreImageUpload";
 import MapPicker from "@/components/maps/MapPicker";
 import WebServicesManager from "@/components/seller/WebServicesManager";
 import LocationSelector from "@/components/ui/LocationSelector";
-import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe, Smartphone, Wallet } from "lucide-react";
+import { Loader2, Store as StoreIcon, Package, ShoppingBag, Settings, Globe, Wallet, Banknote } from "lucide-react";
 import WalletCard from "@/components/wallet/WalletCard";
 import SubscriptionCard from "@/components/seller/SubscriptionCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import PayoutMethodForm from "@/components/wallet/PayoutMethodForm";
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
@@ -73,17 +74,15 @@ const SellerDashboard = () => {
     cover_url: "",
     latitude: null as number | null,
     longitude: null as number | null,
-    momo_number: "",
-    momo_provider: "",
   });
   const [savingSettings, setSavingSettings] = useState(false);
-  const [savingMomo, setSavingMomo] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+
 
   useEffect(() => {
     if (store) {
@@ -97,19 +96,6 @@ const SellerDashboard = () => {
         cover_url: store.cover_url || "",
         latitude: (store as any).latitude || null,
         longitude: (store as any).longitude || null,
-        momo_number: "",
-        momo_provider: "",
-      });
-      // Fetch payout details via secure RPC (owner-only)
-      supabase.rpc('get_my_store_payout', { _store_id: store.id }).then(({ data }) => {
-        const row = Array.isArray(data) ? data[0] : data;
-        if (row) {
-          setStoreSettings(prev => ({
-            ...prev,
-            momo_number: (row as any).momo_number || "",
-            momo_provider: (row as any).momo_provider || "",
-          }));
-        }
       });
     }
   }, [store]);
@@ -118,34 +104,12 @@ const SellerDashboard = () => {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      const { momo_number, momo_provider, ...rest } = storeSettings;
-      await updateStore(rest);
+      await updateStore(storeSettings);
     } finally {
       setSavingSettings(false);
     }
   };
 
-  const handleSaveMomo = async () => {
-    if (!store || !storeSettings.momo_number || !storeSettings.momo_provider) {
-      return;
-    }
-    setSavingMomo(true);
-    try {
-      const { error } = await supabase
-        .from('stores')
-        .update({
-          momo_number: storeSettings.momo_number,
-          momo_provider: storeSettings.momo_provider,
-        })
-        .eq('id', store.id);
-      if (error) throw error;
-      toast.success("MoMo details saved. Withdrawals will be sent here after admin approval.");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save MoMo details");
-    } finally {
-      setSavingMomo(false);
-    }
-  };
 
   if (authLoading || loading) {
     return (
@@ -365,51 +329,18 @@ const SellerDashboard = () => {
                   Save Changes
                 </Button>
 
-                {/* MoMo Payout Settings */}
+                {/* Payout Method */}
                 <div className="pt-6 border-t border-border">
                   <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
-                    MoMo Payout Settings
+                    <Banknote className="h-5 w-5" />
+                    Payout Method
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Set up your mobile money to receive instant payments when buyers purchase from your store.
+                    Choose how you want to receive withdrawals from your wallet. You can pick mobile money or a bank account. Once saved, your details are locked — contact support to change them.
                   </p>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>MoMo Provider</Label>
-                      <Select 
-                        value={storeSettings.momo_provider} 
-                        onValueChange={(value) => setStoreSettings({ ...storeSettings, momo_provider: value })}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select provider" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MTN">MTN Mobile Money</SelectItem>
-                          <SelectItem value="Vodafone">Vodafone Cash</SelectItem>
-                          <SelectItem value="AirtelTigo">AirtelTigo Money</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>MoMo Number</Label>
-                      <Input
-                        value={storeSettings.momo_number}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, momo_number: e.target.value })}
-                        placeholder="e.g., 0241234567"
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handleSaveMomo} 
-                    disabled={savingMomo || !storeSettings.momo_number || !storeSettings.momo_provider}
-                    className="mt-4"
-                  >
-                    {savingMomo && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    Save MoMo Details
-                  </Button>
+                  {store && <PayoutMethodForm target={{ kind: "store", storeId: store.id }} />}
                 </div>
+
               </div>
             </div>
           </TabsContent>

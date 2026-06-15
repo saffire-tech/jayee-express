@@ -10,13 +10,11 @@ import RiderSubscriptionCard from '@/components/delivery/RiderSubscriptionCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Truck, Package, History, Wallet, Smartphone, Radio } from 'lucide-react';
+import { Loader2, Truck, Package, History, Wallet, Banknote, Radio } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import WalletCard from '@/components/wallet/WalletCard';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PayoutMethodForm from '@/components/wallet/PayoutMethodForm';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -27,9 +25,6 @@ const DeliveryDashboard = () => {
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [momoNumber, setMomoNumber] = useState('');
-  const [momoProvider, setMomoProvider] = useState('');
-  const [savingMomo, setSavingMomo] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
 
@@ -61,13 +56,6 @@ const DeliveryDashboard = () => {
         .eq('user_id', user.id)
         .maybeSingle();
       if (prof) setIsOnline(!!(prof as any).is_online);
-
-      const { data: momo } = await supabase.rpc('get_my_momo');
-      const row = Array.isArray(momo) ? momo[0] : momo;
-      if (row) {
-        setMomoNumber(row.momo_number || '');
-        setMomoProvider(row.momo_provider || '');
-      }
     };
     load();
   }, [user]);
@@ -94,22 +82,6 @@ const DeliveryDashboard = () => {
     }
   };
 
-  const handleSaveMomo = async () => {
-    if (!momoNumber || !momoProvider || !user) return;
-    setSavingMomo(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ momo_number: momoNumber, momo_provider: momoProvider } as any)
-        .eq('user_id', user.id);
-      if (error) throw error;
-      toast.success('MoMo details saved for withdrawals!');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save MoMo');
-    } finally {
-      setSavingMomo(false);
-    }
-  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -229,36 +201,17 @@ const DeliveryDashboard = () => {
               <Card className="mt-6">
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
-                    MoMo Withdrawal Details
+                    <Banknote className="h-5 w-5" />
+                    Payout Method
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Set up your mobile money to receive withdrawals from your wallet.
+                    Choose how you want to receive withdrawals from your wallet — mobile money or bank account. Once saved, your details are locked.
                   </p>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label>MoMo Provider</Label>
-                      <Select value={momoProvider} onValueChange={setMomoProvider}>
-                        <SelectTrigger className="mt-1"><SelectValue placeholder="Select provider" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MTN">MTN Mobile Money</SelectItem>
-                          <SelectItem value="Vodafone">Vodafone Cash</SelectItem>
-                          <SelectItem value="AirtelTigo">AirtelTigo Money</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>MoMo Number</Label>
-                      <Input value={momoNumber} onChange={(e) => setMomoNumber(e.target.value)} placeholder="e.g., 0241234567" className="mt-1" />
-                    </div>
-                  </div>
-                  <Button onClick={handleSaveMomo} disabled={savingMomo || !momoNumber || !momoProvider} className="mt-4">
-                    {savingMomo && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    Save MoMo Details
-                  </Button>
+                  {user && <PayoutMethodForm target={{ kind: "profile", userId: user.id }} />}
                 </CardContent>
               </Card>
             </TabsContent>
+
 
             <TabsContent value="history" className="mt-4">
               {loadingHistory ? (
