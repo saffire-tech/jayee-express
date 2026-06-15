@@ -74,17 +74,15 @@ const SellerDashboard = () => {
     cover_url: "",
     latitude: null as number | null,
     longitude: null as number | null,
-    momo_number: "",
-    momo_provider: "",
   });
   const [savingSettings, setSavingSettings] = useState(false);
-  const [savingMomo, setSavingMomo] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+
 
   useEffect(() => {
     if (store) {
