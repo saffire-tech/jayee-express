@@ -31,12 +31,12 @@ import PayoutMethodForm from "@/components/wallet/PayoutMethodForm";
 const SellerDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { 
-    store, 
-    products, 
-    orders, 
-    loading, 
-    createStore, 
+  const {
+    store,
+    products,
+    orders,
+    loading,
+    createStore,
     createProduct,
     updateProduct,
     deleteProduct,
@@ -45,23 +45,16 @@ const SellerDashboard = () => {
     refetch,
   } = useStore();
 
-  const {
-    webServices,
-    createWebService,
-    updateWebService,
-    deleteWebService,
-  } = useWebServices(store?.id || null);
-
   // Real-time order notifications
   const handleNewOrder = useCallback(() => {
     refetch();
   }, [refetch]);
-  
+
   useOrderNotifications(store?.id || null, store?.user_id || null, handleNewOrder);
 
   // Count pending orders
   const pendingOrdersCount = useMemo(() => {
-    return orders.filter(order => order.status === "pending").length;
+    return orders.filter((order) => order.status === "pending").length;
   }, [orders]);
 
   const [storeSettings, setStoreSettings] = useState({
@@ -83,7 +76,6 @@ const SellerDashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
-
   useEffect(() => {
     if (store) {
       setStoreSettings({
@@ -100,7 +92,6 @@ const SellerDashboard = () => {
     }
   }, [store]);
 
-
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
@@ -109,7 +100,6 @@ const SellerDashboard = () => {
       setSavingSettings(false);
     }
   };
-
 
   if (authLoading || loading) {
     return (
@@ -130,9 +120,7 @@ const SellerDashboard = () => {
               <StoreIcon className="h-10 w-10 text-primary" />
             </div>
             <h1 className="text-3xl font-bold mb-2">Create Your Store</h1>
-            <p className="text-muted-foreground">
-              Set up your store in just a few steps and start selling
-            </p>
+            <p className="text-muted-foreground">Set up your store in just a few steps and start selling</p>
           </div>
           <StoreSetupWizard onComplete={createStore} />
         </div>
@@ -151,7 +139,7 @@ const SellerDashboard = () => {
             <p className="text-muted-foreground">Manage your store, products, and orders</p>
           </div>
           <div className="flex gap-2">
-            <ShareButton 
+            <ShareButton
               url={`/store/${(store as any).slug || store.id}`}
               title={store.name}
               description={store.description || "Check out my store!"}
@@ -189,10 +177,6 @@ const SellerDashboard = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="services" className="gap-2 flex-1 md:flex-initial min-w-fit">
-              <Globe className="h-4 w-4" />
-              <span className="hidden sm:inline">Services</span>
-            </TabsTrigger>
-            <TabsTrigger value="wallet" className="gap-2 flex-1 md:flex-initial min-w-fit">
               <Wallet className="h-4 w-4" />
               <span className="hidden xs:inline text-xs sm:text-sm">Wallet</span>
             </TabsTrigger>
@@ -203,18 +187,19 @@ const SellerDashboard = () => {
           </TabsList>
 
           <TabsContent value="products">
-            <ProductsList
-              products={products}
-              onAdd={createProduct}
-              onUpdate={updateProduct}
-              onDelete={deleteProduct}
-            />
+            <ProductsList products={products} onAdd={createProduct} onUpdate={updateProduct} onDelete={deleteProduct} />
           </TabsContent>
 
           <TabsContent value="orders">
             <div className="bg-card border border-border rounded-xl p-6">
               <h2 className="text-xl font-bold mb-6">Orders</h2>
-              <OrdersTable orders={orders} onUpdateStatus={updateOrderStatus} storeLocation={store?.latitude && store?.longitude ? { latitude: store.latitude, longitude: store.longitude } : null} />
+              <OrdersTable
+                orders={orders}
+                onUpdateStatus={updateOrderStatus}
+                storeLocation={
+                  store?.latitude && store?.longitude ? { latitude: store.latitude, longitude: store.longitude } : null
+                }
+              />
             </div>
           </TabsContent>
 
@@ -315,7 +300,9 @@ const SellerDashboard = () => {
                   <MapPicker
                     latitude={storeSettings.latitude}
                     longitude={storeSettings.longitude}
-                    onLocationSelect={(lat, lng) => setStoreSettings({ ...storeSettings, latitude: lat, longitude: lng })}
+                    onLocationSelect={(lat, lng) =>
+                      setStoreSettings({ ...storeSettings, latitude: lat, longitude: lng })
+                    }
                   />
                   {storeSettings.latitude && storeSettings.longitude && (
                     <p className="text-sm text-muted-foreground mt-2">
@@ -336,11 +323,11 @@ const SellerDashboard = () => {
                     Payout Method
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Choose how you want to receive withdrawals from your wallet. You can pick mobile money or a bank account. Once saved, your details are locked — contact support to change them.
+                    Choose how you want to receive withdrawals from your wallet. You can pick mobile money or a bank
+                    account. Once saved, your details are locked — contact support to change them.
                   </p>
                   {store && <PayoutMethodForm target={{ kind: "store", storeId: store.id }} />}
                 </div>
-
               </div>
             </div>
           </TabsContent>
