@@ -17,12 +17,12 @@ interface WithdrawDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   balance: number;
-  momoNumber: string;
-  momoProvider: string;
+  destinationLabel: string;
+  destinationDetail: string;
   onSuccess: () => void;
 }
 
-const WithdrawDialog = ({ open, onOpenChange, balance, momoNumber, momoProvider, onSuccess }: WithdrawDialogProps) => {
+const WithdrawDialog = ({ open, onOpenChange, balance, destinationLabel, destinationDetail, onSuccess }: WithdrawDialogProps) => {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +45,7 @@ const WithdrawDialog = ({ open, onOpenChange, balance, momoNumber, momoProvider,
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast.success("Withdrawal request submitted! Funds will be sent to your MoMo.");
+      toast.success("Withdrawal request submitted! Funds will be sent to your payout destination after admin approval.");
       onOpenChange(false);
       setAmount("");
       onSuccess();
@@ -71,7 +71,7 @@ const WithdrawDialog = ({ open, onOpenChange, balance, momoNumber, momoProvider,
           </div>
           <div>
             <Label>Withdraw To</Label>
-            <p className="text-sm text-muted-foreground">{momoProvider} — {momoNumber}</p>
+            <p className="text-sm text-muted-foreground">{destinationLabel} — {destinationDetail}</p>
           </div>
           <div>
             <Label htmlFor="amount">Amount (₵)</Label>
