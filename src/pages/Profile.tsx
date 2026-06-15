@@ -49,17 +49,6 @@ const Profile = () => {
     }
   }, [profile]);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase.rpc("get_my_momo").then(({ data }) => {
-      const row = Array.isArray(data) ? data[0] : data;
-      if (row) {
-        setMomoNumber(row.momo_number || "");
-        setMomoProvider(row.momo_provider || "");
-      }
-    });
-  }, [user]);
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -68,13 +57,12 @@ const Profile = () => {
         full_name: fullName,
         phone,
         campus,
-        momo_number: momoNumber || null,
-        momo_provider: momoProvider || null,
       } as any);
     } finally {
       setSaving(false);
     }
   };
+
 
   const loadRiderApp = async () => {
     if (!user) return;
