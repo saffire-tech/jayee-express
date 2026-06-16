@@ -1,19 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send, ArrowLeft, Search, Store, AlertTriangle } from 'lucide-react';
+import { MessageCircle, Send, ArrowLeft, Search, Store, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { sendMessageNotification } from '@/lib/pushNotifications';
 import { sendMessageEmailNotification } from '@/lib/emailNotifications';
+import {
+  uploadMessageMedia,
+  signMany,
+  kindFromMime,
+  MAX_MEDIA_BYTES,
+  type MediaKind,
+} from '@/lib/messageMedia';
+import { MessageMedia, MediaPreviewChip } from '@/components/messaging/MessageMedia';
 
 interface Conversation {
   id: string;
@@ -29,18 +36,25 @@ interface Conversation {
 
 interface Message {
   id: string;
-  content: string;
+  content: string | null;
   sender_id: string;
   receiver_id: string;
   created_at: string;
   is_read: boolean;
+  media_url?: string | null;
+  media_type?: MediaKind | null;
+  media_name?: string | null;
+  media_size?: number | null;
+  media_mime?: string | null;
 }
+
+const ACCEPT = 'image/*,video/*,audio/*,application/pdf';
 
 const Messages = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeConversation = searchParams.get('with');
-  
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -48,68 +62,58 @@ const Messages = () => {
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeConversationDetails, setActiveConversationDetails] = useState<Conversation | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchConversations();
-    }
+    if (user) fetchConversations();
   }, [user]);
 
   useEffect(() => {
     if (activeConversation && user) {
       fetchMessages(activeConversation);
       markMessagesAsRead(activeConversation);
-      
-      // Find conversation details
-      const conv = conversations.find(c => c.otherUserId === activeConversation);
+      const conv = conversations.find((c) => c.otherUserId === activeConversation);
       setActiveConversationDetails(conv || null);
     }
   }, [activeConversation, user, conversations]);
 
   useEffect(() => {
-    if (!user) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-    // Subscribe to new messages (both incoming and outgoing)
+  useEffect(() => {
+    if (!user) return;
     const channel = supabase
       .channel('messages-realtime')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-        },
+        { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
           const newMsg = payload.new as Message;
-          // Only process if user is sender or receiver
           if (newMsg.sender_id !== user.id && newMsg.receiver_id !== user.id) return;
-          
           const otherUserId = newMsg.sender_id === user.id ? newMsg.receiver_id : newMsg.sender_id;
-          
+
           if (activeConversation === otherUserId) {
-            // Check if message already exists (to avoid duplicates from optimistic updates)
-            setMessages(prev => {
-              if (prev.some(m => m.id === newMsg.id)) return prev;
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMsg.id)) return prev;
               return [...prev, newMsg];
             });
-            if (newMsg.sender_id !== user.id) {
-              markMessagesAsRead(newMsg.sender_id);
+            if (newMsg.media_url) {
+              signMany([newMsg.media_url]).then((map) =>
+                setSignedUrls((prev) => ({ ...prev, ...map }))
+              );
             }
+            if (newMsg.sender_id !== user.id) markMessagesAsRead(newMsg.sender_id);
           }
           fetchConversations();
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-        },
-        () => {
-          fetchConversations();
-        }
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
+        fetchConversations();
+      })
       .subscribe();
 
     return () => {
@@ -119,40 +123,31 @@ const Messages = () => {
 
   const fetchConversations = async () => {
     if (!user) return;
-
     try {
-      // Get all messages involving the user
       const { data: messagesData, error } = await supabase
         .from('messages')
         .select('*')
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
 
-      // Group by conversation partner
       const conversationMap = new Map<string, any>();
-      
       for (const msg of messagesData || []) {
         const otherUserId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
-        
         if (!conversationMap.has(otherUserId)) {
           conversationMap.set(otherUserId, {
             otherUserId,
-            lastMessage: msg.content,
+            lastMessage: previewText(msg as any),
             lastMessageTime: msg.created_at,
             unreadCount: 0,
             storeId: msg.store_id,
-            messages: []
           });
         }
-        
         if (msg.receiver_id === user.id && !msg.is_read) {
           conversationMap.get(otherUserId).unreadCount++;
         }
       }
 
-      // Fetch user profiles
       const userIds = Array.from(conversationMap.keys());
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
@@ -160,25 +155,21 @@ const Messages = () => {
           .select('user_id, full_name, avatar_url')
           .in('user_id', userIds);
 
-        // Fetch store info for store conversations
         const storeIds = Array.from(conversationMap.values())
-          .map(c => c.storeId)
+          .map((c) => c.storeId)
           .filter(Boolean);
-        
-        let storesMap = new Map();
+
+        const storesMap = new Map();
         if (storeIds.length > 0) {
           const { data: stores } = await supabase
             .from('stores')
             .select('id, name, user_id')
             .in('id', storeIds);
-          
-          stores?.forEach(store => {
-            storesMap.set(store.user_id, store.name);
-          });
+          stores?.forEach((store) => storesMap.set(store.user_id, store.name));
         }
 
-        const conversationsList: Conversation[] = Array.from(conversationMap.entries()).map(([id, conv]) => {
-          const profile = profiles?.find(p => p.user_id === id);
+        const list: Conversation[] = Array.from(conversationMap.entries()).map(([id, conv]) => {
+          const profile = profiles?.find((p) => p.user_id === id);
           return {
             id,
             otherUserId: id,
@@ -188,11 +179,13 @@ const Messages = () => {
             lastMessageTime: conv.lastMessageTime,
             unreadCount: conv.unreadCount,
             storeId: conv.storeId,
-            storeName: storesMap.get(id)
+            storeName: storesMap.get(id),
           };
         });
 
-        setConversations(conversationsList);
+        setConversations(list);
+      } else {
+        setConversations([]);
       }
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -203,23 +196,28 @@ const Messages = () => {
 
   const fetchMessages = async (otherUserId: string) => {
     if (!user) return;
-
     const { data, error } = await supabase
       .from('messages')
       .select('*')
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
+      .or(
+        `and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`
+      )
       .order('created_at', { ascending: true });
-
     if (error) {
       console.error('Error fetching messages:', error);
-    } else {
-      setMessages(data || []);
+      return;
+    }
+    const list = (data || []) as Message[];
+    setMessages(list);
+    const paths = list.map((m) => m.media_url).filter(Boolean) as string[];
+    if (paths.length) {
+      const map = await signMany(paths);
+      setSignedUrls((prev) => ({ ...prev, ...map }));
     }
   };
 
   const markMessagesAsRead = async (senderId: string) => {
     if (!user) return;
-
     await supabase
       .from('messages')
       .update({ is_read: true })
@@ -228,57 +226,83 @@ const Messages = () => {
       .eq('is_read', false);
   };
 
-  const sendMessage = async () => {
-    if (!user || !activeConversation || !newMessage.trim()) return;
-
-    setSending(true);
-    const messageContent = newMessage.trim();
-    
-    // Get sender's profile for name
-    const { data: senderProfile } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('user_id', user.id)
-      .single();
-    
-    const { error } = await supabase
-      .from('messages')
-      .insert({
-        sender_id: user.id,
-        receiver_id: activeConversation,
-        content: messageContent,
-        store_id: activeConversationDetails?.storeId || null
-      });
-
-    if (error) {
-      toast.error('Failed to send message');
-    } else {
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        content: messageContent,
-        sender_id: user.id,
-        receiver_id: activeConversation,
-        created_at: new Date().toISOString(),
-        is_read: false
-      }]);
-      setNewMessage('');
-      fetchConversations();
-      
-      // Get sender name for notifications
-      const senderName = senderProfile?.full_name || 'Someone';
-      
-      // Send push notification to receiver
-      sendMessageNotification(activeConversation, senderName, messageContent);
-      
-      // Send email notification to receiver
-      sendMessageEmailNotification(activeConversation, senderName, messageContent);
+  const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_MEDIA_BYTES) {
+      toast.error('File too large (max 25 MB)');
+      return;
     }
-    setSending(false);
+    setPendingFile(file);
   };
 
-  const filteredConversations = conversations.filter(c => 
-    c.otherUserName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.storeName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const sendMessage = async () => {
+    if (!user || !activeConversation) return;
+    const text = newMessage.trim();
+    if (!text && !pendingFile) return;
+
+    setSending(true);
+    try {
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', user.id)
+        .single();
+
+      let media: Awaited<ReturnType<typeof uploadMessageMedia>> | null = null;
+      if (pendingFile) {
+        media = await uploadMessageMedia(pendingFile, user.id);
+      }
+
+      const payload: any = {
+        sender_id: user.id,
+        receiver_id: activeConversation,
+        content: text || null,
+        store_id: activeConversationDetails?.storeId || null,
+      };
+      if (media) Object.assign(payload, media);
+
+      const { data: inserted, error } = await supabase
+        .from('messages')
+        .insert(payload)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      if (inserted?.media_url) {
+        const map = await signMany([inserted.media_url]);
+        setSignedUrls((prev) => ({ ...prev, ...map }));
+      }
+      setMessages((prev) =>
+        prev.some((m) => m.id === inserted!.id) ? prev : [...prev, inserted as Message]
+      );
+
+      setNewMessage('');
+      setPendingFile(null);
+      fetchConversations();
+
+      const senderName = senderProfile?.full_name || 'Someone';
+      const notifText = text || previewText(inserted as any);
+      sendMessageNotification(activeConversation, senderName, notifText);
+      sendMessageEmailNotification(activeConversation, senderName, notifText);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const filteredConversations = useMemo(
+    () =>
+      conversations.filter(
+        (c) =>
+          c.otherUserName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          c.storeName?.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [conversations, searchTerm]
   );
 
   if (!user) {
@@ -288,25 +312,32 @@ const Messages = () => {
         <div className="container mx-auto px-4 py-16 text-center">
           <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Sign in to view messages</h1>
-          <p className="text-muted-foreground mb-6">You need to be logged in to access your messages.</p>
+          <p className="text-muted-foreground mb-6">
+            You need to be logged in to access your messages.
+          </p>
           <Link to="/auth">
             <Button>Sign In</Button>
           </Link>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      
-      <main className="flex-1 container mx-auto px-4 pt-20 pb-4 md:py-6">
-        <div className="bg-card border border-border rounded-xl overflow-hidden h-[calc(100vh-140px)] md:h-[calc(100vh-200px)] flex">
-          {/* Conversations List */}
-          <div className={`w-full md:w-80 border-r border-border flex flex-col ${activeConversation ? 'hidden md:flex' : 'flex'}`}>
-            <div className="p-4 border-b border-border">
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+      <div className="shrink-0">
+        <Navbar />
+      </div>
+
+      <main className="flex-1 min-h-0 flex md:p-4 md:pt-20 pt-16">
+        <div className="flex-1 min-h-0 bg-card md:border md:border-border md:rounded-xl overflow-hidden flex">
+          {/* Conversations list */}
+          <aside
+            className={`w-full md:w-80 border-r border-border flex-col min-h-0 ${
+              activeConversation ? 'hidden md:flex' : 'flex'
+            }`}
+          >
+            <div className="p-4 border-b border-border shrink-0">
               <h1 className="text-xl font-bold mb-3">Messages</h1>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -318,17 +349,14 @@ const Messages = () => {
                 />
               </div>
             </div>
-            
-            <ScrollArea className="flex-1">
+
+            <ScrollArea className="flex-1 min-h-0">
               {loading ? (
                 <div className="p-4 text-center text-muted-foreground">Loading...</div>
               ) : filteredConversations.length === 0 ? (
                 <div className="p-8 text-center">
                   <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                   <p className="text-muted-foreground">No conversations yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Start a conversation by contacting a seller
-                  </p>
                 </div>
               ) : (
                 filteredConversations.map((conv) => (
@@ -365,14 +393,17 @@ const Messages = () => {
                 ))
               )}
             </ScrollArea>
-          </div>
+          </aside>
 
-          {/* Chat Area */}
-          <div className={`flex-1 flex flex-col ${!activeConversation ? 'hidden md:flex' : 'flex'}`}>
+          {/* Chat panel */}
+          <section
+            className={`flex-1 min-h-0 flex-col ${
+              !activeConversation ? 'hidden md:flex' : 'flex'
+            }`}
+          >
             {activeConversation ? (
               <>
-                {/* Chat Header */}
-                <div className="p-4 border-b border-border flex items-center gap-3">
+                <header className="shrink-0 p-4 border-b border-border flex items-center gap-3 bg-card">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -387,58 +418,109 @@ const Messages = () => {
                       {activeConversationDetails?.otherUserName?.charAt(0) || '?'}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h2 className="font-semibold">{activeConversationDetails?.otherUserName || 'Loading...'}</h2>
+                  <div className="min-w-0">
+                    <h2 className="font-semibold truncate">
+                      {activeConversationDetails?.otherUserName || 'Loading...'}
+                    </h2>
                     {activeConversationDetails?.storeName && (
-                      <p className="text-sm text-primary">{activeConversationDetails.storeName}</p>
+                      <p className="text-sm text-primary truncate">
+                        {activeConversationDetails.storeName}
+                      </p>
                     )}
                   </div>
-                </div>
+                </header>
 
-                {/* Messages */}
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
-                    {messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-                      >
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="p-4 space-y-3">
+                    {messages.map((msg) => {
+                      const isOwn = msg.sender_id === user.id;
+                      const url = msg.media_url ? signedUrls[msg.media_url] : null;
+                      return (
                         <div
-                          className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                            msg.sender_id === user.id
-                              ? 'bg-primary text-primary-foreground rounded-br-md'
-                              : 'bg-muted rounded-bl-md'
-                          }`}
+                          key={msg.id}
+                          className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                         >
-                          <p>{msg.content}</p>
-                          <p className={`text-xs mt-1 ${
-                            msg.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                          }`}>
-                            {format(new Date(msg.created_at), 'h:mm a')}
-                          </p>
+                          <div
+                            className={`max-w-[80%] rounded-2xl px-3 py-2 space-y-2 ${
+                              isOwn
+                                ? 'bg-primary text-primary-foreground rounded-br-md'
+                                : 'bg-muted rounded-bl-md'
+                            }`}
+                          >
+                            {msg.media_url && msg.media_type && url && (
+                              <MessageMedia
+                                url={url}
+                                type={msg.media_type}
+                                name={msg.media_name}
+                                size={msg.media_size}
+                                mime={msg.media_mime}
+                                isOwn={isOwn}
+                              />
+                            )}
+                            {msg.media_url && msg.media_type && !url && (
+                              <div className="text-xs opacity-70 px-2 py-3">Loading media…</div>
+                            )}
+                            {msg.content && (
+                              <p className="whitespace-pre-wrap break-words px-1">{msg.content}</p>
+                            )}
+                            <p
+                              className={`text-[10px] text-right ${
+                                isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                              }`}
+                            >
+                              {format(new Date(msg.created_at), 'h:mm a')}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>
 
-                
-                {/* Message Input */}
-                <div className="p-4 border-t border-border">
+                <div
+                  className="shrink-0 p-3 border-t border-border bg-card"
+                  style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+                >
+                  {pendingFile && (
+                    <div className="mb-2">
+                      <MediaPreviewChip file={pendingFile} onRemove={() => setPendingFile(null)} />
+                    </div>
+                  )}
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
                       sendMessage();
                     }}
-                    className="flex gap-2"
+                    className="flex gap-2 items-center"
                   >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept={ACCEPT}
+                      className="hidden"
+                      onChange={handleFilePick}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={sending}
+                    >
+                      <Paperclip className="h-5 w-5" />
+                    </Button>
                     <Input
-                      placeholder="Type a message..."
+                      placeholder={pendingFile ? 'Add a caption…' : 'Type a message...'}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       className="flex-1"
+                      disabled={sending}
                     />
-                    <Button type="submit" disabled={sending || !newMessage.trim()}>
+                    <Button
+                      type="submit"
+                      disabled={sending || (!newMessage.trim() && !pendingFile)}
+                    >
                       <Send className="h-4 w-4" />
                     </Button>
                   </form>
@@ -455,13 +537,27 @@ const Messages = () => {
                 </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };
+
+function previewText(msg: { content?: string | null; media_type?: MediaKind | null }): string {
+  if (msg.content) return msg.content;
+  switch (msg.media_type) {
+    case 'image':
+      return '📷 Photo';
+    case 'video':
+      return '🎥 Video';
+    case 'audio':
+      return '🎵 Audio';
+    case 'file':
+      return '📎 File';
+    default:
+      return '';
+  }
+}
 
 export default Messages;
