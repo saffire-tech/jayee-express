@@ -284,30 +284,45 @@ export type Database = {
       }
       messages: {
         Row: {
-          content: string
+          content: string | null
           created_at: string
           id: string
           is_read: boolean | null
+          media_mime: string | null
+          media_name: string | null
+          media_size: number | null
+          media_type: string | null
+          media_url: string | null
           product_id: string | null
           receiver_id: string
           sender_id: string
           store_id: string | null
         }
         Insert: {
-          content: string
+          content?: string | null
           created_at?: string
           id?: string
           is_read?: boolean | null
+          media_mime?: string | null
+          media_name?: string | null
+          media_size?: number | null
+          media_type?: string | null
+          media_url?: string | null
           product_id?: string | null
           receiver_id: string
           sender_id: string
           store_id?: string | null
         }
         Update: {
-          content?: string
+          content?: string | null
           created_at?: string
           id?: string
           is_read?: boolean | null
+          media_mime?: string | null
+          media_name?: string | null
+          media_size?: number | null
+          media_type?: string | null
+          media_url?: string | null
           product_id?: string | null
           receiver_id?: string
           sender_id?: string
