@@ -65,16 +65,14 @@ export default function PaymentsReconciliation() {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Payments" description="Reconcile Paystack transactions">
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="text-2xl font-bold">Payment Reconciliation</h1>
-            <p className="text-sm text-muted-foreground">
-              Every checkout attempt is recorded here. Stuck "initialized" rows are auto-reconciled after 10 minutes.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Every checkout attempt is recorded here. Stuck "initialized" rows are auto-reconciled after 10 minutes.
+          </p>
           <Button onClick={() => runReconcile()} disabled={reconciling}>
+
             {reconciling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Reconcile pending
           </Button>
