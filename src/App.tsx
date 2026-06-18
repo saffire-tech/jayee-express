@@ -37,6 +37,7 @@ const OrdersManagement = lazy(() => import("./pages/admin/OrdersManagement"));
 const ReportsManagement = lazy(() => import("./pages/admin/ReportsManagement"));
 const RiderApplications = lazy(() => import("./pages/admin/RiderApplications"));
 const PayoutsManagement = lazy(() => import("./pages/admin/PayoutsManagement"));
+const PaymentsReconciliation = lazy(() => import("./pages/admin/PaymentsReconciliation"));
 
 const ReportIssue = lazy(() => import("./pages/ReportIssue"));
 const Download = lazy(() => import("./pages/Download"));
@@ -116,6 +117,7 @@ const App = () => {
                       <Route path="/admin/reports" element={<AdminRoute><ReportsManagement /></AdminRoute>} />
                       <Route path="/admin/riders" element={<AdminRoute><RiderApplications /></AdminRoute>} />
                       <Route path="/admin/payouts" element={<AdminRoute><PayoutsManagement /></AdminRoute>} />
+                      <Route path="/admin/payments" element={<AdminRoute><PaymentsReconciliation /></AdminRoute>} />
 
                       <Route path="/delivery" element={<DeliveryDashboard />} />
                       <Route path="/report-issue" element={<ReportIssue />} />

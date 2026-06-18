@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Truck,
   Wallet,
+  CreditCard,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -32,6 +33,7 @@ const menuItems = [
   { title: 'Reports', url: '/admin/reports', icon: AlertTriangle },
   { title: 'Rider Applications', url: '/admin/riders', icon: Truck },
   { title: 'Payouts', url: '/admin/payouts', icon: Wallet },
+  { title: 'Payments', url: '/admin/payments', icon: CreditCard },
 ];
 
 
