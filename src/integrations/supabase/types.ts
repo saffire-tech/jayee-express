@@ -1507,6 +1507,15 @@ export type Database = {
     }
     Functions: {
       bump_location_usage: { Args: { _id: string }; Returns: undefined }
+      compute_delivery_fee: {
+        Args: {
+          _delivery_type: string
+          _dest_lat: number
+          _dest_lng: number
+          _store_ids: string[]
+        }
+        Returns: Json
+      }
       current_user_city: { Args: never; Returns: string }
       finalize_order_payment: {
         Args: { _amount: number; _reference: string }

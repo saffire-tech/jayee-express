@@ -130,11 +130,12 @@ Deno.serve(async (req) => {
   }
 });
 
-async function processSubscription(supabase: any, metadata: any, reference: string, amountPaid: number) {
+async function processSubscription(supabase: any, metadata: any, reference: string, _amountPaid: number) {
   const { store_id, plan_id, user_id, months } = metadata;
-  const monthsInt = parseInt(months) || 1;
-  const { data: plan } = await supabase.from("subscription_plans").select("max_products, name").eq("id", plan_id).single();
+  const monthsInt = Math.max(1, Math.min(12, parseInt(months) || 1));
+  const { data: plan } = await supabase.from("subscription_plans").select("max_products, name, price_per_month").eq("id", plan_id).single();
   if (!plan) throw new Error("Plan not found");
+  const amountPaid = Number(plan.price_per_month) * monthsInt;
   const { data: store } = await supabase.from("stores").select("subscription_expires_at").eq("id", store_id).single();
   const now = new Date();
   const baseDate = store?.subscription_expires_at && new Date(store.subscription_expires_at) > now
@@ -157,17 +158,20 @@ async function processSubscription(supabase: any, metadata: any, reference: stri
   });
 }
 
-async function processStoreAdminSubscription(supabase: any, metadata: any, reference: string, amountPaid: number) {
-  const { user_id, store_id, monthly_fee, months } = metadata;
-  const monthsInt = parseInt(months) || 1;
-  const { data: store } = await supabase.from("stores").select("subscription_expires_at, name").eq("id", store_id).maybeSingle();
+async function processStoreAdminSubscription(supabase: any, metadata: any, reference: string, _amountPaid: number) {
+  const { user_id, store_id, months } = metadata;
+  const monthsInt = Math.max(1, Math.min(12, parseInt(months) || 1));
+  const { data: store } = await supabase.from("stores").select("subscription_expires_at, name, monthly_fee").eq("id", store_id).maybeSingle();
+  if (!store || !store.monthly_fee || Number(store.monthly_fee) <= 0) throw new Error("Monthly fee not set");
+  const monthlyFee = Number(store.monthly_fee);
+  const amountPaid = monthlyFee * monthsInt;
   const now = new Date();
   const baseDate = store?.subscription_expires_at && new Date(store.subscription_expires_at) > now
     ? new Date(store.subscription_expires_at) : now;
   const newExpiry = new Date(baseDate);
   newExpiry.setMonth(newExpiry.getMonth() + monthsInt);
   await supabase.from("store_subscriptions").insert({
-    store_id, user_id, monthly_fee: Number(monthly_fee), months: monthsInt,
+    store_id, user_id, monthly_fee: monthlyFee, months: monthsInt,
     amount_paid: amountPaid, starts_at: baseDate.toISOString(),
     expires_at: newExpiry.toISOString(), status: "active", payment_reference: reference,
   });
@@ -179,9 +183,20 @@ async function processStoreAdminSubscription(supabase: any, metadata: any, refer
   });
 }
 
-async function processRiderSubscription(supabase: any, metadata: any, reference: string, amountPaid: number) {
-  const { user_id, months, monthly_fee } = metadata;
-  const monthsInt = parseInt(months) || 1;
+async function processRiderSubscription(supabase: any, metadata: any, reference: string, _amountPaid: number) {
+  const { user_id, months } = metadata;
+  const monthsInt = Math.max(1, Math.min(12, parseInt(months) || 1));
+  const { data: app } = await supabase
+    .from("rider_applications")
+    .select("monthly_fee, status")
+    .eq("user_id", user_id)
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!app || !app.monthly_fee || Number(app.monthly_fee) <= 0) throw new Error("Rider monthly fee not set");
+  const monthlyFee = Number(app.monthly_fee);
+  const amountPaid = monthlyFee * monthsInt;
   const { data: latest } = await supabase.from("delivery_subscriptions")
     .select("expires_at").eq("user_id", user_id).order("expires_at", { ascending: false }).limit(1).maybeSingle();
   const now = new Date();
@@ -189,7 +204,7 @@ async function processRiderSubscription(supabase: any, metadata: any, reference:
   const newExpiry = new Date(baseDate);
   newExpiry.setMonth(newExpiry.getMonth() + monthsInt);
   await supabase.from("delivery_subscriptions").insert({
-    user_id, monthly_fee: Number(monthly_fee), months: monthsInt, amount_paid: amountPaid,
+    user_id, monthly_fee: monthlyFee, months: monthsInt, amount_paid: amountPaid,
     starts_at: baseDate.toISOString(), expires_at: newExpiry.toISOString(),
     status: "active", payment_reference: reference,
   });
@@ -198,3 +213,4 @@ async function processRiderSubscription(supabase: any, metadata: any, reference:
     body: `Your delivery subscription is active until ${newExpiry.toLocaleDateString()}.`,
   });
 }
+
