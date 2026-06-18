@@ -303,7 +303,7 @@ const Cart = () => {
                   className="w-full" 
                   size="lg" 
                   onClick={handleCheckout}
-                  disabled={checkingOut}
+                  disabled={checkingOut || !!pendingAttempt}
                 >
                   {checkingOut ? (
                     <>
