@@ -34,8 +34,24 @@ const Cart = () => {
     deliveryLandmark?: string;
   }>({ deliveryType: 'pickup', deliveryFee: 0 });
   const [cartStores, setCartStores] = useState<StoreInfo[]>([]);
+  const [pendingAttempt, setPendingAttempt] = useState<{ reference: string; created_at: string } | null>(null);
 
-  // Fetch ALL unique store coordinates and names from cart items
+  // Check for a recent in-flight payment attempt
+  useEffect(() => {
+    if (!user) return;
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    supabase
+      .from('payment_attempts')
+      .select('reference, created_at')
+      .eq('buyer_id', user.id)
+      .eq('status', 'initialized')
+      .gte('created_at', fiveMinAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setPendingAttempt(data || null));
+  }, [user, items.length]);
+
   useEffect(() => {
     if (items.length === 0) {
       setCartStores([]);
@@ -162,6 +178,17 @@ const Cart = () => {
           </Link>
         </div>
 
+        {pendingAttempt && (
+          <div className="mb-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-sm">
+            <p className="font-medium text-yellow-700 dark:text-yellow-400">A recent payment is still being confirmed.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Please wait a minute before trying again — if the payment succeeded, your cart will clear automatically and you will not be charged twice.
+            </p>
+          </div>
+        )}
+
+
+
         <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-3 md:space-y-4">
@@ -276,7 +303,7 @@ const Cart = () => {
                   className="w-full" 
                   size="lg" 
                   onClick={handleCheckout}
-                  disabled={checkingOut}
+                  disabled={checkingOut || !!pendingAttempt}
                 >
                   {checkingOut ? (
                     <>

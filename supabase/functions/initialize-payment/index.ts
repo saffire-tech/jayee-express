@@ -17,36 +17,39 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
-    const supabase = createClient(
+    const supabaseAuth = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { items, deliveryData, email } = await req.json();
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
+    const { items, deliveryData, email } = await req.json();
     if (!Array.isArray(items) || items.length === 0) throw new Error("No items provided");
 
-    // Fetch authoritative product data from DB - never trust client-supplied prices
+    // Fetch authoritative product data — never trust client prices
     const productIds = items.map((i: any) => i.product_id).filter(Boolean);
-    const { data: products, error: prodErr } = await supabase
+    const { data: products, error: prodErr } = await admin
       .from("products")
       .select("id, price, name, store_id, is_active")
       .in("id", productIds);
     if (prodErr) throw prodErr;
+
     const priceMap: Record<string, { price: number; name: string; store_id: string; is_active: boolean }> = {};
     for (const p of products || []) priceMap[p.id] = p as any;
 
-    // Validate every item resolves to an active product
     for (const item of items) {
       const p = priceMap[item.product_id];
       if (!p || !p.is_active) throw new Error(`Invalid product: ${item.product_id}`);
     }
 
-    // Calculate total amount using DB prices
     const subtotal = items.reduce(
       (sum: number, item: any) => sum + priceMap[item.product_id].price * (parseInt(item.quantity) || 1),
       0
@@ -54,13 +57,11 @@ Deno.serve(async (req) => {
     const deliveryFee = Number(deliveryData?.deliveryFee) || 0;
     const totalAmount = Math.round((subtotal + deliveryFee) * 100); // pesewas
 
-    // Group items by store for metadata - using DB-sourced prices
     const storeGroups: Record<string, any[]> = {};
     for (const item of items) {
       const p = priceMap[item.product_id];
-      const storeId = p.store_id;
-      if (!storeGroups[storeId]) storeGroups[storeId] = [];
-      storeGroups[storeId].push({
+      if (!storeGroups[p.store_id]) storeGroups[p.store_id] = [];
+      storeGroups[p.store_id].push({
         product_id: item.product_id,
         quantity: parseInt(item.quantity) || 1,
         price: p.price,
@@ -78,22 +79,8 @@ Deno.serve(async (req) => {
       delivery_landmark: deliveryData?.deliveryLandmark || null,
       store_groups: Object.entries(storeGroups).map(([storeId, storeItems]) => ({
         store_id: storeId,
-        items: storeItems.map((item: any) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price,
-          name: item.name,
-        })),
+        items: storeItems,
       })),
-    };
-
-    // Initialize Paystack transaction — no splits, all to platform
-    const paystackPayload: any = {
-      email,
-      amount: totalAmount,
-      currency: "GHS",
-      metadata,
-      callback_url: `${req.headers.get("origin") || ""}/purchases?payment=success`,
     };
 
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
@@ -102,22 +89,40 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(paystackPayload),
+      body: JSON.stringify({
+        email,
+        amount: totalAmount,
+        currency: "GHS",
+        metadata,
+        callback_url: `${req.headers.get("origin") || ""}/purchases?payment=success`,
+      }),
     });
 
     const paystackData = await paystackRes.json();
+    if (!paystackData.status) throw new Error(paystackData.message || "Paystack initialization failed");
 
-    if (!paystackData.status) {
-      throw new Error(paystackData.message || "Paystack initialization failed");
+    const reference = paystackData.data.reference as string;
+
+    // Record the attempt BEFORE redirecting — source of truth for reconciliation
+    const { error: attemptErr } = await admin.from("payment_attempts").insert({
+      reference,
+      buyer_id: user.id,
+      amount: (subtotal + deliveryFee),
+      currency: "GHS",
+      kind: "order",
+      status: "initialized",
+      payload: metadata,
+    });
+    if (attemptErr) {
+      console.error("Failed to record payment_attempt:", attemptErr);
+      throw new Error("Could not record payment attempt. Please try again.");
     }
 
     return new Response(JSON.stringify({
       authorization_url: paystackData.data.authorization_url,
       access_code: paystackData.data.access_code,
-      reference: paystackData.data.reference,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      reference,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error: unknown) {
     console.error("Payment init error:", error);
     return new Response(JSON.stringify({ error: (error as Error).message }), {

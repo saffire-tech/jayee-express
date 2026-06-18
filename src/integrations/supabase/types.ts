@@ -503,6 +503,57 @@ export type Database = {
           },
         ]
       }
+      payment_attempts: {
+        Row: {
+          amount: number
+          buyer_id: string
+          created_at: string
+          currency: string
+          id: string
+          kind: string
+          last_error: string | null
+          orders_created_at: string | null
+          payload: Json
+          paystack_status: string | null
+          reference: string
+          status: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          orders_created_at?: string | null
+          payload?: Json
+          paystack_status?: string | null
+          reference: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          orders_created_at?: string | null
+          payload?: Json
+          paystack_status?: string | null
+          reference?: string
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       platform_payout_accounts: {
         Row: {
           account_name: string
@@ -1457,6 +1508,10 @@ export type Database = {
     Functions: {
       bump_location_usage: { Args: { _id: string }; Returns: undefined }
       current_user_city: { Args: never; Returns: string }
+      finalize_order_payment: {
+        Args: { _amount: number; _reference: string }
+        Returns: Json
+      }
       get_my_momo: {
         Args: never
         Returns: {

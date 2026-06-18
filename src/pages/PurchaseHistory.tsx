@@ -250,37 +250,67 @@ const PurchaseHistory = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Verify payment on redirect from Paystack
+  // Verify payment on redirect from Paystack — with retry/backoff for webhook race
   useEffect(() => {
     const reference = searchParams.get("reference");
-    if (!reference || !user) return;
+    const paymentParam = searchParams.get("payment");
+    if (!user) return;
+
+    // Explicit failure redirect
+    if (paymentParam === "failed" || paymentParam === "cancelled") {
+      toast.error("Payment was not completed. You were not charged — your cart is still saved.", { duration: 6000 });
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    if (!reference) return;
+
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
     const verifyPayment = async () => {
       setVerifying(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("verify-payment", {
-          body: { reference },
+      const delays = [0, 2000, 4000];
+      let lastResult: any = null;
+      let lastError: any = null;
+
+      for (const d of delays) {
+        if (d) await sleep(d);
+        try {
+          const { data, error } = await supabase.functions.invoke("verify-payment", {
+            body: { reference },
+          });
+          if (error) { lastError = error; continue; }
+          if (data?.error) { lastError = new Error(data.error); continue; }
+          lastResult = data;
+          if (data?.verified === false) break; // definite failure → stop
+          if (data?.verified && (data?.orders_created || data?.already)) break; // done
+        } catch (e) { lastError = e; }
+      }
+
+      setVerifying(false);
+      setSearchParams({}, { replace: true });
+
+      if (lastResult?.verified === false) {
+        toast.error(lastResult?.message || "Payment was not successful. You were not charged.", { duration: 6000 });
+      } else if (lastResult?.verified) {
+        toast.success(
+          lastResult.orders_created || lastResult.already
+            ? "Payment confirmed! Your orders have been placed."
+            : "Payment confirmed."
+        );
+        fetchOrders();
+      } else {
+        toast.message("We're still confirming your payment", {
+          description: "If it succeeded, your order will appear shortly. You will not be charged twice.",
+          duration: 8000,
         });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-
-        if (data?.verified) {
-          toast.success(data.orders_created ? "Payment verified! Your orders have been placed." : "Payment verified! Orders are being processed.");
-          fetchOrders();
-        }
-      } catch (err: any) {
-        console.error("Payment verification error:", err);
-        toast.error("Could not verify payment. Your order may still be processing.");
-      } finally {
-        setVerifying(false);
-        // Clear query params
-        setSearchParams({}, { replace: true });
+        console.error("Verify timed out:", lastError);
       }
     };
 
     verifyPayment();
   }, [searchParams, user]);
+
 
   useEffect(() => {
     if (user) {
