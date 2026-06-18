@@ -54,7 +54,28 @@ Deno.serve(async (req) => {
       (sum: number, item: any) => sum + priceMap[item.product_id].price * (parseInt(item.quantity) || 1),
       0
     );
-    const deliveryFee = Number(deliveryData?.deliveryFee) || 0;
+
+    // Server-side delivery fee — never trust client
+    const deliveryType = deliveryData?.deliveryType === "delivery" ? "delivery" : "pickup";
+    const destLat = deliveryData?.deliveryLatitude ?? null;
+    const destLng = deliveryData?.deliveryLongitude ?? null;
+    const uniqueStoreIds = Array.from(new Set((products || []).map((p: any) => p.store_id)));
+
+    let deliveryFee = 0;
+    if (deliveryType === "delivery") {
+      const { data: feeRes, error: feeErr } = await admin.rpc("compute_delivery_fee", {
+        _store_ids: uniqueStoreIds,
+        _dest_lat: destLat,
+        _dest_lng: destLng,
+        _delivery_type: deliveryType,
+      });
+      if (feeErr) throw new Error(feeErr.message || "Could not compute delivery fee");
+      if (!feeRes || (feeRes as any).ok !== true) {
+        throw new Error(`Delivery unavailable: ${(feeRes as any)?.reason || "out_of_zone"}`);
+      }
+      deliveryFee = Number((feeRes as any).fee) || 0;
+    }
+
     const totalAmount = Math.round((subtotal + deliveryFee) * 100); // pesewas
 
     const storeGroups: Record<string, any[]> = {};
@@ -71,10 +92,10 @@ Deno.serve(async (req) => {
 
     const metadata = {
       buyer_id: user.id,
-      delivery_type: deliveryData?.deliveryType || "pickup",
+      delivery_type: deliveryType,
       delivery_fee: deliveryFee,
-      delivery_latitude: deliveryData?.deliveryLatitude || null,
-      delivery_longitude: deliveryData?.deliveryLongitude || null,
+      delivery_latitude: destLat,
+      delivery_longitude: destLng,
       delivery_address: deliveryData?.deliveryAddress || null,
       delivery_landmark: deliveryData?.deliveryLandmark || null,
       store_groups: Object.entries(storeGroups).map(([storeId, storeItems]) => ({
@@ -82,6 +103,7 @@ Deno.serve(async (req) => {
         items: storeItems,
       })),
     };
+
 
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
