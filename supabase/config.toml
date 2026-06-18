@@ -45,6 +45,10 @@ verify_jwt = false
 [functions.reconcile-wallet]
 verify_jwt = false
 
+[functions.reconcile-payments]
+verify_jwt = false
+
+
 
 
 [functions.notify-new-device]
