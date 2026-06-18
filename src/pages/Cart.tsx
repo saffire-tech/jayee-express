@@ -178,6 +178,17 @@ const Cart = () => {
           </Link>
         </div>
 
+        {pendingAttempt && (
+          <div className="mb-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-sm">
+            <p className="font-medium text-yellow-700 dark:text-yellow-400">A recent payment is still being confirmed.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Please wait a minute before trying again — if the payment succeeded, your cart will clear automatically and you will not be charged twice.
+            </p>
+          </div>
+        )}
+
+
+
         <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-3 md:space-y-4">
