@@ -34,8 +34,24 @@ const Cart = () => {
     deliveryLandmark?: string;
   }>({ deliveryType: 'pickup', deliveryFee: 0 });
   const [cartStores, setCartStores] = useState<StoreInfo[]>([]);
+  const [pendingAttempt, setPendingAttempt] = useState<{ reference: string; created_at: string } | null>(null);
 
-  // Fetch ALL unique store coordinates and names from cart items
+  // Check for a recent in-flight payment attempt
+  useEffect(() => {
+    if (!user) return;
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    supabase
+      .from('payment_attempts')
+      .select('reference, created_at')
+      .eq('buyer_id', user.id)
+      .eq('status', 'initialized')
+      .gte('created_at', fiveMinAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setPendingAttempt(data || null));
+  }, [user, items.length]);
+
   useEffect(() => {
     if (items.length === 0) {
       setCartStores([]);
