@@ -73,6 +73,27 @@ export type Database = {
           },
         ]
       }
+      category_commissions: {
+        Row: {
+          category: string
+          commission_pct: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          commission_pct: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          commission_pct?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       community_locations: {
         Row: {
           contributed_by: string | null
@@ -553,6 +574,60 @@ export type Database = {
           verified_at?: string | null
         }
         Relationships: []
+      }
+      platform_commission_ledger: {
+        Row: {
+          category: string | null
+          commission_amount: number
+          commission_pct: number
+          created_at: string
+          gross_amount: number
+          id: string
+          order_id: string
+          product_id: string | null
+          reversal_reason: string | null
+          reversed_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          commission_amount: number
+          commission_pct: number
+          created_at?: string
+          gross_amount: number
+          id?: string
+          order_id: string
+          product_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          commission_amount?: number
+          commission_pct?: number
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          order_id?: string
+          product_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_commission_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_commission_ledger_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_payout_accounts: {
         Row: {
