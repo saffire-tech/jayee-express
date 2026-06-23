@@ -1,20 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Utensils, Shirt, Laptop, BookOpen, Scissors, Camera, Briefcase, Sparkles,
+  Utensils, Shirt, Laptop, Droplet, BookOpen, Sparkles, Camera,
   ChevronLeft, ChevronRight, LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const categories = [
-  { name: "Food & Snacks", icon: Utensils },
+  { name: "Food", icon: Utensils },
   { name: "Fashion", icon: Shirt },
   { name: "Electronics", icon: Laptop },
-  { name: "Books & Notes", icon: BookOpen },
-  { name: "Beauty & Care", icon: Scissors },
+  { name: "Water", icon: Droplet },
+  { name: "Stationary", icon: BookOpen },
+  { name: "Cosmetics", icon: Sparkles },
   { name: "Photography", icon: Camera },
-  { name: "Tutoring", icon: Briefcase },
-  { name: "Other Services", icon: Sparkles },
 ];
 
 interface Props {
