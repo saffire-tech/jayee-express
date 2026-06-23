@@ -1,20 +1,19 @@
 import { useRef } from "react";
-import { 
-  Utensils, Shirt, Laptop, BookOpen, Scissors, Camera, Briefcase, Sparkles,
-  ChevronLeft, ChevronRight
+import {
+  Utensils, Shirt, Laptop, Droplet, BookOpen, Sparkles, Camera,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const categories = [
-  { name: "Food & Snacks", icon: Utensils },
+  { name: "Food", icon: Utensils },
   { name: "Fashion", icon: Shirt },
   { name: "Electronics", icon: Laptop },
-  { name: "Books & Notes", icon: BookOpen },
-  { name: "Beauty & Care", icon: Scissors },
+  { name: "Water", icon: Droplet },
+  { name: "Stationary", icon: BookOpen },
+  { name: "Cosmetics", icon: Sparkles },
   { name: "Photography", icon: Camera },
-  { name: "Tutoring", icon: Briefcase },
-  { name: "Other Services", icon: Sparkles },
 ];
 
 interface CategoriesSectionProps {
