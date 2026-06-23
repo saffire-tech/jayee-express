@@ -10,16 +10,13 @@ import MultiImageUpload from "./MultiImageUpload";
 import type { Product } from "@/hooks/useStore";
 
 const categories = [
-  "Food & Snacks",
+  "Food",
   "Fashion",
   "Electronics",
-  "Books & Notes",
-  "Beauty & Care",
+  "Water",
+  "Stationary",
+  "Cosmetics",
   "Photography",
-  "Tutoring",
-  "Services",
-  "Sports",
-  "Other",
 ];
 
 interface ProductFormProps {
