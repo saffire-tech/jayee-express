@@ -67,43 +67,56 @@ Deno.serve(async (req) => {
       .single();
 
     if (store) {
-      const itemsTotal = Number(order.total_amount) - Number(order.delivery_fee || 0);
-      const sellerShare = itemsTotal;
+      // Use the actual prior credit amount (already net of commission)
+      const { data: priorCredit } = await adminClient
+        .from("wallet_transactions")
+        .select("id, amount")
+        .eq("user_id", store.user_id)
+        .eq("reference_id", order_id)
+        .eq("type", "credit")
+        .ilike("description", "Sale from order%")
+        .limit(1);
 
-      if (sellerShare > 0) {
-        const { data: priorCredit } = await adminClient
-          .from("wallet_transactions")
-          .select("id")
-          .eq("user_id", store.user_id)
-          .eq("reference_id", order_id)
-          .eq("type", "credit")
-          .ilike("description", "Sale from order%")
-          .limit(1);
+      const { data: priorReversal } = await adminClient
+        .from("wallet_transactions")
+        .select("id")
+        .eq("user_id", store.user_id)
+        .eq("reference_id", order_id)
+        .eq("type", "debit")
+        .ilike("description", "Order cancelled%")
+        .limit(1);
 
-        const { data: priorReversal } = await adminClient
-          .from("wallet_transactions")
-          .select("id")
-          .eq("user_id", store.user_id)
-          .eq("reference_id", order_id)
-          .eq("type", "debit")
-          .ilike("description", "Order cancelled%")
-          .limit(1);
+      const sellerShare = Number(priorCredit?.[0]?.amount || 0);
 
-        if (priorCredit?.length && !priorReversal?.length) {
-          try {
-            await adminClient.rpc("update_wallet_balance", {
-              _user_id: store.user_id,
-              _amount: sellerShare,
-              _type: "debit",
-              _description: `Order cancelled - refund reversal`,
-              _reference_id: order_id,
-            });
-          } catch (e) {
-            console.error("Seller wallet reversal error:", e);
-          }
+      if (priorCredit?.length && !priorReversal?.length && sellerShare > 0) {
+        try {
+          await adminClient.rpc("update_wallet_balance", {
+            _user_id: store.user_id,
+            _amount: sellerShare,
+            _type: "debit",
+            _description: `Order cancelled - refund reversal`,
+            _reference_id: order_id,
+          });
+        } catch (e) {
+          console.error("Seller wallet reversal error:", e);
         }
       }
     }
+
+    // Reverse platform commission ledger entries for this order
+    try {
+      await adminClient
+        .from("platform_commission_ledger")
+        .update({
+          reversed_at: new Date().toISOString(),
+          reversal_reason: "order_cancelled",
+        })
+        .eq("order_id", order_id)
+        .is("reversed_at", null);
+    } catch (e) {
+      console.error("Commission ledger reversal error:", e);
+    }
+
 
     // Reverse rider wallet credit if the delivery fee was already paid out
     if (order.delivery_person_id && Number(order.delivery_fee || 0) > 0) {
