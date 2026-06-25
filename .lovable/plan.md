@@ -1,81 +1,86 @@
-## Goal
-Reintroduce a category-based commission system. The platform automatically deducts commission from each sale based on the product's category; sellers receive the net amount, riders still receive their delivery fee. Categories are replaced with the 7 you specified, and Tutoring is removed.
+# Move jayeeexpress.com from Lovable hosting to Vercel
 
-## 1. Category overhaul
+Backend (database, edge functions, auth, storage) stays on Lovable Cloud — only the React frontend moves. The Vercel app will keep talking to the same Lovable Cloud project via `VITE_SUPABASE_*` env vars.
 
-Replace the category list everywhere with exactly these 7:
+## What I'll change in the project (build mode)
 
-| Category | Commission |
-|---|---|
-| Food | 10% |
-| Fashion | 10% |
-| Electronics | 10% |
-| Water | 5% |
-| Stationary | 5% |
-| Cosmetics | 10% |
-| Photography | 10% |
+The project is already mostly Vercel-ready (`vercel.json` has SPA rewrites, build is `vite build` → `dist`). Small hardening to do before cutover:
 
-Files updated:
-- `src/components/seller/ProductForm.tsx` — category dropdown
-- `src/components/sections/CategoriesSection.tsx` — homepage tiles + icons
-- `src/components/home/HomeCategorySidebar.tsx` — sidebar list + icons (use `Droplet` for Water, `BookOpen` for Stationary, `Sparkles` for Cosmetics)
+1. **`vercel.json`** — keep the SPA rewrite, add long-cache headers for `/assets/*` and a no-cache header for `/sw.js` + `/manifest.webmanifest` so the PWA updates correctly.
+2. **`.env.example`** — add a committed example file listing the three required Vite vars so future contributors know what to set in Vercel.
+3. **No code edits to** `src/integrations/supabase/client.ts`, `.env`, or `supabase/config.toml` (auto-generated / Lovable-managed).
 
-Existing products in retired categories (Books & Notes, Beauty & Care, Tutoring, Services, Sports, Other, Food & Snacks) get a one-time data migration:
-- `Food & Snacks` → `Food`
-- `Beauty & Care` → `Cosmetics`
-- `Books & Notes` → `Stationary`
-- Everything else → set `is_active = false` (seller must re-categorise before relisting). Sellers see a banner on their product list explaining why.
+Nothing else in the app needs changing — Edge Functions stay deployed on Lovable Cloud at `https://brqzedcxzjqwzpkwrmow.supabase.co/functions/v1/*` and the frontend already calls them via the Supabase client.
 
-## 2. Backend commission engine (single source of truth)
+## Step-by-step migration (you do this in your dashboards)
 
-New table `public.category_commissions`:
-- `category text PRIMARY KEY`, `commission_pct numeric NOT NULL CHECK (>=0 AND <=100)`, timestamps.
-- Seeded with the 7 rows above. Admin-editable later via SQL; not exposed to clients.
-- RLS: only `service_role` writes; `authenticated` may read (so admin UI later is trivial).
+### 1. Push code to GitHub
+- In Lovable: top-right **GitHub → Connect to GitHub → Create Repository**.
+- This creates a repo with the full project. Two-way sync stays on, so you can keep editing in Lovable and Vercel auto-redeploys.
 
-New helper `public.platform_commission_wallet_user_id()` (returns the configured platform wallet owner uuid from `platform_settings`) — or reuse existing platform_payouts flow. We'll credit commission into a dedicated `platform_payouts`-style accumulator rather than a user wallet, to keep it out of seller-visible balances.
+### 2. Import into Vercel
+- vercel.com → **Add New → Project → Import** the GitHub repo.
+- Framework preset: **Vite** (auto-detected).
+- Build command: `bun run build` (or leave the auto-detected `vite build`).
+- Output directory: `dist`.
+- Install command: `bun install` (auto).
 
-Add `platform_settings` row `commission_wallet_strategy = 'accumulator'` and a new table `public.platform_commission_ledger`:
-- `id`, `order_id`, `product_id`, `category`, `gross_amount`, `commission_pct`, `commission_amount`, `created_at`.
-- Service-role write only; admins read via `has_role('admin')`.
+### 3. Set environment variables in Vercel
+Under **Project Settings → Environment Variables**, add for **Production, Preview, Development**:
 
-### Update `finalize_order_payment` RPC
+```
+VITE_SUPABASE_PROJECT_ID    = brqzedcxzjqwzpkwrmow
+VITE_SUPABASE_URL           = https://brqzedcxzjqwzpkwrmow.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY = (copy from your Lovable .env — the long eyJ... anon key)
+VITE_VAPID_PUBLIC_KEY       = (copy from your Lovable .env)
+```
 
-Inside the per-store loop, when computing `_items_total`:
-1. For each line item, look up product `category` and the matching `commission_pct` (fallback 0% if category missing).
-2. Compute `line_commission = round(price * qty * pct / 100, 2)`.
-3. Accumulate `_store_commission` and `_store_net = _items_total - _store_commission`.
-4. Credit the seller wallet with `_store_net` (not `_items_total`).
-5. Insert one `platform_commission_ledger` row per line item.
-6. Seller notification still shows the credited (net) amount only — per your "net only" preference.
+These are all publishable / public keys — safe to put in Vercel. Click **Deploy**. You'll get a `*.vercel.app` URL. Open it and confirm login, products, checkout, and push notifications work end-to-end against Lovable Cloud.
 
-Delivery fee logic is untouched: rider still gets their share through the existing `payout-delivery` flow; commission is only on goods, never on the delivery fee.
+### 4. Add the domain in Vercel (BEFORE removing it from Lovable)
+- Vercel project → **Settings → Domains → Add** `jayeeexpress.com` and again `www.jayeeexpress.com`.
+- Vercel will show "Invalid Configuration" and the records it expects. Note them:
+  - **Apex** `jayeeexpress.com` → A record `76.76.21.21`
+  - **www** `www.jayeeexpress.com` → CNAME `cname.vercel-dns.com`
+- Pick which one is **Primary** in Vercel (usually apex), the other auto-redirects.
 
-### Refunds / cancellations
+### 5. Remove the domain from Lovable
+- Lovable → **Project Settings → Project → Domains** → three-dot menu next to `jayeeexpress.com` (and the `www` entry) → **Remove**. Do the same for `www.jayeeexpress.com`.
+- This releases the domain so Vercel can claim it. Your Lovable `jayee-express.lovable.app` URL keeps working.
 
-`cancel-order-refund` already debits the seller wallet on cancel. Extend it to also debit (reverse) the matching `platform_commission_ledger` rows so commission isn't kept on cancelled sales. Add a `reversed_at` column to the ledger for audit.
+### 6. Update DNS at your registrar
+Log in to wherever you bought `jayeeexpress.com` and replace the existing records:
 
-## 3. UI changes (minimal, per "net only")
+| Type  | Name | Value                        | TTL  |
+|-------|------|------------------------------|------|
+| A     | `@`  | `76.76.21.21`                | 3600 |
+| CNAME | `www`| `cname.vercel-dns.com`       | 3600 |
 
-- Seller wallet & order detail: keep showing the credited (net) amount with no breakdown. No commission column added.
-- Admin: extend `/admin/payouts` (or add `/admin/commissions`) with a read-only table of `platform_commission_ledger` totals by day / category, plus a CSV export. This is the only place commission is visible.
-- Product form: category dropdown shows the 7 categories only.
+Delete:
+- The old A record `185.158.133.1` (Lovable's IP) on both `@` and `www`.
+- The old `_lovable` TXT verification record (no longer needed).
 
-## 4. Data migration steps (one SQL migration)
+If your registrar is Cloudflare, set the proxy to **DNS only** (grey cloud) initially so Vercel can verify and issue SSL, then you can re-enable proxy if you want.
 
-1. Create `category_commissions` + seed.
-2. Create `platform_commission_ledger`.
-3. `UPDATE products SET category = 'Food' WHERE category = 'Food & Snacks';` etc.
-4. `UPDATE products SET is_active = false WHERE category NOT IN (<7 list>);`
-5. Replace `finalize_order_payment` with the commission-aware version.
-6. Update `cancel-order-refund` edge function to reverse ledger entries.
+### 7. Wait for verification + SSL
+- In Vercel → Domains, both entries flip to **Valid Configuration** → SSL issues automatically (usually minutes, up to ~24h depending on DNS propagation).
+- Visit `https://jayeeexpress.com` and `https://www.jayeeexpress.com` to confirm.
+
+### 8. Post-cutover checks
+- Test deep links (e.g. `/cart`, `/admin`) refresh without 404 — covered by `vercel.json` rewrites.
+- Test Paystack callback URL still resolves to `jayeeexpress.com` (no change needed since the domain is the same).
+- Test PWA install + push notifications.
+- Test Google OAuth (the redirect URL is `window.location.origin` so it'll just work on the same domain).
+
+## Technical details
+
+- **Why backend doesn't move:** Edge Functions, DB, auth, storage live in the Lovable Cloud Supabase project. Vercel just hosts the static Vite build that calls them via HTTPS. Nothing in `supabase/functions/*` is bundled into the frontend.
+- **GitHub two-way sync stays:** edits in Lovable push to GitHub → Vercel auto-deploys on push. You don't have to leave Lovable.
+- **Rollback plan:** if anything goes wrong, switch DNS back to A `185.158.133.1` and re-add the domain in Lovable Project Settings → Domains. The `jayee-express.lovable.app` deploy is never deleted.
+- **PWA service worker caching:** the cache-control headers I'll add to `vercel.json` prevent stale `sw.js` so users get updates on next visit.
 
 ## Out of scope
-- Retroactive commission on already-paid orders (your choice: new orders only).
-- Admin UI to edit commission %s (DB-only for now; UI can come later).
-- Showing commission breakdown to sellers (your choice: net only).
 
-## Technical notes
-- All commission math runs inside the existing advisory-locked transaction in `finalize_order_payment`, so it's atomic with order creation and idempotent on webhook retries.
-- `category_commissions` lookup happens server-side only — clients cannot influence the rate.
-- Net credit goes through the existing `update_wallet_balance` helper, so balance immutability and audit trails are preserved.
+- Migrating Edge Functions or DB off Lovable Cloud.
+- Custom domain on the Lovable preview URL.
+- Changing the Capacitor Android app (it points at the same Supabase URL — no change).
