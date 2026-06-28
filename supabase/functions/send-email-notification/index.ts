@@ -109,7 +109,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
       };
       
       return {
-        subject: `Order Update - Your order is ${data.status}`,
+        subject: `Order Update - Your order is ${h(data.status)}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -118,13 +118,13 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             </div>
             
             <div style="background: ${statusColors[data.status || ''] || '#666'}; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
-              <h2 style="margin: 0 0 10px 0;">${statusEmoji[data.status || ''] || '📦'} Order ${data.status?.charAt(0).toUpperCase()}${data.status?.slice(1)}</h2>
-              <p style="margin: 0; opacity: 0.9;">Order #${data.orderId?.slice(0, 8)}</p>
+              <h2 style="margin: 0 0 10px 0;">${statusEmoji[data.status || ''] || '📦'} Order ${h((data.status?.charAt(0).toUpperCase() ?? '') + (data.status?.slice(1) ?? ''))}</h2>
+              <p style="margin: 0; opacity: 0.9;">Order #${h(data.orderId?.slice(0, 8))}</p>
             </div>
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-              <p style="margin: 5px 0;"><strong>Store:</strong> ${data.storeName}</p>
-              <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: ${statusColors[data.status || ''] || '#666'};">${data.status}</span></p>
+              <p style="margin: 5px 0;"><strong>Store:</strong> ${h(data.storeName)}</p>
+              <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: ${statusColors[data.status || ''] || '#666'};">${h(data.status)}</span></p>
             </div>
             
             <p style="color: #666; text-align: center;">Check your purchase history for more details.</p>
