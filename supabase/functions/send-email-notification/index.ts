@@ -42,9 +42,9 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
     case "new_order":
       const itemsList = data.items?.map(i => `
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${i.name}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${i.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₵${i.price.toLocaleString()}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${h(i.name)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${h(i.quantity)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₵${h(Number(i.price).toLocaleString())}</td>
         </tr>
       `).join('') || '';
       
