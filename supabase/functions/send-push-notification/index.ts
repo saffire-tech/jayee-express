@@ -209,6 +209,7 @@ serve(async (req) => {
     const bearer = authHeader.replace('Bearer ', '');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const isServiceRole = !!serviceRoleKey && bearer === serviceRoleKey;
+    let callerUserId: string | null = null;
     if (!isServiceRole) {
       const supabaseUrlForAuth = Deno.env.get('SUPABASE_URL');
       const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -228,6 +229,7 @@ serve(async (req) => {
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      callerUserId = userData.user.id;
     }
 
 
@@ -255,6 +257,47 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Authorization allow-list for user-initiated calls
+    if (!isServiceRole && callerUserId && callerUserId !== user_id) {
+      const ntype = String((notification.data as Record<string, unknown> | undefined)?.type || '');
+      const orderId = (notification.data as Record<string, unknown> | undefined)?.orderId as string | undefined;
+      let allowed = false;
+
+      if (ntype === 'message') {
+        const { data: msg } = await supabase
+          .from('messages')
+          .select('id')
+          .eq('sender_id', callerUserId)
+          .eq('receiver_id', user_id)
+          .limit(1)
+          .maybeSingle();
+        allowed = !!msg;
+      } else if (ntype === 'order' && orderId) {
+        const { data: order } = await supabase
+          .from('orders')
+          .select('buyer_id, store_id, stores!inner(user_id)')
+          .eq('id', orderId)
+          .maybeSingle();
+        const storeOwner = (order as { stores?: { user_id?: string } } | null)?.stores?.user_id;
+        const buyerId = (order as { buyer_id?: string } | null)?.buyer_id;
+        // Either: caller is buyer notifying store owner, or caller is store owner notifying buyer
+        allowed = !!order && (
+          (buyerId === callerUserId && storeOwner === user_id) ||
+          (storeOwner === callerUserId && buyerId === user_id)
+        );
+      }
+
+      if (!allowed) {
+        console.warn(`Forbidden push: caller=${callerUserId} -> recipient=${user_id} type=${ntype}`);
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: not authorized to notify this user' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+
 
     console.log('Sending notification to user:', user_id);
     console.log('Notification payload:', notification);

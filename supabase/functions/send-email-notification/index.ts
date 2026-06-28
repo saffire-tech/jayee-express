@@ -246,6 +246,7 @@ const handler = async (req: Request): Promise<Response> => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
     const isServiceRole = !!serviceRoleKey && bearer === serviceRoleKey;
+    let callerUserId: string | null = null;
     if (!isServiceRole) {
       if (!authHeader) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -264,6 +265,7 @@ const handler = async (req: Request): Promise<Response> => {
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
+      callerUserId = u.user.id;
     }
 
     const { type, recipientUserId, data }: EmailNotificationRequest = await req.json();
@@ -276,6 +278,52 @@ const handler = async (req: Request): Promise<Response> => {
       serviceRoleKey,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
+
+    // Authorization allow-list for user-initiated calls
+    if (!isServiceRole && callerUserId && callerUserId !== recipientUserId) {
+      let allowed = false;
+      if (type === "new_order" && data?.orderId) {
+        // Caller (buyer) just created this order; recipient must be the store owner
+        const { data: order } = await supabaseAdmin
+          .from("orders")
+          .select("buyer_id, store_id, stores!inner(user_id)")
+          .eq("id", data.orderId)
+          .maybeSingle();
+        const storeOwner = (order as { stores?: { user_id?: string } } | null)?.stores?.user_id;
+        const buyerId = (order as { buyer_id?: string } | null)?.buyer_id;
+        allowed = !!order && buyerId === callerUserId && storeOwner === recipientUserId;
+      } else if (type === "order_status" && data?.orderId) {
+        // Caller is the store owner updating the order; recipient must be the buyer
+        const { data: order } = await supabaseAdmin
+          .from("orders")
+          .select("buyer_id, store_id, stores!inner(user_id)")
+          .eq("id", data.orderId)
+          .maybeSingle();
+        const storeOwner = (order as { stores?: { user_id?: string } } | null)?.stores?.user_id;
+        const buyerId = (order as { buyer_id?: string } | null)?.buyer_id;
+        allowed = !!order && storeOwner === callerUserId && buyerId === recipientUserId;
+      } else if (type === "new_message") {
+        // Caller must have sent a message to recipient
+        const { data: msg } = await supabaseAdmin
+          .from("messages")
+          .select("id")
+          .eq("sender_id", callerUserId)
+          .eq("receiver_id", recipientUserId)
+          .limit(1)
+          .maybeSingle();
+        allowed = !!msg;
+      }
+      // low_stock is restricted to service role (seller-side server jobs)
+
+      if (!allowed) {
+        console.warn(`Forbidden email: caller=${callerUserId} -> recipient=${recipientUserId} type=${type}`);
+        return new Response(
+          JSON.stringify({ error: "Forbidden: not authorized to notify this user" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
 
     // Get user email from auth.users
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(recipientUserId);
