@@ -138,7 +138,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
 
     case "new_message":
       return {
-        subject: `New message from ${data.senderName}`,
+        subject: `New message from ${h(data.senderName)}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -148,11 +148,11 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             
             <div style="background: #3b82f6; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
               <h2 style="margin: 0 0 10px 0;">💬 New Message</h2>
-              <p style="margin: 0; opacity: 0.9;">You have a new message from ${data.senderName}</p>
+              <p style="margin: 0; opacity: 0.9;">You have a new message from ${h(data.senderName)}</p>
             </div>
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-              <p style="margin: 0; color: #333; font-style: italic;">"${data.messagePreview?.slice(0, 150)}${(data.messagePreview?.length || 0) > 150 ? '...' : ''}"</p>
+              <p style="margin: 0; color: #333; font-style: italic;">"${h(data.messagePreview?.slice(0, 150))}${(data.messagePreview?.length || 0) > 150 ? '...' : ''}"</p>
             </div>
             
             <p style="color: #666; text-align: center;">Log in to Jayee Express to reply to this message.</p>
