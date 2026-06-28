@@ -11,8 +11,20 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    // Require shared secret for cron invocation
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const provided = req.headers.get('x-cron-secret');
+    const authHeader = req.headers.get('Authorization') || '';
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const isServiceRole = authHeader === `Bearer ${serviceKey}`;
+    if (!isServiceRole && (!cronSecret || provided !== cronSecret)) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
