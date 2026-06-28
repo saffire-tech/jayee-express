@@ -29,6 +29,14 @@ interface EmailNotificationRequest {
   };
 }
 
+const h = (s: unknown): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) => {
   switch (type) {
     case "new_order":
