@@ -78,15 +78,22 @@ Deno.serve(async (req) => {
     if (resendKey && user.email) {
       const when = new Date().toLocaleString("en-GB", { timeZone: "Africa/Accra" });
       const ua = user_agent || req.headers.get("user-agent") || "Unknown device";
+      const esc = (s: unknown) => String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+      const fullName = user.user_metadata?.full_name;
       const html = `
         <div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;padding:24px;color:#111">
           <h2 style="color:#f97316">New sign-in to your Jayee Express account</h2>
-          <p>Hi${user.user_metadata?.full_name ? ` ${user.user_metadata.full_name}` : ""},</p>
+          <p>Hi${fullName ? ` ${esc(fullName)}` : ""},</p>
           <p>We noticed a sign-in from a device we haven't seen before:</p>
           <div style="background:#f6f6f6;border-radius:8px;padding:14px;margin:16px 0;font-size:14px;line-height:1.5">
-            <div><strong>Device:</strong> ${ua}</div>
-            <div><strong>IP:</strong> ${ip}</div>
-            <div><strong>When:</strong> ${when} (Accra time)</div>
+            <div><strong>Device:</strong> ${esc(ua)}</div>
+            <div><strong>IP:</strong> ${esc(ip)}</div>
+            <div><strong>When:</strong> ${esc(when)} (Accra time)</div>
           </div>
           <p>If this was you, no action is needed.</p>
           <p>If you don't recognise this activity, change your password immediately and review your account.</p>
