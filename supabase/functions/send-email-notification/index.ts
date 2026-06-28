@@ -29,19 +29,27 @@ interface EmailNotificationRequest {
   };
 }
 
+const h = (s: unknown): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) => {
   switch (type) {
     case "new_order":
       const itemsList = data.items?.map(i => `
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${i.name}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${i.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₵${i.price.toLocaleString()}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${h(i.name)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${h(i.quantity)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">₵${h(Number(i.price).toLocaleString())}</td>
         </tr>
       `).join('') || '';
       
       return {
-        subject: `🎉 New Order Received! - Order #${data.orderId?.slice(0, 8)}`,
+        subject: `🎉 New Order Received! - Order #${h(data.orderId?.slice(0, 8))}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -51,12 +59,12 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             
             <div style="background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
               <h2 style="margin: 0 0 10px 0;">🎉 New Order Received!</h2>
-              <p style="margin: 0; opacity: 0.9;">You have a new order from ${data.buyerName || 'a customer'}</p>
+              <p style="margin: 0; opacity: 0.9;">You have a new order from ${h(data.buyerName || 'a customer')}</p>
             </div>
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
               <h3 style="margin: 0 0 15px 0; color: #333;">Order Details</h3>
-              <p style="margin: 5px 0;"><strong>Order ID:</strong> ${data.orderId?.slice(0, 8)}</p>
+              <p style="margin: 5px 0;"><strong>Order ID:</strong> ${h(data.orderId?.slice(0, 8))}</p>
               <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
                 <thead>
                   <tr style="background: #eee;">
@@ -71,7 +79,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
                 <tfoot>
                   <tr>
                     <td colspan="2" style="padding: 10px; font-weight: bold;">Total</td>
-                    <td style="padding: 10px; text-align: right; font-weight: bold; color: #f97316;">₵${data.orderAmount?.toLocaleString()}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: bold; color: #f97316;">₵${h(Number(data.orderAmount ?? 0).toLocaleString())}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -101,7 +109,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
       };
       
       return {
-        subject: `Order Update - Your order is ${data.status}`,
+        subject: `Order Update - Your order is ${h(data.status)}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -110,13 +118,13 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             </div>
             
             <div style="background: ${statusColors[data.status || ''] || '#666'}; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
-              <h2 style="margin: 0 0 10px 0;">${statusEmoji[data.status || ''] || '📦'} Order ${data.status?.charAt(0).toUpperCase()}${data.status?.slice(1)}</h2>
-              <p style="margin: 0; opacity: 0.9;">Order #${data.orderId?.slice(0, 8)}</p>
+              <h2 style="margin: 0 0 10px 0;">${statusEmoji[data.status || ''] || '📦'} Order ${h((data.status?.charAt(0).toUpperCase() ?? '') + (data.status?.slice(1) ?? ''))}</h2>
+              <p style="margin: 0; opacity: 0.9;">Order #${h(data.orderId?.slice(0, 8))}</p>
             </div>
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-              <p style="margin: 5px 0;"><strong>Store:</strong> ${data.storeName}</p>
-              <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: ${statusColors[data.status || ''] || '#666'};">${data.status}</span></p>
+              <p style="margin: 5px 0;"><strong>Store:</strong> ${h(data.storeName)}</p>
+              <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: ${statusColors[data.status || ''] || '#666'};">${h(data.status)}</span></p>
             </div>
             
             <p style="color: #666; text-align: center;">Check your purchase history for more details.</p>
@@ -130,7 +138,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
 
     case "new_message":
       return {
-        subject: `New message from ${data.senderName}`,
+        subject: `New message from ${h(data.senderName)}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -140,11 +148,11 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             
             <div style="background: #3b82f6; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
               <h2 style="margin: 0 0 10px 0;">💬 New Message</h2>
-              <p style="margin: 0; opacity: 0.9;">You have a new message from ${data.senderName}</p>
+              <p style="margin: 0; opacity: 0.9;">You have a new message from ${h(data.senderName)}</p>
             </div>
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-              <p style="margin: 0; color: #333; font-style: italic;">"${data.messagePreview?.slice(0, 150)}${(data.messagePreview?.length || 0) > 150 ? '...' : ''}"</p>
+              <p style="margin: 0; color: #333; font-style: italic;">"${h(data.messagePreview?.slice(0, 150))}${(data.messagePreview?.length || 0) > 150 ? '...' : ''}"</p>
             </div>
             
             <p style="color: #666; text-align: center;">Log in to Jayee Express to reply to this message.</p>
@@ -159,9 +167,9 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
     case "low_stock":
       const productsList = data.products?.map(p => `
         <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">${p.name}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${h(p.name)}</td>
           <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center; color: ${p.stock === 0 ? '#ef4444' : '#f97316'}; font-weight: bold;">
-            ${p.stock === 0 ? 'Out of Stock' : `${p.stock} left`}
+            ${p.stock === 0 ? 'Out of Stock' : `${h(p.stock)} left`}
           </td>
         </tr>
       `).join('') || '';
