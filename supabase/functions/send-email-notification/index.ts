@@ -167,9 +167,9 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
     case "low_stock":
       const productsList = data.products?.map(p => `
         <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #eee;">${p.name}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${h(p.name)}</td>
           <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center; color: ${p.stock === 0 ? '#ef4444' : '#f97316'}; font-weight: bold;">
-            ${p.stock === 0 ? 'Out of Stock' : `${p.stock} left`}
+            ${p.stock === 0 ? 'Out of Stock' : `${h(p.stock)} left`}
           </td>
         </tr>
       `).join('') || '';
