@@ -38,6 +38,9 @@ const ReportsManagement = lazy(() => import("./pages/admin/ReportsManagement"));
 const RiderApplications = lazy(() => import("./pages/admin/RiderApplications"));
 const PayoutsManagement = lazy(() => import("./pages/admin/PayoutsManagement"));
 const PaymentsReconciliation = lazy(() => import("./pages/admin/PaymentsReconciliation"));
+const HelpManagement = lazy(() => import("./pages/admin/HelpManagement"));
+const Help = lazy(() => import("./pages/Help"));
+import { FloatingHelpButton } from "./components/help/FloatingHelpButton";
 
 const ReportIssue = lazy(() => import("./pages/ReportIssue"));
 const Download = lazy(() => import("./pages/Download"));
@@ -118,6 +121,8 @@ const App = () => {
                       <Route path="/admin/riders" element={<AdminRoute><RiderApplications /></AdminRoute>} />
                       <Route path="/admin/payouts" element={<AdminRoute><PayoutsManagement /></AdminRoute>} />
                       <Route path="/admin/payments" element={<AdminRoute><PaymentsReconciliation /></AdminRoute>} />
+                      <Route path="/admin/help" element={<AdminRoute><HelpManagement /></AdminRoute>} />
+                      <Route path="/help" element={<Help />} />
 
                       <Route path="/delivery" element={<DeliveryDashboard />} />
                       <Route path="/report-issue" element={<ReportIssue />} />
@@ -127,6 +132,7 @@ const App = () => {
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     <MobileTabBar />
+                    <FloatingHelpButton />
                   </Suspense>
                 </CartProvider>
               </AdminProvider>
