@@ -14,18 +14,18 @@ const Footer = () => {
               Connecting local entrepreneurs with buyers in your community.
             </p>
             <div className="flex items-center gap-2">
-              {[
-                { Icon: Facebook, label: "Facebook" },
-                { Icon: Twitter, label: "Twitter" },
-                { Icon: Instagram, label: "Instagram" },
-                { Icon: Mail, label: "Email" },
-              ].map(({ Icon, label }) => (
-                <a
-                  key={label}
-                  href="#"
-                  aria-label={`Jayee Express on ${label}`}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                >
+                {[
+                  { Icon: Facebook, label: "Facebook", href: "#" },
+                  { Icon: Twitter, label: "Twitter", href: "#" },
+                  { Icon: Instagram, label: "Instagram", href: "https://www.instagram.com/jayeeexpress?utm_source=qr&igsh=ajM2bTFiN2J2dGw1" },
+                  { Icon: Mail, label: "Email", href: "#" },
+                ].map(({ Icon, label, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    aria-label={`Jayee Express on ${label}`}
+                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                  >
                   <Icon className="h-4 w-4" />
                 </a>
               ))}
