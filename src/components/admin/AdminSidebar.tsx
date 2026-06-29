@@ -11,6 +11,7 @@ import {
   Truck,
   Wallet,
   CreditCard,
+  HelpCircle,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -34,6 +35,7 @@ const menuItems = [
   { title: 'Rider Applications', url: '/admin/riders', icon: Truck },
   { title: 'Payouts', url: '/admin/payouts', icon: Wallet },
   { title: 'Payments', url: '/admin/payments', icon: CreditCard },
+  { title: 'Help Center', url: '/admin/help', icon: HelpCircle },
 ];
 
 

@@ -267,6 +267,74 @@ export type Database = {
         }
         Relationships: []
       }
+      help_problems: {
+        Row: {
+          created_at: string
+          id: string
+          sort_order: number
+          steps_html: string
+          title: string
+          topic_id: string
+          updated_at: string
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sort_order?: number
+          steps_html?: string
+          title: string
+          topic_id: string
+          updated_at?: string
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sort_order?: number
+          steps_html?: string
+          title?: string
+          topic_id?: string
+          updated_at?: string
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_problems_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "help_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_topics: {
+        Row: {
+          audience: Database["public"]["Enums"]["help_audience"]
+          created_at: string
+          id: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience: Database["public"]["Enums"]["help_audience"]
+          created_at?: string
+          id?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["help_audience"]
+          created_at?: string
+          id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           created_at: string
@@ -1664,6 +1732,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "delivery"
+      help_audience: "buyer" | "seller" | "delivery"
       user_mode: "buyer" | "seller"
     }
     CompositeTypes: {
@@ -1793,6 +1862,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "delivery"],
+      help_audience: ["buyer", "seller", "delivery"],
       user_mode: ["buyer", "seller"],
     },
   },
