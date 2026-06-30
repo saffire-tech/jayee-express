@@ -1,38 +1,43 @@
 ## Goal
-Fix Google sign-in on `jayeeexpress.com` while keeping the app hosted on Vercel and using Lovable-managed Google auth.
+Make this project runnable on Android Studio via Capacitor, with production-ready config (no sandbox hot-reload URL).
 
-## Root cause
-The Google button sends the browser to:
-
-```text
-https://jayeeexpress.com/~oauth/initiate?provider=google&redirect_uri=...
-```
-
-That `~oauth` path is not an app page. It must be handled by Lovable's auth broker. On Vercel, the current catch-all rewrite sends every unknown path to `index.html`, so `/~oauth/initiate` falls into the React app and shows the 404 page.
+## Current state
+- `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/push-notifications` are already installed.
+- `capacitor.config.ts` exists with `appId: com.shodel.app`, `appName: Jayee Express`, `webDir: dist`.
+- It currently points `server.url` to the Lovable sandbox preview — that forces the installed Android app to load the sandbox instead of the real built web bundle. This must be removed for a real Android Studio run.
+- No `android/` folder is committed (Capacitor native folders are generated locally, not by Lovable).
 
 ## Plan
-1. Update `vercel.json` so `~oauth` routes are forwarded before the SPA fallback:
 
-```json
-{
-  "rewrites": [
-    {
-      "source": "/~oauth/:path*",
-      "destination": "https://jayee-express.lovable.app/~oauth/:path*"
-    },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
+### 1. Update `capacitor.config.ts`
+- Remove the `server.url` / `cleartext` block so the Android app loads the bundled `dist/` web assets instead of the sandbox URL.
+- Keep `appId`, `appName`, `webDir: "dist"`, and the `PushNotifications` plugin config.
+
+### 2. Document the Android Studio run steps (README-level, no code change needed from Lovable side)
+The `android/` native project must be generated on the user's own machine — Lovable's sandbox cannot run Android Studio. After pulling the repo via GitHub:
+
+```
+npm install
+npm run build
+npx cap add android
+npx cap sync android
+npx cap open android
 ```
 
-2. Keep the existing auth code unchanged:
-   - `src/pages/Auth.tsx` already uses `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })` correctly.
-   - `src/integrations/lovable/index.ts` is auto-generated and should not be edited.
+Then in Android Studio: let Gradle sync, pick a device/emulator, press Run.
 
-3. After deployment to Vercel, test:
-   - Open `https://jayeeexpress.com/auth`.
-   - Click **Continue with Google**.
-   - Confirm `/~oauth/initiate` no longer displays the app 404 and proceeds to Google/Lovable auth.
+For later code changes the loop is:
+```
+npm run build
+npx cap sync android
+```
 
-## Important note
-If Vercel external rewrites do not preserve this auth broker flow for your domain, the reliable fallback is to connect `jayeeexpress.com` directly in Lovable Project Settings → Domains and use Lovable hosting for the custom domain. Managed OAuth is designed to work natively there.
+### 3. Notes / caveats
+- Push notifications via `@capacitor/push-notifications` require Firebase setup (`google-services.json` placed in `android/app/`) — only needed when the user wants native FCM push on the device build.
+- Custom `appId` `com.shodel.app` is preserved so existing FCM/Play config keeps working.
+- The web bundle uses `import.meta.env.VITE_SUPABASE_*` — these are baked in at `npm run build` time, so the Android app will talk to the same Lovable Cloud backend.
+
+## Technical summary of file changes
+- `capacitor.config.ts`: drop the `server` block.
+
+No other files need to be edited — `android/` is generated locally by `npx cap add android` and is not part of the Lovable-managed source.
