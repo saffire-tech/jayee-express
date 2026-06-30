@@ -1,84 +1,43 @@
-# Help Center Plan
+# Fix Google sign-in error on jayeeexpress.com
 
-## What we're building
+## What's happening
 
-A floating help button on public pages that opens a per-role Help Center. Admins author topics and problems (with rich-text steps + embedded YouTube/Shorts) from the admin dashboard. Each user only sees help for their role.
+You're on managed Google OAuth (good — no Google Cloud Console setup needed). The failing URL is:
 
-## User experience
+```
+https://www.jayeeexpress.com/~oauth/initiate?provider=google&redirect_uri=https%3A%2F%2Fwww.jayeeexpress.com&...
+```
 
-**Floating Help button**
-- Round orange button, bottom-right, just above the mobile tab bar.
-- Visible on all public pages.
-- Hidden on: `/admin/*`, `/auth`, `/reset-password`, `/select-city`, `/cart` (checkout), `/messages`.
-- Clicking opens `/help`.
+Managed OAuth works by Lovable's hosting proxy intercepting `/~oauth/initiate` and `/~oauth/callback` and routing them through `oauth.lovable.app`. That interception only happens on domains that are fully **Active** in Lovable's domain system.
 
-**Help page (`/help`) — strict role detection**
-- Logged-out → Buyer help.
-- Logged-in: role resolved once via existing data
-  - has approved store → `seller`
-  - else has active rider subscription / rider role → `delivery`
-  - else → `buyer`
-- No tabs, no switcher. Page title reflects the role ("Seller Help", etc.).
-- Layout: list of Topics (e.g. "How to upload a product"). Expanding a topic reveals its Problems. Each Problem shows:
-  1. Embedded YouTube/Shorts player (if a link was provided)
-  2. Rich-text steps rendered below the video
-- Search box filters topics/problems by title.
+The request is hitting the `www.` host. If only the apex `jayeeexpress.com` was connected in Project Settings → Domains (and not `www.jayeeexpress.com` as a separate entry), then `www` is being served by something else (or by a partial config) and `/~oauth/initiate` isn't being proxied — so it falls through to the SPA, which shows your "return to home" error page.
 
-**Admin authoring (`/admin/help`)**
-- New sidebar entry "Help Center".
-- Audience selector: Buyer / Seller / Delivery.
-- For the selected audience: CRUD list of Topics (title, sort order).
-- Inside a topic: CRUD list of Problems with fields
-  - Title
-  - YouTube URL (any youtube.com / youtu.be / shorts URL — normalized to an embed URL on save)
-  - Steps (rich-text editor: bold, italic, lists, links, inline images)
-  - Sort order
-- Reordering via up/down buttons (keeps scope tight).
+This is a hosting/domain configuration issue, not a code bug. `src/pages/Auth.tsx` is calling `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })` correctly — no code change is needed there.
 
-## Technical notes
+## Steps to fix
 
-**Database (new migration)**
-- `audience` enum: `buyer | seller | delivery`
-- `help_topics`: `id, audience, title, sort_order, created_at, updated_at`
-- `help_problems`: `id, topic_id (FK cascade), title, youtube_url, steps_html, sort_order, created_at, updated_at`
-- GRANTs: `SELECT` to `anon` + `authenticated` (help is public-readable); full CRUD to `service_role`; admins write via policies.
-- RLS:
-  - SELECT: anyone
-  - INSERT/UPDATE/DELETE: `has_role(auth.uid(), 'admin')`
-- `updated_at` trigger using existing `update_updated_at_column()`.
+1. **Open Project Settings → Domains.** Confirm BOTH of these are listed with status **Active**:
+   - `jayeeexpress.com`
+   - `www.jayeeexpress.com`
 
-**Role resolution for `/help`**
-- Reuse existing checks: `useAuth`, `stores` table (user_id + is_verified), `has_active_rider_subscription` RPC. Resolved client-side in one hook (`useHelpAudience`).
+   If `www.jayeeexpress.com` is missing, click **Connect Domain**, enter `www.jayeeexpress.com`, and complete the DNS step (add the A record `www → 185.158.133.1` at your registrar, plus the `_lovable` TXT record if prompted). Wait for it to go Active (can take minutes to a few hours; up to 72h worst case).
 
-**YouTube embed**
-- Util `toYouTubeEmbed(url)` handles: `watch?v=`, `youtu.be/`, `shorts/`. Render in 16:9 (or 9:16 for Shorts) iframe with `loading="lazy"`.
+2. **Set one as Primary.** In the same Domains panel, mark one (typically `jayeeexpress.com`) as **Primary**. The other will redirect to it. This ensures OAuth always initiates from the Primary host with a consistent `redirect_uri`.
 
-**Rich-text editor**
-- Use TipTap (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link`, `@tiptap/extension-image`) — small, already React-friendly.
-- Store sanitized HTML in `steps_html`. Render with DOMPurify (`dompurify`) before `dangerouslySetInnerHTML` to prevent XSS — non-negotiable since admins author HTML.
-- Inline images: admin pastes image URLs (no new storage bucket needed for v1; if later requested, can add a `help-media` bucket).
+3. **Hard-refresh and retry.** Open the site in a private window, go to `/auth`, click **Continue with Google**. The `/~oauth/initiate` request should now be intercepted by Lovable's proxy and forward you to Google's consent screen.
 
-**Files to add**
-- `supabase/functions`-free; pure DB + frontend.
-- `src/components/help/FloatingHelpButton.tsx` — mounted once in `App.tsx`, internally checks `useLocation` to hide on excluded routes.
-- `src/pages/Help.tsx` — public help viewer.
-- `src/pages/admin/HelpManagement.tsx` — admin CRUD.
-- `src/components/admin/HelpTopicEditor.tsx`, `HelpProblemEditor.tsx` — dialogs.
-- `src/components/ui/RichTextEditor.tsx` — TipTap wrapper.
-- `src/hooks/useHelpAudience.ts`
-- `src/lib/youtube.ts` — embed URL normalizer
-- `src/lib/sanitizeHtml.ts` — DOMPurify wrapper
+## If both domains are already Active
 
-**Files to edit**
-- `src/App.tsx` — mount `<FloatingHelpButton />`; add `/help` route and `/admin/help` admin route.
-- `src/components/admin/AdminSidebar.tsx` — add "Help Center" menu item.
+Then the proxy interception itself is failing for this domain. In that case:
+- Tell me what status each domain shows (Active / Verifying / Setting up / Offline / Failed).
+- Try signing in with Google from the Lovable preview URL (`https://id-preview--…lovable.app/auth`). If that works, it confirms the code is fine and the issue is domain-side.
+- I'll then open a support path rather than changing code — managed OAuth on custom domains is supposed to work without any code changes.
 
-**Packages to install**
-- `@tiptap/react @tiptap/starter-kit @tiptap/extension-link @tiptap/extension-image`
-- `dompurify` + `@types/dompurify`
+## Out of scope
 
-## Out of scope (v1)
-- Per-user "Was this helpful?" feedback / analytics
-- MP4 uploads or non-YouTube embeds
-- Multi-language help
-- Per-store custom help
+- No edits to `src/pages/Auth.tsx`, `src/integrations/lovable/index.ts`, or auth config. Managed Google OAuth is already set up correctly; the failure is at the hosting/domain layer.
+- No need to add your own Google Cloud OAuth credentials.
+
+<presentation-actions>
+<presentation-open-publish>Open Project settings → Domains</presentation-open-publish>
+</presentation-actions>
