@@ -34,8 +34,16 @@ function generateOGHtml(
   type: 'product' | 'store' | 'service'
 ): string {
   const siteName = 'Jayee Express';
-  const safeTitle = title.replace(/"/g, '&quot;');
-  const safeDescription = description.replace(/"/g, '&quot;');
+  const esc = (s: string) => String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const safeTitle = esc(title);
+  const safeDescription = esc(description);
+  const safeImageUrl = esc(imageUrl);
+  const safeUrl = esc(url);
   
   return `<!DOCTYPE html>
 <html lang="en">
