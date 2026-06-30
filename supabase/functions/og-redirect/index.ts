@@ -34,8 +34,16 @@ function generateOGHtml(
   type: 'product' | 'store' | 'service'
 ): string {
   const siteName = 'Jayee Express';
-  const safeTitle = title.replace(/"/g, '&quot;');
-  const safeDescription = description.replace(/"/g, '&quot;');
+  const esc = (s: string) => String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const safeTitle = esc(title);
+  const safeDescription = esc(description);
+  const safeImageUrl = esc(imageUrl);
+  const safeUrl = esc(url);
   
   return `<!DOCTYPE html>
 <html lang="en">
@@ -46,31 +54,31 @@ function generateOGHtml(
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="${type === 'product' ? 'product' : 'website'}">
-  <meta property="og:url" content="${url}">
+  <meta property="og:url" content="${safeUrl}">
   <meta property="og:title" content="${safeTitle}">
   <meta property="og:description" content="${safeDescription}">
-  <meta property="og:image" content="${imageUrl}">
+  <meta property="og:image" content="${safeImageUrl}">
   <meta property="og:site_name" content="${siteName}">
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="${url}">
+  <meta name="twitter:url" content="${safeUrl}">
   <meta name="twitter:title" content="${safeTitle}">
   <meta name="twitter:description" content="${safeDescription}">
-  <meta name="twitter:image" content="${imageUrl}">
+  <meta name="twitter:image" content="${safeImageUrl}">
   
   <!-- WhatsApp -->
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   
   <!-- Redirect for regular users -->
-  <script>window.location.href = "${url}";</script>
+  <script>window.location.href = ${JSON.stringify(url)};</script>
   <noscript>
-    <meta http-equiv="refresh" content="0; url=${url}">
+    <meta http-equiv="refresh" content="0; url=${safeUrl}">
   </noscript>
 </head>
 <body>
-  <p>Redirecting to <a href="${url}">${safeTitle}</a>...</p>
+  <p>Redirecting to <a href="${safeUrl}">${safeTitle}</a>...</p>
 </body>
 </html>`;
 }

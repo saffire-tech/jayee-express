@@ -151,8 +151,8 @@ export const useNativePushNotifications = (): NativePushState => {
       console.log('[NativePush] Notification action performed:', notification);
       
       const data = notification.notification.data;
-      if (data?.url) {
-        // Navigate to the URL specified in the notification
+      if (data?.url && typeof data.url === 'string' && data.url.startsWith('/') && !data.url.startsWith('//')) {
+        // Only allow same-origin relative paths to prevent open redirects
         window.location.href = data.url;
       } else if (data?.type === 'new_message') {
         window.location.href = '/messages';
