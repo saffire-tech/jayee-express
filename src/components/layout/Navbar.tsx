@@ -9,7 +9,7 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { useNotificationCounts } from "@/hooks/useNotificationCounts";
 import { useDeliveryRole } from "@/hooks/useDeliveryRole";
 import GlobalSearch from "@/components/search/GlobalSearch";
-import shodelLogo from "@/assets/shodel-logo.png";
+import shodelLogo from "@/assets/shodel-logo-white.png";
 
 const Navbar = () => {
   const { user, profile, signOut } = useAuth();
