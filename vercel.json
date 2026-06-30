@@ -1,5 +1,9 @@
 {
   "rewrites": [
+    {
+      "source": "/~oauth/:path*",
+      "destination": "https://jayee-express.lovable.app/~oauth/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
