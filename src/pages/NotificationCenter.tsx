@@ -163,6 +163,7 @@ const NotificationCenter = () => {
 
       setNotifications(prev => prev.filter(n => !ids.includes(n.id)));
       setSelectedIds([]);
+      window.dispatchEvent(new Event("notifications-updated"));
       toast.success("Notifications deleted");
     } catch (error) {
       console.error("Error deleting notifications:", error);
