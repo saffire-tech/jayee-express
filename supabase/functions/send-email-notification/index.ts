@@ -342,7 +342,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending ${type} email to ${recipientEmail}`);
 
     const emailResponse = await resend.emails.send({
-      from: "Jayee Express <noreply@jayeeexpress.com>",
+      from: "Jayee Express <support@jayeeexpress.com>",
       to: [recipientEmail],
       subject: emailContent.subject,
       html: emailContent.html,
