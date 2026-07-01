@@ -138,10 +138,16 @@ export const useNotificationCounts = () => {
       )
       .subscribe();
 
+    const handleManualRefresh = () => fetchCounts();
+    window.addEventListener("notifications-updated", handleManualRefresh);
+    window.addEventListener("messages-updated", handleManualRefresh);
+
     return () => {
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(notificationsChannel);
+      window.removeEventListener("notifications-updated", handleManualRefresh);
+      window.removeEventListener("messages-updated", handleManualRefresh);
     };
   }, [user]);
 
