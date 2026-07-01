@@ -324,7 +324,7 @@ const Messages = () => {
   }
 
   return (
-    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+    <div className="h-[calc(100dvh-3.5rem)] md:h-[100dvh] bg-background flex flex-col overflow-hidden">
       <div className="shrink-0">
         <Navbar />
       </div>
