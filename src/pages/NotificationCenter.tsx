@@ -138,6 +138,7 @@ const NotificationCenter = () => {
         prev.map(n => (ids.includes(n.id) ? { ...n, is_read: true } : n))
       );
       setSelectedIds([]);
+      window.dispatchEvent(new Event("notifications-updated"));
       toast.success("Marked as read");
     } catch (error) {
       console.error("Error marking as read:", error);
@@ -162,6 +163,7 @@ const NotificationCenter = () => {
 
       setNotifications(prev => prev.filter(n => !ids.includes(n.id)));
       setSelectedIds([]);
+      window.dispatchEvent(new Event("notifications-updated"));
       toast.success("Notifications deleted");
     } catch (error) {
       console.error("Error deleting notifications:", error);
