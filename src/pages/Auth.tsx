@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
-import shodelLogo from "@/assets/shodel-logo.png";
+import shodelLogo from "@/assets/shodel-logo-white.png";
 import SEO from "@/components/SEO";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
