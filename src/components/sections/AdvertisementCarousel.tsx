@@ -59,7 +59,7 @@ const AdvertisementCarousel = () => {
 
   if (isLoading) {
     return (
-      <div className="w-full h-[300px] md:h-[400px]">
+      <div className="w-full aspect-video max-h-[520px]">
         <Skeleton className="w-full h-full" />
       </div>
     );
