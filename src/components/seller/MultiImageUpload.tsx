@@ -52,7 +52,12 @@ const MultiImageUpload = ({
 
       for (const file of filesToUpload) {
         // Compress each image before upload
-        const { blob, extension } = await compressImage(file);
+        const { blob, extension } = await compressImage(file, {
+          maxWidth: 1600,
+          maxHeight: 1600,
+          targetAspectRatio: 16 / 9,
+          fit: 'cover',
+        });
         const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
 
         const { error: uploadError } = await supabase.storage

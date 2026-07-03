@@ -59,7 +59,7 @@ const AdvertisementCarousel = () => {
 
   if (isLoading) {
     return (
-      <div className="w-full h-[300px] md:h-[400px]">
+      <div className="w-full aspect-video max-h-[520px]">
         <Skeleton className="w-full h-full" />
       </div>
     );
@@ -74,7 +74,7 @@ const AdvertisementCarousel = () => {
           {products.map((product) => (
             <div
               key={product.id}
-              className="flex-[0_0_100%] min-w-0 relative h-[300px] md:h-[400px] cursor-pointer"
+              className="flex-[0_0_100%] min-w-0 relative aspect-video max-h-[520px] cursor-pointer bg-muted"
               onClick={() => navigate(`/product/${product.id}`)}
             >
               {product.image_url ? (
