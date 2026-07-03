@@ -8,9 +8,13 @@ interface CompressOptions {
   maxWidth?: number;
   maxHeight?: number;
   quality?: number;
+  /** If set, output canvas will be forced to this width/height ratio (width / height). */
+  targetAspectRatio?: number;
+  /** How to fit the source into the target frame when targetAspectRatio is set. Default 'contain'. */
+  fit?: 'cover' | 'contain';
 }
 
-const DEFAULT_OPTIONS: Required<CompressOptions> = {
+const DEFAULT_OPTIONS = {
   maxWidth: 1200,
   maxHeight: 1200,
   quality: 0.8,

@@ -1,43 +1,36 @@
+
 ## Goal
-Make this project runnable on Android Studio via Capacitor, with production-ready config (no sandbox hot-reload URL).
+Make product images display consistently everywhere (especially the homepage carousel) regardless of the original photo's size or shape.
 
-## Current state
-- `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/push-notifications` are already installed.
-- `capacitor.config.ts` exists with `appId: com.shodel.app`, `appName: Jayee Express`, `webDir: dist`.
-- It currently points `server.url` to the Lovable sandbox preview — that forces the installed Android app to load the sandbox instead of the real built web bundle. This must be removed for a real Android Studio run.
-- No `android/` folder is committed (Capacitor native folders are generated locally, not by Lovable).
+## Problem
+Today, `compressImage` only scales images down to fit within 1200×1200 but **keeps the original aspect ratio**. A tall portrait phone photo and a wide landscape photo end up with very different shapes. The homepage carousel then uses `object-cover` on a fixed 300–400px height frame, which crops these inconsistently — subjects get cut off, and on narrow mobile screens tall images look zoomed while wide images leave awkward gaps.
 
-## Plan
+## Fix
 
-### 1. Update `capacitor.config.ts`
-- Remove the `server.url` / `cleartext` block so the Android app loads the bundled `dist/` web assets instead of the sandbox URL.
-- Keep `appId`, `appName`, `webDir: "dist"`, and the `PushNotifications` plugin config.
+### 1. Normalize product images at upload time to a fixed aspect ratio
+Update `src/lib/imageCompression.ts` to (optionally) output a **canvas of a target aspect ratio**, painting the source image centered with `object-fit: cover` semantics (scale to fill, crop overflow). Background fill for any letterbox edge cases: white.
 
-### 2. Document the Android Studio run steps (README-level, no code change needed from Lovable side)
-The `android/` native project must be generated on the user's own machine — Lovable's sandbox cannot run Android Studio. After pulling the repo via GitHub:
+- Add options: `targetAspectRatio?: number` (e.g. `16/9`) and `fit?: 'cover' | 'contain'` (default `contain` = current behavior, backward compatible).
+- When `targetAspectRatio` is set with `fit: 'cover'`, the output canvas dimensions become exactly `targetWidth × targetWidth / ratio`, and the source is drawn centered/cropped to fill.
 
-```
-npm install
-npm run build
-npx cap add android
-npx cap sync android
-npx cap open android
-```
+### 2. Apply the normalized ratio to product uploads only
+- `src/components/seller/ImageUpload.tsx` and `src/components/seller/MultiImageUpload.tsx`: pass `{ targetAspectRatio: 16/9, fit: 'cover', maxWidth: 1600 }` to `compressImage`. This gives every uploaded product image the same shape (1600×900) — good for carousel, cards, and detail pages.
+- Leave `StoreImageUpload`, `messageMedia`, and other uploaders untouched (they aren't the source of the carousel inconsistency).
 
-Then in Android Studio: let Gradle sync, pick a device/emulator, press Run.
+### 3. Tighten the carousel frame so it looks right on every device
+`src/components/sections/AdvertisementCarousel.tsx`:
+- Replace fixed pixel heights (`h-[300px] md:h-[400px]`) with a responsive `aspect-video` (16:9) wrapper so the frame matches the normalized image ratio exactly — no cropping surprises, no letterboxing.
+- Cap max height on very large screens (e.g. `max-h-[520px]`) and center the image.
+- Keep `object-cover` as a safety net for any legacy (pre-fix) product images already in the database.
 
-For later code changes the loop is:
-```
-npm run build
-npx cap sync android
-```
+### 4. (No migration needed)
+Existing images stay as-is; the carousel's `object-cover` + capped frame keeps them displayable. All **new** uploads will be uniform.
 
-### 3. Notes / caveats
-- Push notifications via `@capacitor/push-notifications` require Firebase setup (`google-services.json` placed in `android/app/`) — only needed when the user wants native FCM push on the device build.
-- Custom `appId` `com.shodel.app` is preserved so existing FCM/Play config keeps working.
-- The web bundle uses `import.meta.env.VITE_SUPABASE_*` — these are baked in at `npm run build` time, so the Android app will talk to the same Lovable Cloud backend.
+## Files to change
+- `src/lib/imageCompression.ts` — add `targetAspectRatio` + `fit: 'cover'` support.
+- `src/components/seller/ImageUpload.tsx` — pass 16:9 cover options.
+- `src/components/seller/MultiImageUpload.tsx` — pass 16:9 cover options.
+- `src/components/sections/AdvertisementCarousel.tsx` — switch to `aspect-video` responsive frame.
 
-## Technical summary of file changes
-- `capacitor.config.ts`: drop the `server` block.
-
-No other files need to be edited — `android/` is generated locally by `npx cap add android` and is not part of the Lovable-managed source.
+## Open question
+I'm proposing **16:9 (landscape)** because that's the natural shape for the homepage carousel and hero-style displays. The alternative is **1:1 (square)**, which looks better in product grid cards but leaves large empty bars in the carousel on wide screens. Confirm 16:9, or say "square" and I'll use 1:1 instead.
