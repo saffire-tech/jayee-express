@@ -64,6 +64,7 @@ const Messages = () => {
   const [activeConversationDetails, setActiveConversationDetails] = useState<Conversation | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
