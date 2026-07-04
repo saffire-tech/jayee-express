@@ -24,6 +24,7 @@ interface StoreInfo {
 
 const Cart = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
   const [deliveryData, setDeliveryData] = useState<{
