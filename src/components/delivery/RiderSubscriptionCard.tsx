@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
+import { openPaystackCheckout } from "@/lib/paystackInline";
 
 const RiderSubscriptionCard = () => {
   const { user } = useAuth();
