@@ -97,9 +97,24 @@ const Cart = () => {
       if (error) throw new Error(error.message || 'Payment initialization failed');
       if (data?.error) throw new Error(data.error);
 
-      // Redirect to Paystack payment page
-      if (data?.authorization_url) {
-        window.location.href = data.authorization_url;
+      // Open Paystack as an in-app overlay (falls back to redirect if inline fails)
+      if (data?.access_code || data?.authorization_url) {
+        await openPaystackCheckout({
+          accessCode: data.access_code,
+          authorizationUrl: data.authorization_url,
+          onSuccess: async (reference) => {
+            try {
+              if (reference) {
+                await supabase.functions.invoke('verify-payment', { body: { reference } });
+              }
+              toast.success('Payment successful');
+              navigate('/purchase-history');
+            } catch (e: any) {
+              toast.error(e.message || 'Payment verification failed');
+            }
+          },
+          onClose: () => setCheckingOut(false),
+        });
       } else {
         throw new Error('No payment URL returned');
       }
