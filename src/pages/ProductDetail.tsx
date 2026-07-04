@@ -290,7 +290,7 @@ const ProductDetail = () => {
                       idx === currentImageIndex ? 'border-primary' : 'border-transparent'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={img} alt="" className="w-full h-full object-contain bg-muted" />
                   </button>
                 ))}
               </div>
