@@ -35,12 +35,10 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }: Image
     setUploading(true);
 
     try {
-      // Compress image before upload
+      // Compress image before upload (preserve original aspect ratio)
       const { blob, extension } = await compressImage(file, {
         maxWidth: 1600,
         maxHeight: 1600,
-        targetAspectRatio: 16 / 9,
-        fit: 'cover',
       });
       const fileName = `${user.id}/${Date.now()}.${extension}`;
 

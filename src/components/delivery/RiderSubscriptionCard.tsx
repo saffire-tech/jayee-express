@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
+import { openPaystackCheckout } from "@/lib/paystackInline";
 
 const RiderSubscriptionCard = () => {
   const { user } = useAuth();
@@ -49,7 +50,25 @@ const RiderSubscriptionCard = () => {
         body: { email: user.email, months: 1 },
       });
       if (error) throw error;
-      if (data?.authorization_url) window.location.href = data.authorization_url;
+      if (data?.access_code || data?.authorization_url) {
+        await openPaystackCheckout({
+          accessCode: data.access_code,
+          authorizationUrl: data.authorization_url,
+          onSuccess: async (reference) => {
+            try {
+              if (reference) await supabase.functions.invoke("verify-payment", { body: { reference } });
+              toast.success("Subscription activated");
+              await load();
+            } catch (err: any) {
+              toast.error(err.message || "Verification failed");
+            } finally {
+              setPaying(false);
+            }
+          },
+          onClose: () => setPaying(false),
+        });
+        return;
+      }
     } catch (e: any) {
       toast.error(e.message || "Failed to start payment");
     } finally {

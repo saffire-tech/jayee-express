@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarClock, Crown, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import SubscribeDialog from "./SubscribeDialog";
+import { openPaystackCheckout } from "@/lib/paystackInline";
 
 interface Props {
   storeId: string;
@@ -105,11 +106,26 @@ const SubscriptionCard = ({ storeId, productCount, onUpdated }: Props) => {
         body: { email: user.email, store_id: storeId, months: 1 },
       });
       if (error) throw error;
-      if (data?.authorization_url) {
-        window.location.href = data.authorization_url;
-      } else {
-        throw new Error(data?.error || "Could not start payment");
+      if (data?.access_code || data?.authorization_url) {
+        await openPaystackCheckout({
+          accessCode: data.access_code,
+          authorizationUrl: data.authorization_url,
+          onSuccess: async (reference) => {
+            try {
+              if (reference) await supabase.functions.invoke("verify-payment", { body: { reference } });
+              toast.success("Subscription paid");
+              await load();
+            } catch (err: any) {
+              toast.error(err.message || "Verification failed");
+            } finally {
+              setPayLoading(false);
+            }
+          },
+          onClose: () => setPayLoading(false),
+        });
+        return;
       }
+      throw new Error(data?.error || "Could not start payment");
     } catch (e: any) {
       toast.error(e.message || "Payment failed to start");
     } finally {

@@ -21,6 +21,7 @@ import {
   type MediaKind,
 } from '@/lib/messageMedia';
 import { MessageMedia, MediaPreviewChip } from '@/components/messaging/MessageMedia';
+import { Progress } from '@/components/ui/progress';
 
 interface Conversation {
   id: string;
@@ -64,6 +65,7 @@ const Messages = () => {
   const [activeConversationDetails, setActiveConversationDetails] = useState<Conversation | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -252,7 +254,8 @@ const Messages = () => {
 
       let media: Awaited<ReturnType<typeof uploadMessageMedia>> | null = null;
       if (pendingFile) {
-        media = await uploadMessageMedia(pendingFile, user.id);
+        setUploadProgress(0);
+        media = await uploadMessageMedia(pendingFile, user.id, (pct) => setUploadProgress(pct));
       }
 
       const payload: any = {
@@ -292,6 +295,7 @@ const Messages = () => {
       toast.error(err.message || 'Failed to send message');
     } finally {
       setSending(false);
+      setUploadProgress(null);
     }
   };
 
@@ -483,8 +487,16 @@ const Messages = () => {
                   style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
                 >
                   {pendingFile && (
-                    <div className="mb-2">
-                      <MediaPreviewChip file={pendingFile} onRemove={() => setPendingFile(null)} />
+                    <div className="mb-2 space-y-2">
+                      <MediaPreviewChip file={pendingFile} onRemove={() => uploadProgress === null && setPendingFile(null)} />
+                      {uploadProgress !== null && (
+                        <div className="flex items-center gap-2">
+                          <Progress value={uploadProgress} className="h-2 flex-1" />
+                          <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
+                            {uploadProgress}%
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                   <form

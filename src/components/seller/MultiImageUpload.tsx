@@ -51,12 +51,10 @@ const MultiImageUpload = ({
       const uploadedUrls: string[] = [];
 
       for (const file of filesToUpload) {
-        // Compress each image before upload
+        // Compress each image before upload (preserve original aspect ratio)
         const { blob, extension } = await compressImage(file, {
           maxWidth: 1600,
           maxHeight: 1600,
-          targetAspectRatio: 16 / 9,
-          fit: 'cover',
         });
         const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
 

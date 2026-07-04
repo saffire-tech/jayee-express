@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       authorization_url: data.data.authorization_url,
+      access_code: data.data.access_code,
       reference: data.data.reference,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

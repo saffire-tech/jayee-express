@@ -138,6 +138,8 @@ const ProductDetail = () => {
     await addToCart(product!.id, quantity);
   };
 
+  const myReview = user ? reviews.find(r => r.user_id === user.id) : undefined;
+
   const handleSubmitReview = async () => {
     if (!user) {
       toast.error('Please login to submit a review');
@@ -145,19 +147,32 @@ const ProductDetail = () => {
     }
 
     setSubmittingReview(true);
-    const { error } = await supabase
-      .from('reviews')
-      .insert({
-        product_id: id,
-        user_id: user.id,
-        rating: newReview.rating,
-        comment: newReview.comment || null
-      });
+
+    const { error } = myReview
+      ? await supabase
+          .from('reviews')
+          .update({
+            rating: newReview.rating,
+            comment: newReview.comment || null,
+          })
+          .eq('id', myReview.id)
+      : await supabase
+          .from('reviews')
+          .insert({
+            product_id: id,
+            user_id: user.id,
+            rating: newReview.rating,
+            comment: newReview.comment || null,
+          });
 
     if (error) {
-      toast.error('Failed to submit review');
+      if ((error as any).code === '23505') {
+        toast.error("You've already reviewed this product");
+      } else {
+        toast.error('Failed to submit review');
+      }
     } else {
-      toast.success('Review submitted');
+      toast.success(myReview ? 'Review updated' : 'Review submitted');
       setNewReview({ rating: 5, comment: '' });
       fetchReviews();
     }
@@ -249,7 +264,7 @@ const ProductDetail = () => {
                 <img 
                   src={galleryImages[currentImageIndex]} 
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -290,7 +305,7 @@ const ProductDetail = () => {
                       idx === currentImageIndex ? 'border-primary' : 'border-transparent'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={img} alt="" className="w-full h-full object-contain bg-muted" />
                   </button>
                 ))}
               </div>
@@ -424,7 +439,10 @@ const ProductDetail = () => {
           {user && (
             <Card className="mb-6">
               <CardContent className="p-6">
-                <h3 className="font-semibold mb-4">Write a Review</h3>
+                <h3 className="font-semibold mb-4">{myReview ? 'Update Your Review' : 'Write a Review'}</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  {myReview ? "You've already reviewed this product. You can update your review below." : 'You can only leave one review per product.'}
+                </p>
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">Rating</label>
@@ -436,7 +454,7 @@ const ProductDetail = () => {
                         >
                           <Star 
                             className={`h-6 w-6 cursor-pointer transition-colors ${
-                              star <= newReview.rating 
+                              star <= (myReview ? (newReview.rating || myReview.rating) : newReview.rating)
                                 ? 'fill-primary text-primary' 
                                 : 'text-muted-foreground hover:text-primary'
                             }`}
@@ -447,11 +465,11 @@ const ProductDetail = () => {
                   </div>
                   <Textarea
                     placeholder="Share your experience with this product..."
-                    value={newReview.comment}
+                    value={newReview.comment || (myReview?.comment ?? '')}
                     onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
                   />
                   <Button onClick={handleSubmitReview} disabled={submittingReview}>
-                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                    {submittingReview ? 'Submitting...' : myReview ? 'Update Review' : 'Submit Review'}
                   </Button>
                 </div>
               </CardContent>

@@ -1,36 +1,46 @@
+## 1. Paystack: open inline modal instead of redirecting away
 
-## Goal
-Make product images display consistently everywhere (especially the homepage carousel) regardless of the original photo's size or shape.
+Load Paystack's inline script (`https://js.paystack.co/v1/inline.js`) once, then replace the four `window.location.href = data.authorization_url` redirects with `PaystackPop.resumeTransaction(access_code)` so payment opens as an overlay inside the app.
 
-## Problem
-Today, `compressImage` only scales images down to fit within 1200×1200 but **keeps the original aspect ratio**. A tall portrait phone photo and a wide landscape photo end up with very different shapes. The homepage carousel then uses `object-cover` on a fixed 300–400px height frame, which crops these inconsistently — subjects get cut off, and on narrow mobile screens tall images look zoomed while wide images leave awkward gaps.
+- Add a small helper `src/lib/paystackInline.ts` that lazy-loads the script and exposes `openPaystackCheckout({ accessCode, onSuccess, onClose })`.
+- Update `initialize-subscription`, `initialize-store-subscription`, `initialize-delivery-subscription` edge functions to also return `access_code` (already returned by `initialize-payment`).
+- Update the 4 call sites to use the helper, falling back to the current redirect only if the inline script fails to load:
+  - `src/pages/Cart.tsx`
+  - `src/components/seller/SubscribeDialog.tsx`
+  - `src/components/seller/SubscriptionCard.tsx`
+  - `src/pages/DeliveryDashboard.tsx` (subscribe flow)
+- On modal `onSuccess`, run the existing verify-payment flow (same reference the code already tracks).
 
-## Fix
+## 2. Product images: preserve fullness (no crop, no zoom)
 
-### 1. Normalize product images at upload time to a fixed aspect ratio
-Update `src/lib/imageCompression.ts` to (optionally) output a **canvas of a target aspect ratio**, painting the source image centered with `object-fit: cover` semantics (scale to fill, crop overflow). Background fill for any letterbox edge cases: white.
+Stop force-cropping uploads to 16:9 and stop using `object-cover` on product displays. Show whole image with letterboxing where needed.
 
-- Add options: `targetAspectRatio?: number` (e.g. `16/9`) and `fit?: 'cover' | 'contain'` (default `contain` = current behavior, backward compatible).
-- When `targetAspectRatio` is set with `fit: 'cover'`, the output canvas dimensions become exactly `targetWidth × targetWidth / ratio`, and the source is drawn centered/cropped to fill.
+- `src/lib/imageCompression.ts` — keep the new `contain` support, but change product uploads to preserve original aspect ratio (no `targetAspectRatio`). Revert `ImageUpload.tsx` and `MultiImageUpload.tsx` to call `compressImage(file, { maxWidth: 1600, maxHeight: 1600 })`.
+- Replace `object-cover` with `object-contain` on product image renders (with a neutral `bg-muted` behind the image) in:
+  - `src/components/sections/AdvertisementCarousel.tsx`
+  - `src/components/sections/FeaturedProducts.tsx`
+  - `src/pages/Products.tsx`
+  - `src/pages/ProductDetail.tsx` (main + thumbnails)
+- Keep the carousel's `aspect-video max-h-[520px]` frame so layout stays stable across screens; the image now fits fully inside it.
 
-### 2. Apply the normalized ratio to product uploads only
-- `src/components/seller/ImageUpload.tsx` and `src/components/seller/MultiImageUpload.tsx`: pass `{ targetAspectRatio: 16/9, fit: 'cover', maxWidth: 1600 }` to `compressImage`. This gives every uploaded product image the same shape (1600×900) — good for carousel, cards, and detail pages.
-- Leave `StoreImageUpload`, `messageMedia`, and other uploaders untouched (they aren't the source of the carousel inconsistency).
+## 3. Message media: upload progress indicator
 
-### 3. Tighten the carousel frame so it looks right on every device
-`src/components/sections/AdvertisementCarousel.tsx`:
-- Replace fixed pixel heights (`h-[300px] md:h-[400px]`) with a responsive `aspect-video` (16:9) wrapper so the frame matches the normalized image ratio exactly — no cropping surprises, no letterboxing.
-- Cap max height on very large screens (e.g. `max-h-[520px]`) and center the image.
-- Keep `object-cover` as a safety net for any legacy (pre-fix) product images already in the database.
+Add a visible progress state while a message attachment uploads.
 
-### 4. (No migration needed)
-Existing images stay as-is; the carousel's `object-cover` + capped frame keeps them displayable. All **new** uploads will be uniform.
+- `src/lib/messageMedia.ts` — extend `uploadMessageMedia` to accept an `onProgress?: (pct: number) => void` callback. Since `supabase.storage.upload` doesn't stream progress, implement progress via `fetch` + `XMLHttpRequest` to the storage REST endpoint (or use `xhr` upload event) and fall back to indeterminate 0→90% animation if xhr progress isn't available.
+- `src/pages/Messages.tsx` — track `uploadProgress` state, pass callback into `uploadMessageMedia`, and render a `Progress` bar (existing `@/components/ui/progress`) on the pending file chip. Disable the send button while uploading and show a spinner + percentage.
 
-## Files to change
-- `src/lib/imageCompression.ts` — add `targetAspectRatio` + `fit: 'cover'` support.
-- `src/components/seller/ImageUpload.tsx` — pass 16:9 cover options.
-- `src/components/seller/MultiImageUpload.tsx` — pass 16:9 cover options.
-- `src/components/sections/AdvertisementCarousel.tsx` — switch to `aspect-video` responsive frame.
+## 4. Reviews: one per user per product
 
-## Open question
-I'm proposing **16:9 (landscape)** because that's the natural shape for the homepage carousel and hero-style displays. The alternative is **1:1 (square)**, which looks better in product grid cards but leaves large empty bars in the carousel on wide screens. Confirm 16:9, or say "square" and I'll use 1:1 instead.
+Enforce at DB level and improve UX.
+
+- Migration: `ALTER TABLE public.reviews ADD CONSTRAINT reviews_user_product_unique UNIQUE (user_id, product_id);` (after deleting any existing duplicates, keeping the most recent per pair).
+- `src/pages/ProductDetail.tsx`:
+  - Before showing the review form, check if the current user already has a review for this product; if yes, hide the "write a review" form and show their existing review with an "Edit" action that updates instead of inserts.
+  - Handle unique-violation error from insert gracefully with a toast: "You've already reviewed this product."
+
+## Technical notes
+
+- Paystack inline script is script-tag loaded (no npm dep needed) and works with the `access_code` returned by `transaction/initialize`. The existing `callback_url` still fires on inline success as `onSuccess`.
+- `object-contain` + `bg-muted` gives a clean letterbox look and stops the "zoomed / cropped" complaint without breaking the fixed card heights already in use.
+- The reviews unique constraint is the source of truth; the UI check is just a nicer flow.
