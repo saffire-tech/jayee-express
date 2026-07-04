@@ -53,8 +53,24 @@ const SubscribeDialog = ({ open, onOpenChange }: Props) => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.authorization_url) {
-        window.location.href = data.authorization_url;
+      if (data?.access_code || data?.authorization_url) {
+        await openPaystackCheckout({
+          accessCode: data.access_code,
+          authorizationUrl: data.authorization_url,
+          onSuccess: async (reference) => {
+            try {
+              if (reference) await supabase.functions.invoke("verify-payment", { body: { reference } });
+              toast.success("Subscription activated");
+              onOpenChange(false);
+            } catch (err: any) {
+              toast.error(err.message || "Verification failed");
+            } finally {
+              setLoading(false);
+            }
+          },
+          onClose: () => setLoading(false),
+        });
+        return;
       }
     } catch (e: any) {
       toast.error(e.message || "Failed to start subscription");
