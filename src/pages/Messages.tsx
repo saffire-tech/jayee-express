@@ -253,7 +253,8 @@ const Messages = () => {
 
       let media: Awaited<ReturnType<typeof uploadMessageMedia>> | null = null;
       if (pendingFile) {
-        media = await uploadMessageMedia(pendingFile, user.id);
+        setUploadProgress(0);
+        media = await uploadMessageMedia(pendingFile, user.id, (pct) => setUploadProgress(pct));
       }
 
       const payload: any = {
