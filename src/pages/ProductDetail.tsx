@@ -249,7 +249,7 @@ const ProductDetail = () => {
                 <img 
                   src={galleryImages[currentImageIndex]} 
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
