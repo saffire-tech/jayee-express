@@ -138,6 +138,8 @@ const ProductDetail = () => {
     await addToCart(product!.id, quantity);
   };
 
+  const myReview = user ? reviews.find(r => r.user_id === user.id) : undefined;
+
   const handleSubmitReview = async () => {
     if (!user) {
       toast.error('Please login to submit a review');
@@ -145,19 +147,32 @@ const ProductDetail = () => {
     }
 
     setSubmittingReview(true);
-    const { error } = await supabase
-      .from('reviews')
-      .insert({
-        product_id: id,
-        user_id: user.id,
-        rating: newReview.rating,
-        comment: newReview.comment || null
-      });
+
+    const { error } = myReview
+      ? await supabase
+          .from('reviews')
+          .update({
+            rating: newReview.rating,
+            comment: newReview.comment || null,
+          })
+          .eq('id', myReview.id)
+      : await supabase
+          .from('reviews')
+          .insert({
+            product_id: id,
+            user_id: user.id,
+            rating: newReview.rating,
+            comment: newReview.comment || null,
+          });
 
     if (error) {
-      toast.error('Failed to submit review');
+      if ((error as any).code === '23505') {
+        toast.error("You've already reviewed this product");
+      } else {
+        toast.error('Failed to submit review');
+      }
     } else {
-      toast.success('Review submitted');
+      toast.success(myReview ? 'Review updated' : 'Review submitted');
       setNewReview({ rating: 5, comment: '' });
       fetchReviews();
     }
