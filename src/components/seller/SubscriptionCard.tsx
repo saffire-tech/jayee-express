@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarClock, Crown, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import SubscribeDialog from "./SubscribeDialog";
+import { openPaystackCheckout } from "@/lib/paystackInline";
 
 interface Props {
   storeId: string;
