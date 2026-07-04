@@ -21,6 +21,7 @@ import {
   type MediaKind,
 } from '@/lib/messageMedia';
 import { MessageMedia, MediaPreviewChip } from '@/components/messaging/MessageMedia';
+import { Progress } from '@/components/ui/progress';
 
 interface Conversation {
   id: string;
