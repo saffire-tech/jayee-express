@@ -28,7 +28,8 @@ export interface UploadedMedia {
 
 export async function uploadMessageMedia(
   file: File,
-  userId: string
+  userId: string,
+  onProgress?: (pct: number) => void
 ): Promise<UploadedMedia> {
   if (file.size > MAX_MEDIA_BYTES) {
     throw new Error('File too large (max 25 MB)');
@@ -53,10 +54,18 @@ export async function uploadMessageMedia(
   const filename = `${crypto.randomUUID()}.${ext}`;
   const path = `${userId}/${filename}`;
 
-  const { error } = await supabase.storage
-    .from('message-media')
-    .upload(path, blob, { contentType: mime, upsert: false });
-  if (error) throw error;
+  onProgress?.(0);
+
+  // Try XHR upload for real progress events; fall back to supabase-js on failure.
+  const uploadedViaXhr = await xhrUpload(path, blob, mime, onProgress).catch(() => false);
+
+  if (!uploadedViaXhr) {
+    const { error } = await supabase.storage
+      .from('message-media')
+      .upload(path, blob, { contentType: mime, upsert: false });
+    if (error) throw error;
+    onProgress?.(100);
+  }
 
   return {
     media_url: path,
@@ -65,6 +74,45 @@ export async function uploadMessageMedia(
     media_size: blob.size,
     media_mime: mime,
   };
+}
+
+async function xhrUpload(
+  path: string,
+  blob: Blob,
+  mime: string,
+  onProgress?: (pct: number) => void
+): Promise<boolean> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  const url = (supabase as any).storage?.url
+    ? `${(supabase as any).storage.url}/object/message-media/${path}`
+    : `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/message-media/${path}`;
+  if (!token) return false;
+
+  return new Promise<boolean>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Content-Type', mime);
+    xhr.setRequestHeader('x-upsert', 'false');
+    xhr.setRequestHeader('cache-control', 'max-age=3600');
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve(true);
+      } else {
+        reject(new Error(xhr.responseText || `Upload failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(blob);
+  });
 }
 
 const signedCache = new Map<string, { url: string; expires: number }>();
