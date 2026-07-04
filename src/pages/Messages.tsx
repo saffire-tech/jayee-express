@@ -294,6 +294,7 @@ const Messages = () => {
       toast.error(err.message || 'Failed to send message');
     } finally {
       setSending(false);
+      setUploadProgress(null);
     }
   };
 
