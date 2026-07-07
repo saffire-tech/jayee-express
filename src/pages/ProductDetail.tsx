@@ -131,6 +131,14 @@ const ProductDetail = () => {
       })) || [];
 
       setReviews(reviewsWithProfiles);
+
+      // Seed the review form from the current user's existing review, if any
+      if (user) {
+        const mine = reviewsWithProfiles.find(r => r.user_id === user.id);
+        if (mine) {
+          setNewReview({ rating: mine.rating, comment: mine.comment || '' });
+        }
+      }
     }
   };
 
@@ -173,7 +181,7 @@ const ProductDetail = () => {
       }
     } else {
       toast.success(myReview ? 'Review updated' : 'Review submitted');
-      setNewReview({ rating: 5, comment: '' });
+      if (!myReview) setNewReview({ rating: 5, comment: '' });
       fetchReviews();
     }
     setSubmittingReview(false);
@@ -454,7 +462,7 @@ const ProductDetail = () => {
                         >
                           <Star 
                             className={`h-6 w-6 cursor-pointer transition-colors ${
-                              star <= (myReview ? (newReview.rating || myReview.rating) : newReview.rating)
+                              star <= newReview.rating
                                 ? 'fill-primary text-primary' 
                                 : 'text-muted-foreground hover:text-primary'
                             }`}
@@ -465,7 +473,7 @@ const ProductDetail = () => {
                   </div>
                   <Textarea
                     placeholder="Share your experience with this product..."
-                    value={newReview.comment || (myReview?.comment ?? '')}
+                    value={newReview.comment}
                     onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
                   />
                   <Button onClick={handleSubmitReview} disabled={submittingReview}>

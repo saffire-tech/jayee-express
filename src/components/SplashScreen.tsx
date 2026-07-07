@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import shodelIcon from "@/assets/shodel-icon-white.png";
+import shodelIcon from "@/assets/shodel-logo-white.png";
 
 interface SplashScreenProps {
   onComplete: () => void;
