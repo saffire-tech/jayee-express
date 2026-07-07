@@ -473,7 +473,7 @@ const ProductDetail = () => {
                   </div>
                   <Textarea
                     placeholder="Share your experience with this product..."
-                    value={newReview.comment || (myReview?.comment ?? '')}
+                    value={newReview.comment}
                     onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
                   />
                   <Button onClick={handleSubmitReview} disabled={submittingReview}>
