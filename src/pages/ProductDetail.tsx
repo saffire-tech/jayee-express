@@ -131,6 +131,14 @@ const ProductDetail = () => {
       })) || [];
 
       setReviews(reviewsWithProfiles);
+
+      // Seed the review form from the current user's existing review, if any
+      if (user) {
+        const mine = reviewsWithProfiles.find(r => r.user_id === user.id);
+        if (mine) {
+          setNewReview({ rating: mine.rating, comment: mine.comment || '' });
+        }
+      }
     }
   };
 
