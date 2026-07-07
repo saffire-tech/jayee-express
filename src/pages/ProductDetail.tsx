@@ -181,7 +181,7 @@ const ProductDetail = () => {
       }
     } else {
       toast.success(myReview ? 'Review updated' : 'Review submitted');
-      setNewReview({ rating: 5, comment: '' });
+      if (!myReview) setNewReview({ rating: 5, comment: '' });
       fetchReviews();
     }
     setSubmittingReview(false);
