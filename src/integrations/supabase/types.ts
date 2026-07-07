@@ -878,9 +878,6 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          bank_account_name: string | null
-          bank_account_number: string | null
-          bank_name: string | null
           campus: string | null
           city: string | null
           created_at: string
@@ -889,18 +886,12 @@ export type Database = {
           id: string
           is_online: boolean
           is_suspended: boolean | null
-          momo_number: string | null
-          momo_provider: string | null
-          payout_method: string | null
           phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
-          bank_account_name?: string | null
-          bank_account_number?: string | null
-          bank_name?: string | null
           campus?: string | null
           city?: string | null
           created_at?: string
@@ -909,18 +900,12 @@ export type Database = {
           id?: string
           is_online?: boolean
           is_suspended?: boolean | null
-          momo_number?: string | null
-          momo_provider?: string | null
-          payout_method?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
-          bank_account_name?: string | null
-          bank_account_number?: string | null
-          bank_name?: string | null
           campus?: string | null
           city?: string | null
           created_at?: string
@@ -929,9 +914,6 @@ export type Database = {
           id?: string
           is_online?: boolean
           is_suspended?: boolean | null
-          momo_number?: string | null
-          momo_provider?: string | null
-          payout_method?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -1203,6 +1185,53 @@ export type Database = {
         }
         Relationships: []
       }
+      store_payout_details: {
+        Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          created_at: string
+          momo_number: string | null
+          momo_provider: string | null
+          payout_method: string | null
+          paystack_subaccount_code: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          momo_number?: string | null
+          momo_provider?: string | null
+          payout_method?: string | null
+          paystack_subaccount_code?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          momo_number?: string | null
+          momo_provider?: string | null
+          payout_method?: string | null
+          paystack_subaccount_code?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_payout_details_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_subscriptions: {
         Row: {
           amount_paid: number
@@ -1308,9 +1337,6 @@ export type Database = {
       }
       stores: {
         Row: {
-          bank_account_name: string | null
-          bank_account_number: string | null
-          bank_name: string | null
           campus: string | null
           city: string
           cover_url: string | null
@@ -1326,12 +1352,8 @@ export type Database = {
           location: string | null
           logo_url: string | null
           longitude: number | null
-          momo_number: string | null
-          momo_provider: string | null
           monthly_fee: number | null
           name: string
-          payout_method: string | null
-          paystack_subaccount_code: string | null
           phone: string | null
           product_limit: number
           rejection_reason: string | null
@@ -1343,9 +1365,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          bank_account_name?: string | null
-          bank_account_number?: string | null
-          bank_name?: string | null
           campus?: string | null
           city: string
           cover_url?: string | null
@@ -1361,12 +1380,8 @@ export type Database = {
           location?: string | null
           logo_url?: string | null
           longitude?: number | null
-          momo_number?: string | null
-          momo_provider?: string | null
           monthly_fee?: number | null
           name: string
-          payout_method?: string | null
-          paystack_subaccount_code?: string | null
           phone?: string | null
           product_limit?: number
           rejection_reason?: string | null
@@ -1378,9 +1393,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          bank_account_name?: string | null
-          bank_account_number?: string | null
-          bank_name?: string | null
           campus?: string | null
           city?: string
           cover_url?: string | null
@@ -1396,12 +1408,8 @@ export type Database = {
           location?: string | null
           logo_url?: string | null
           longitude?: number | null
-          momo_number?: string | null
-          momo_provider?: string | null
           monthly_fee?: number | null
           name?: string
-          payout_method?: string | null
-          paystack_subaccount_code?: string | null
           phone?: string | null
           product_limit?: number
           rejection_reason?: string | null
@@ -1481,6 +1489,42 @@ export type Database = {
           ip?: string | null
           last_seen_at?: string
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_payout_details: {
+        Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          created_at: string
+          momo_number: string | null
+          momo_provider: string | null
+          payout_method: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          momo_number?: string | null
+          momo_provider?: string | null
+          payout_method?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          momo_number?: string | null
+          momo_provider?: string | null
+          payout_method?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1646,7 +1690,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          full_name: string | null
+          is_online: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          full_name?: string | null
+          is_online?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          full_name?: string | null
+          is_online?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       bump_location_usage: { Args: { _id: string }; Returns: undefined }
@@ -1685,6 +1749,15 @@ export type Database = {
           momo_provider: string
           payout_method: string
           paystack_subaccount_code: string
+        }[]
+      }
+      get_order_contact: {
+        Args: { _order_id: string }
+        Returns: {
+          buyer_name: string
+          buyer_phone: string
+          courier_name: string
+          courier_phone: string
         }[]
       }
       has_active_rider_subscription: {
