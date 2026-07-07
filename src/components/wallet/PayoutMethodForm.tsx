@@ -124,8 +124,12 @@ const PayoutMethodForm = ({ target, onSaved }: Props) => {
 
       const q =
         target.kind === "store"
-          ? supabase.from("stores").update(payload).eq("id", target.storeId)
-          : supabase.from("profiles").update(payload).eq("user_id", target.userId);
+          ? (supabase as any)
+              .from("store_payout_details")
+              .upsert({ store_id: target.storeId, ...payload }, { onConflict: "store_id" })
+          : (supabase as any)
+              .from("user_payout_details")
+              .upsert({ user_id: target.userId, ...payload }, { onConflict: "user_id" });
       const { error } = await q;
       if (error) throw error;
       toast.success("Payout details saved. These can no longer be edited — contact support if you need to change them.");
