@@ -48,12 +48,13 @@ const ActiveDelivery = ({ orderId, onComplete }: ActiveDeliveryProps) => {
         .maybeSingle();
 
       if (data) {
-        const [{ data: store }, { data: profile }] = await Promise.all([
+        const [{ data: store }, { data: contact }] = await Promise.all([
           supabase.from('stores').select('name, latitude, longitude, location').eq('id', data.store_id).maybeSingle(),
-          supabase.from('profiles').select('full_name, phone').eq('user_id', data.buyer_id).maybeSingle(),
+          supabase.rpc('get_order_contact', { _order_id: orderId }),
         ]);
         setOrder({ ...data, store });
-        setBuyerProfile(profile);
+        const row: any = Array.isArray(contact) ? contact[0] : contact;
+        setBuyerProfile(row ? { full_name: row.buyer_name, phone: row.buyer_phone } : null);
 
         // Fetch related orders from the same buyer with same delivery coordinates (multi-store checkout)
         if (data.delivery_latitude && data.delivery_longitude) {

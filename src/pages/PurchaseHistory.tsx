@@ -401,12 +401,9 @@ const PurchaseHistory = () => {
           let deliveryPerson = null;
           const activeStatuses = ['accepted', 'picked_up', 'in_transit', 'delivered'];
           if (order.delivery_person_id && order.delivery_status && activeStatuses.includes(order.delivery_status)) {
-            const { data: dpData } = await supabase
-              .from('profiles')
-              .select('full_name, phone')
-              .eq('user_id', order.delivery_person_id)
-              .maybeSingle();
-            deliveryPerson = dpData;
+            const { data: contact } = await supabase.rpc('get_order_contact', { _order_id: order.id });
+            const row: any = Array.isArray(contact) ? contact[0] : contact;
+            deliveryPerson = row ? { full_name: row.courier_name, phone: row.courier_phone } : null;
           }
 
           return {

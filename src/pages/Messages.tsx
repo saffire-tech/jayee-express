@@ -152,8 +152,8 @@ const Messages = () => {
 
       const userIds = Array.from(conversationMap.keys());
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
+        const { data: profiles } = await (supabase as any)
+          .from('public_profiles')
           .select('user_id, full_name, avatar_url')
           .in('user_id', userIds);
 

@@ -51,11 +51,18 @@ Deno.serve(async (req) => {
     let payoutMethod: string | null = null;
     let displayName: string | null = null;
 
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("payout_method, momo_number, momo_provider, bank_name, bank_account_number, bank_account_name, full_name")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const [{ data: userPayout }, { data: userProfile }] = await Promise.all([
+      adminClient
+        .from("user_payout_details")
+        .select("payout_method, momo_number, momo_provider, bank_name, bank_account_number, bank_account_name")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      adminClient
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
 
     const pickFrom = (row: any) => {
       if (!row) return false;
@@ -81,16 +88,24 @@ Deno.serve(async (req) => {
       return false;
     };
 
-    if (pickFrom(profile)) {
-      displayName = profile?.full_name || null;
+    if (pickFrom(userPayout)) {
+      displayName = userProfile?.full_name || null;
     } else {
+      // Try store payout — get the user's store, then its payout details
       const { data: store } = await adminClient
         .from("stores")
-        .select("payout_method, momo_number, momo_provider, bank_name, bank_account_number, bank_account_name, name")
+        .select("id, name")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (pickFrom(store)) {
-        displayName = store?.name || null;
+      if (store?.id) {
+        const { data: storePayout } = await adminClient
+          .from("store_payout_details")
+          .select("payout_method, momo_number, momo_provider, bank_name, bank_account_number, bank_account_name")
+          .eq("store_id", store.id)
+          .maybeSingle();
+        if (pickFrom(storePayout)) {
+          displayName = store.name || null;
+        }
       }
     }
 
