@@ -462,7 +462,7 @@ const ProductDetail = () => {
                         >
                           <Star 
                             className={`h-6 w-6 cursor-pointer transition-colors ${
-                              star <= (myReview ? (newReview.rating || myReview.rating) : newReview.rating)
+                              star <= newReview.rating
                                 ? 'fill-primary text-primary' 
                                 : 'text-muted-foreground hover:text-primary'
                             }`}
