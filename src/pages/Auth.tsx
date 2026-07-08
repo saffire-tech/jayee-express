@@ -41,6 +41,21 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Support ?next=/some/path so OAuth consent (and other guarded flows) can
+  // send the user back to the original URL after sign-in / sign-up.
+  const nextParam = (() => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get("next");
+      if (!raw) return null;
+      // Only accept same-origin relative paths.
+      if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+      return raw;
+    } catch {
+      return null;
+    }
+  })();
+  const goNext = () => navigate(nextParam ?? "/");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -52,7 +67,7 @@ const Auth = () => {
       } else {
         await signUp(email, password, fullName);
       }
-      navigate("/");
+      goNext();
     } catch (err: any) {
       setError(err.message || "An error occurred");
     } finally {
@@ -65,7 +80,9 @@ const Auth = () => {
     setOauthLoading(provider);
     try {
       const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri: nextParam
+          ? `${window.location.origin}/auth?next=${encodeURIComponent(nextParam)}`
+          : window.location.origin,
       });
       if (result.error) {
         setError(result.error.message || `Could not sign in with ${provider}`);
@@ -73,12 +90,13 @@ const Auth = () => {
         return;
       }
       if (result.redirected) return;
-      navigate("/");
+      goNext();
     } catch (err: any) {
       setError(err.message || `Could not sign in with ${provider}`);
       setOauthLoading(null);
     }
   };
+
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
