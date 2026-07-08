@@ -51,6 +51,7 @@ const NotificationCenter = lazy(() => import("./pages/NotificationCenter"));
 const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const SelectCity = lazy(() => import("./pages/SelectCity"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const MobileTabBar = lazy(() => import("./components/layout/MobileTabBar"));
 import RequireCity from "./components/auth/RequireCity";
 
