@@ -26,12 +26,9 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
   useEffect(() => {
     if (!order || !open) return;
     const fetchBuyer = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, phone, campus")
-        .eq("user_id", order.buyer_id)
-        .maybeSingle();
-      setBuyer(data);
+      const { data } = await supabase.rpc("get_order_contact", { _order_id: order.id });
+      const row = Array.isArray(data) ? data[0] : null;
+      setBuyer(row ? { full_name: row.buyer_name, phone: row.buyer_phone, campus: null } : null);
     };
     fetchBuyer();
   }, [order?.id, open]);
