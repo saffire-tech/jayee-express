@@ -3,7 +3,7 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
 
 // src/lib/mcp/tools/search-products.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.87.1";
@@ -115,11 +115,16 @@ var list_stores_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
+var projectRef = "brqzedcxzjqwzpkwrmow";
 var mcp_default = defineMcp({
   name: "jayee-express-mcp",
   title: "Jayee Express",
   version: "0.1.0",
   instructions: "Read-only tools for the Jayee Express community marketplace (Tamale & Wa, Ghana). Use search_products to find items by keyword/category/city, get_product for a single product's details, and list_stores to browse verified stores. Prices are in Ghana Cedis (GHS).",
+  auth: auth.oauth.issuer({
+    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    acceptedAudiences: "authenticated"
+  }),
   tools: [search_products_default, get_product_default, list_stores_default]
 });
 
