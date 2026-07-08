@@ -103,6 +103,7 @@ const App = () => {
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/select-city" element={<SelectCity />} />
+                      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/purchases" element={<PurchaseHistory />} />
                       <Route path="/seller" element={<SellerDashboard />} />
