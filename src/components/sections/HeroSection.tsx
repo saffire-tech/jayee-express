@@ -32,7 +32,7 @@ const HeroSection = () => {
       const [storesRes, productsRes, usersRes] = await Promise.all([
       supabase.from('stores').select('*', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('profiles').select('*', { count: 'exact', head: true })]
+      supabase.from('public_profiles').select('*', { count: 'exact', head: true })]
       );
 
       return {
