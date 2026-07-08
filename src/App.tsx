@@ -51,6 +51,7 @@ const NotificationCenter = lazy(() => import("./pages/NotificationCenter"));
 const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const SelectCity = lazy(() => import("./pages/SelectCity"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const MobileTabBar = lazy(() => import("./components/layout/MobileTabBar"));
 import RequireCity from "./components/auth/RequireCity";
 
@@ -102,6 +103,7 @@ const App = () => {
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/select-city" element={<SelectCity />} />
+                      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/purchases" element={<PurchaseHistory />} />
                       <Route path="/seller" element={<SellerDashboard />} />
