@@ -89,14 +89,13 @@ const Messages = () => {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('messages-realtime')
+      .channel(`messages-realtime-${user.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
         (payload) => {
           const newMsg = payload.new as Message;
-          if (newMsg.sender_id !== user.id && newMsg.receiver_id !== user.id) return;
-          const otherUserId = newMsg.sender_id === user.id ? newMsg.receiver_id : newMsg.sender_id;
+          const otherUserId = newMsg.sender_id;
 
           if (activeConversation === otherUserId) {
             setMessages((prev) => {
@@ -108,15 +107,23 @@ const Messages = () => {
                 setSignedUrls((prev) => ({ ...prev, ...map }))
               );
             }
-            if (newMsg.sender_id !== user.id) markMessagesAsRead(newMsg.sender_id);
+            markMessagesAsRead(newMsg.sender_id);
           }
           fetchConversations();
         }
       )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
-        fetchConversations();
-      })
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+        () => fetchConversations()
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `sender_id=eq.${user.id}` },
+        () => fetchConversations()
+      )
       .subscribe();
+
 
     return () => {
       supabase.removeChannel(channel);
