@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ const Auth = () => {
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -55,6 +55,17 @@ const Auth = () => {
     }
   })();
   const goNext = () => navigate(nextParam ?? "/");
+
+  // After an OAuth full-page redirect back to /auth?next=..., the session is
+  // hydrated asynchronously. Watch for it and forward to nextParam (e.g. the
+  // OAuth consent screen) so the external app's authorization can complete.
+  useEffect(() => {
+    if (user && nextParam) {
+      navigate(nextParam, { replace: true });
+    }
+  }, [user, nextParam, navigate]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
