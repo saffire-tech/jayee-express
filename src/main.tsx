@@ -5,6 +5,8 @@ import App from "./App.tsx";
 import UpdateAvailableBanner from "./components/UpdateAvailableBanner.tsx";
 import "./index.css";
 
+document.documentElement.classList.add("modern-app-loaded");
+
 // One-hour cap between forced update checks while the app is open
 const UPDATE_CHECK_INTERVAL_MS = 60 * 1000;
 // If auto-reload hasn't happened within this window, surface the banner
