@@ -58,6 +58,7 @@ const Root = () => {
   const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
+    document.documentElement.classList.add("modern-app-loaded");
     showBanner = () => setUpdateReady(true);
     return () => {
       showBanner = null;

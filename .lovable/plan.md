@@ -1,29 +1,21 @@
-## Goal
-When someone opens the app on a keypad/feature phone (KaiOS, Opera Mini extreme mode, old Nokia browsers) they currently see a blank white screen because the React SPA needs JavaScript they don't support. Instead, they should see a readable, navigable HTML page they can actually use.
+Plan to fix the keypad-phone white screen:
 
-## Approach
-Add a `<noscript>` fallback directly inside `index.html`. This is the only reliable way to reach these browsers — an edge/UA-detection route won't help because Opera Mini downgrades pages after they load, and KaiOS often fails silently on modern JS bundles.
+1. Replace the current `noscript`-only fallback with a plain HTML fallback that is visible by default in `index.html`.
+   - The full React app will hide it only after the modern app actually loads.
+   - This handles keypad/older browsers that partially support JavaScript but cannot run modern ES modules, which commonly causes a white screen while also preventing `noscript` from showing.
 
-The fallback renders as plain HTML with inline CSS. No JS, no external fonts, no images beyond a small logo. Browsers that run JS never see it (React mounts and replaces the root); browsers that can't run JS see the fallback instead of a white screen.
+2. Add a `nomodule` / old-browser redirect path.
+   - Browsers that cannot run modern module scripts will be sent to the lite experience automatically.
+   - If redirect fails, the visible fallback still remains on screen.
 
-## What the fallback page contains
-1. Jayee Express header with tagline
-2. Short message: "You're viewing the lite version because your browser doesn't support our full app. For the complete shopping experience, please open Jayee Express on a smartphone."
-3. Contact / action links (each a plain `<a href>`):
-   - Call support: `tel:` link (need the number from you)
-   - WhatsApp order: `https://wa.me/<number>` (need the number)
-   - Instagram: existing handle
-   - Email: `mailto:support@jayeeexpress.com`
-4. Short list of the cities served (Tamale, Wa) so users know if they're in range
-5. Link to the full site URL, in case they can forward it to a smartphone
+3. Add static lite fallback pages under the public site assets.
+   - A basic `/lite/index.html`, `/lite/stores/index.html`, and `/lite/products/index.html` will render without JavaScript, external fonts, or complex CSS.
+   - These pages will provide store/product browsing entry points, city filters for Tamale and Wa, and contact/order support.
+   - The existing dynamic lite backend pages can remain for richer data where supported, but the static pages prevent blank screens on very limited phones.
 
-## Files to change
-- `index.html` — add a `<noscript>` block inside `<body>` (before the `<div id="root">`) with the fallback markup and a scoped `<style>` block. Also add `<meta http-equiv="content-language">` and ensure the existing viewport meta stays. No changes to the React app, routes, or build config.
+4. Update fallback links to use the most compatible URLs.
+   - Use simple `.html`/directory links and avoid relying only on Vercel rewrites or JavaScript routing.
 
-## What this does NOT include
-- No cart, checkout, product browsing, or search in the fallback (per your choice of "static no-JS fallback page").
-- No server-side rendering, no separate lite site, no USSD/SMS channel.
-- No changes to Vite, Vercel config, or the SPA.
-
-## Open question before implementing
-What phone number should the "Call support" and "WhatsApp order" links use? If you'd rather I skip those and only show Instagram + email + a "open on a smartphone" message, say so and I'll proceed with that.
+5. Verify locally with JavaScript disabled and with an old-browser simulation.
+   - Confirm the root page no longer becomes blank.
+   - Confirm lite pages open as plain HTML.
