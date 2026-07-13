@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.og-redirect]
 verify_jwt = false
 
+[functions.lite]
+verify_jwt = false
+
 [functions.initialize-payment]
 verify_jwt = false
 
