@@ -1,46 +1,29 @@
-## 1. Paystack: open inline modal instead of redirecting away
+## Goal
+When someone opens the app on a keypad/feature phone (KaiOS, Opera Mini extreme mode, old Nokia browsers) they currently see a blank white screen because the React SPA needs JavaScript they don't support. Instead, they should see a readable, navigable HTML page they can actually use.
 
-Load Paystack's inline script (`https://js.paystack.co/v1/inline.js`) once, then replace the four `window.location.href = data.authorization_url` redirects with `PaystackPop.resumeTransaction(access_code)` so payment opens as an overlay inside the app.
+## Approach
+Add a `<noscript>` fallback directly inside `index.html`. This is the only reliable way to reach these browsers — an edge/UA-detection route won't help because Opera Mini downgrades pages after they load, and KaiOS often fails silently on modern JS bundles.
 
-- Add a small helper `src/lib/paystackInline.ts` that lazy-loads the script and exposes `openPaystackCheckout({ accessCode, onSuccess, onClose })`.
-- Update `initialize-subscription`, `initialize-store-subscription`, `initialize-delivery-subscription` edge functions to also return `access_code` (already returned by `initialize-payment`).
-- Update the 4 call sites to use the helper, falling back to the current redirect only if the inline script fails to load:
-  - `src/pages/Cart.tsx`
-  - `src/components/seller/SubscribeDialog.tsx`
-  - `src/components/seller/SubscriptionCard.tsx`
-  - `src/pages/DeliveryDashboard.tsx` (subscribe flow)
-- On modal `onSuccess`, run the existing verify-payment flow (same reference the code already tracks).
+The fallback renders as plain HTML with inline CSS. No JS, no external fonts, no images beyond a small logo. Browsers that run JS never see it (React mounts and replaces the root); browsers that can't run JS see the fallback instead of a white screen.
 
-## 2. Product images: preserve fullness (no crop, no zoom)
+## What the fallback page contains
+1. Jayee Express header with tagline
+2. Short message: "You're viewing the lite version because your browser doesn't support our full app. For the complete shopping experience, please open Jayee Express on a smartphone."
+3. Contact / action links (each a plain `<a href>`):
+   - Call support: `tel:` link (need the number from you)
+   - WhatsApp order: `https://wa.me/<number>` (need the number)
+   - Instagram: existing handle
+   - Email: `mailto:support@jayeeexpress.com`
+4. Short list of the cities served (Tamale, Wa) so users know if they're in range
+5. Link to the full site URL, in case they can forward it to a smartphone
 
-Stop force-cropping uploads to 16:9 and stop using `object-cover` on product displays. Show whole image with letterboxing where needed.
+## Files to change
+- `index.html` — add a `<noscript>` block inside `<body>` (before the `<div id="root">`) with the fallback markup and a scoped `<style>` block. Also add `<meta http-equiv="content-language">` and ensure the existing viewport meta stays. No changes to the React app, routes, or build config.
 
-- `src/lib/imageCompression.ts` — keep the new `contain` support, but change product uploads to preserve original aspect ratio (no `targetAspectRatio`). Revert `ImageUpload.tsx` and `MultiImageUpload.tsx` to call `compressImage(file, { maxWidth: 1600, maxHeight: 1600 })`.
-- Replace `object-cover` with `object-contain` on product image renders (with a neutral `bg-muted` behind the image) in:
-  - `src/components/sections/AdvertisementCarousel.tsx`
-  - `src/components/sections/FeaturedProducts.tsx`
-  - `src/pages/Products.tsx`
-  - `src/pages/ProductDetail.tsx` (main + thumbnails)
-- Keep the carousel's `aspect-video max-h-[520px]` frame so layout stays stable across screens; the image now fits fully inside it.
+## What this does NOT include
+- No cart, checkout, product browsing, or search in the fallback (per your choice of "static no-JS fallback page").
+- No server-side rendering, no separate lite site, no USSD/SMS channel.
+- No changes to Vite, Vercel config, or the SPA.
 
-## 3. Message media: upload progress indicator
-
-Add a visible progress state while a message attachment uploads.
-
-- `src/lib/messageMedia.ts` — extend `uploadMessageMedia` to accept an `onProgress?: (pct: number) => void` callback. Since `supabase.storage.upload` doesn't stream progress, implement progress via `fetch` + `XMLHttpRequest` to the storage REST endpoint (or use `xhr` upload event) and fall back to indeterminate 0→90% animation if xhr progress isn't available.
-- `src/pages/Messages.tsx` — track `uploadProgress` state, pass callback into `uploadMessageMedia`, and render a `Progress` bar (existing `@/components/ui/progress`) on the pending file chip. Disable the send button while uploading and show a spinner + percentage.
-
-## 4. Reviews: one per user per product
-
-Enforce at DB level and improve UX.
-
-- Migration: `ALTER TABLE public.reviews ADD CONSTRAINT reviews_user_product_unique UNIQUE (user_id, product_id);` (after deleting any existing duplicates, keeping the most recent per pair).
-- `src/pages/ProductDetail.tsx`:
-  - Before showing the review form, check if the current user already has a review for this product; if yes, hide the "write a review" form and show their existing review with an "Edit" action that updates instead of inserts.
-  - Handle unique-violation error from insert gracefully with a toast: "You've already reviewed this product."
-
-## Technical notes
-
-- Paystack inline script is script-tag loaded (no npm dep needed) and works with the `access_code` returned by `transaction/initialize`. The existing `callback_url` still fires on inline success as `onSuccess`.
-- `object-contain` + `bg-muted` gives a clean letterbox look and stops the "zoomed / cropped" complaint without breaking the fixed card heights already in use.
-- The reviews unique constraint is the source of truth; the UI check is just a nicer flow.
+## Open question before implementing
+What phone number should the "Call support" and "WhatsApp order" links use? If you'd rather I skip those and only show Instagram + email + a "open on a smartphone" message, say so and I'll proceed with that.
