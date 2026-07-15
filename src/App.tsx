@@ -2,7 +2,10 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createIDBPersister, persistQueryFilter, PERSIST_VERSION } from "@/lib/queryPersister";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -61,7 +64,23 @@ const PageLoader = () => (
   </div>
 );
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Keep cached data around long enough for the persister to restore it
+      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days
+      staleTime: 1000 * 60 * 5, // 5 min
+      retry: (failureCount, error: any) => {
+        // Don't retry when offline — serve from cache instantly
+        if (typeof navigator !== "undefined" && !navigator.onLine) return false;
+        return failureCount < 2;
+      },
+      networkMode: "offlineFirst",
+    },
+  },
+});
+
+const idbPersister = createIDBPersister();
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -83,8 +102,17 @@ const App = () => {
   return (
     <HelmetProvider>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: idbPersister,
+            maxAge: 1000 * 60 * 60 * 24 * 7,
+            buster: PERSIST_VERSION,
+            dehydrateOptions: { shouldDehydrateQuery: persistQueryFilter },
+          }}
+        >
           <TooltipProvider>
+          <OfflineBanner />
           {showSplash && isFirstVisit && (
             <SplashScreen onComplete={handleSplashComplete} />
           )}
@@ -141,7 +169,7 @@ const App = () => {
             </AuthProvider>
           </BrowserRouter>
           </TooltipProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </ThemeProvider>
     </HelmetProvider>
   );
