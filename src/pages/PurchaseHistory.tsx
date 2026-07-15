@@ -436,8 +436,15 @@ const PurchaseHistory = () => {
       );
 
       setOrders(ordersWithDetails);
+      setFromCache(false);
+      const ts = Date.now();
+      setLastSynced(ts);
+      if (cacheKey) idbSet(cacheKey, { orders: ordersWithDetails, ts }).catch(() => {});
     } catch (error) {
       console.error("Error fetching orders:", error);
+      if (!navigator.onLine) {
+        toast.message("You're offline — showing your last saved orders.");
+      }
     } finally {
       setLoading(false);
     }
@@ -517,7 +524,14 @@ const PurchaseHistory = () => {
         </button>
 
         <h1 className="text-3xl font-bold mb-2">Purchase History</h1>
-        <p className="text-muted-foreground mb-6">View all your past orders</p>
+        <p className="text-muted-foreground mb-2">View all your past orders</p>
+        {(fromCache || !online) && lastSynced && (
+          <div className="mb-6 flex items-center gap-2 text-xs text-muted-foreground">
+            <WifiOff className="h-3 w-3" />
+            <span>Showing saved data — last synced {format(new Date(lastSynced), "PPp")}</span>
+          </div>
+        )}
+
 
         {verifying && (
           <div className="mb-6 flex items-center gap-3 p-4 bg-primary/10 rounded-lg border border-primary/20">
