@@ -338,7 +338,7 @@ const Cart = () => {
                   className="w-full" 
                   size="lg" 
                   onClick={handleCheckout}
-                  disabled={checkingOut || !!pendingAttempt}
+                  disabled={checkingOut || !!pendingAttempt || !online}
                 >
                   {checkingOut ? (
                     <>
