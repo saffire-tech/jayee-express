@@ -82,7 +82,7 @@
       }
 
       .basic-phone-fallback {
-        display: block;
+        display: none;
         font-family: Arial, Helvetica, sans-serif;
         max-width: 640px;
         margin: 0 auto;
@@ -114,7 +114,9 @@
       }
       .basic-phone-fallback .note { background: #fff7ed; padding: 10px; border-left: 3px solid #f97316; font-size: 13px; }
       .basic-phone-fallback footer { text-align: center; font-size: 12px; color: #666; margin-top: 20px; padding-top: 12px; border-top: 1px solid #eee; }
-      .modern-app-loaded .basic-phone-fallback { display: none; }
+      .modern-app-loaded .basic-phone-fallback { display: none !important; }
+      .show-basic-phone-fallback .basic-phone-fallback { display: block; }
+      noscript .basic-phone-fallback { display: block; }
     </style>
   </head>
 
@@ -151,6 +153,18 @@
       <footer>&copy; Jayee Express</footer>
     </div>
     <div id="root"></div>
+    <noscript>
+      <style>.basic-phone-fallback { display: block !important; }</style>
+    </noscript>
+    <script>
+      // If the modern app hasn't mounted in 10s (module failed, network stalled, etc.),
+      // reveal the basic phone fallback so users aren't stuck on a blank page.
+      setTimeout(function () {
+        if (!document.documentElement.classList.contains('modern-app-loaded')) {
+          document.documentElement.classList.add('show-basic-phone-fallback');
+        }
+      }, 10000);
+    </script>
     <script nomodule>
       window.location.replace('/lite/index.html');
     </script>
