@@ -5,11 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, Package, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, Package, Calendar, Store, X, Clock, CheckCircle2, Truck, XCircle, MapPin, WifiOff } from "lucide-react";
 import DeliveryTracker from "@/components/delivery/DeliveryTracker";
 import DeliveryContactCard from "@/components/delivery/DeliveryContactCard";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { get as idbGet, set as idbSet } from "idb-keyval";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const ConfirmReceivedButton = ({ orderId, onConfirmed }: { orderId: string; onConfirmed: () => void }) => {
   const [loading, setLoading] = useState(false);
@@ -243,6 +245,24 @@ const PurchaseHistory = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [lastSynced, setLastSynced] = useState<number | null>(null);
+  const [fromCache, setFromCache] = useState(false);
+  const online = useOnlineStatus();
+
+  const cacheKey = user ? `purchase-history-${user.id}` : null;
+
+  // Restore cached orders instantly on mount
+  useEffect(() => {
+    if (!cacheKey) return;
+    idbGet<{ orders: Order[]; ts: number }>(cacheKey).then((cached) => {
+      if (cached?.orders?.length) {
+        setOrders(cached.orders);
+        setLastSynced(cached.ts);
+        setFromCache(true);
+        setLoading(false);
+      }
+    });
+  }, [cacheKey]);
 
   useEffect(() => {
     if (!authLoading && !user) {
