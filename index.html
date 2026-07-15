@@ -153,6 +153,18 @@
       <footer>&copy; Jayee Express</footer>
     </div>
     <div id="root"></div>
+    <noscript>
+      <style>.basic-phone-fallback { display: block !important; }</style>
+    </noscript>
+    <script>
+      // If the modern app hasn't mounted in 10s (module failed, network stalled, etc.),
+      // reveal the basic phone fallback so users aren't stuck on a blank page.
+      setTimeout(function () {
+        if (!document.documentElement.classList.contains('modern-app-loaded')) {
+          document.documentElement.classList.add('show-basic-phone-fallback');
+        }
+      }, 10000);
+    </script>
     <script nomodule>
       window.location.replace('/lite/index.html');
     </script>
