@@ -45,6 +45,30 @@ registerRoute(
   })
 );
 
+// Images (product/store images from same-origin or Supabase Storage) — CacheFirst
+registerRoute(
+  ({ request, url }) =>
+    request.destination === 'image' &&
+    (url.origin === self.location.origin || /supabase\.co$/.test(url.hostname)),
+  new CacheFirst({
+    cacheName: 'images',
+    plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30, purgeOnQuotaError: true })],
+  })
+);
+
+// Supabase REST GETs — NetworkFirst so cached catalog data serves offline
+registerRoute(
+  ({ request, url }) =>
+    request.method === 'GET' &&
+    /supabase\.co$/.test(url.hostname) &&
+    url.pathname.startsWith('/rest/v1/'),
+  new NetworkFirst({
+    cacheName: 'supabase-reads',
+    networkTimeoutSeconds: 5,
+    plugins: [new ExpirationPlugin({ maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 })],
+  })
+);
+
 // ============================================
 // PUSH NOTIFICATION HANDLERS
 // ============================================

@@ -41,6 +41,7 @@
         "@radix-ui/react-tooltip": "^1.2.7",
         "@supabase/supabase-js": "^2.87.1",
         "@tanstack/react-query": "^5.83.0",
+        "@tanstack/react-query-persist-client": "^5.101.2",
         "@tiptap/extension-image": "^3.27.1",
         "@tiptap/extension-link": "^3.27.1",
         "@tiptap/react": "^3.27.1",
@@ -53,6 +54,7 @@
         "embla-carousel-autoplay": "^8.6.0",
         "embla-carousel-react": "^8.6.0",
         "framer-motion": "^12.35.1",
+        "idb-keyval": "^6.3.0",
         "input-otp": "^1.4.2",
         "lucide-react": "^0.462.0",
         "mapbox-gl": "^3.18.1",
@@ -641,7 +643,11 @@
 
     "@tanstack/query-core": ["@tanstack/query-core@5.83.0", "", {}, "sha512-0M8dA+amXUkyz5cVUm/B+zSk3xkQAcuXuz5/Q/LveT4ots2rBpPTZOzd7yJa2Utsf8D2Upl5KyjhHRY+9lB/XA=="],
 
+    "@tanstack/query-persist-client-core": ["@tanstack/query-persist-client-core@5.101.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/query-persist-client-core/-/query-persist-client-core-5.101.2.tgz", { "dependencies": { "@tanstack/query-core": "5.101.2" } }, "sha512-rgMsbvBVpSPDUsprC9FYxojdG0Q1LH6yq1i3DXz2aps4VEqv2l4Msj3YDqIifU3xkl/DrYe9YWntZAJLrM6xTg=="],
+
     "@tanstack/react-query": ["@tanstack/react-query@5.83.0", "", { "dependencies": { "@tanstack/query-core": "5.83.0" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-/XGYhZ3foc5H0VM2jLSD/NyBRIOK4q9kfeml4+0x2DlL6xVuAcVEW+hTlTapAmejObg0i3eNqhkr2dT+eciwoQ=="],
+
+    "@tanstack/react-query-persist-client": ["@tanstack/react-query-persist-client@5.101.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/react-query-persist-client/-/react-query-persist-client-5.101.2.tgz", { "dependencies": { "@tanstack/query-persist-client-core": "5.101.2" }, "peerDependencies": { "@tanstack/react-query": "^5.101.2", "react": "^18 || ^19" } }, "sha512-19UpaRtf0lvB2QAJ2MoixxtGf3osMOd508g99EsttUj4+3eLs+ulnNgYjB7AkQMHrRlcbVXqpVNqWkB4a7g8Zw=="],
 
     "@tiptap/core": ["@tiptap/core@3.27.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tiptap/core/-/core-3.27.1.tgz", { "peerDependencies": { "@tiptap/pm": "3.27.1" } }, "sha512-rV6Qn4wmC6BxfF+4mu6bqGWj9vA4oXXhsrpXaJL2uhjxeHAGofjwcHof2X84VYzeyXgdlsGmqKie4TAppVXZUQ=="],
 
@@ -1164,6 +1170,8 @@
     "iconv-lite": ["iconv-lite@0.7.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/iconv-lite/-/iconv-lite-0.7.3.tgz", { "dependencies": { "safer-buffer": ">= 2.1.2 < 3.0.0" } }, "sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ=="],
 
     "idb": ["idb@7.1.1", "", {}, "sha512-gchesWBzyvGHRO9W8tzUWFDycow5gwjvFKfyV9FF32Y7F50yZMp7mP+T2mJIWFx49zicqyC4uefHM17o6xKIVQ=="],
+
+    "idb-keyval": ["idb-keyval@6.3.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/idb-keyval/-/idb-keyval-6.3.0.tgz", {}, "sha512-um+2dgAWmYsu615EXpWVwSmapJhON0G43t3Ka/EVaohzPQXSMqKEqeDK/oIW3Ow+BXaF2PvSc+oBTFp793A5Ow=="],
 
     "ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
 
@@ -1896,6 +1904,8 @@
     "@rollup/plugin-node-resolve/@rollup/pluginutils": ["@rollup/pluginutils@5.3.0", "", { "dependencies": { "@types/estree": "^1.0.0", "estree-walker": "^2.0.2", "picomatch": "^4.0.2" }, "peerDependencies": { "rollup": "^1.20.0||^2.0.0||^3.0.0||^4.0.0" } }, "sha512-5EdhGZtnu3V88ces7s53hhfK5KSASnJZv8Lulpc04cWO3REESroJXg73DFsOmgbU2BhwV0E20bu2IDZb3VKW4Q=="],
 
     "@rollup/pluginutils/@types/estree": ["@types/estree@0.0.39", "", {}, "sha512-EYNwp3bU+98cpU4lAWYYL7Zz+2gryWH1qbdDTidVd6hkiR6weksdbMadyXKXNPEkQFhXM+hVO9ZygomHXp+AIw=="],
+
+    "@tanstack/query-persist-client-core/@tanstack/query-core": ["@tanstack/query-core@5.101.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@tanstack/query-core/-/query-core-5.101.2.tgz", {}, "sha512-hH5MLoJhF7KaIGd7q3xTXGXvslI+GYlM1Z/35aSHHWaCJWB7XvTSHYuV3eM7tw+aE0mT/xMro4M4Q9rCGHT0lw=="],
 
     "@typescript-eslint/eslint-plugin/ignore": ["ignore@7.0.5", "", {}, "sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg=="],
 
