@@ -11,8 +11,9 @@ import DeliveryOption from '@/components/checkout/DeliveryOption';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, History } from 'lucide-react';
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, History, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 
 interface StoreInfo {
@@ -25,6 +26,7 @@ interface StoreInfo {
 const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const online = useOnlineStatus();
   const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
   const [deliveryData, setDeliveryData] = useState<{
@@ -75,7 +77,11 @@ const Cart = () => {
 
   const handleCheckout = async () => {
     if (!user || items.length === 0) return;
-    
+    if (!online) {
+      toast.error("You're offline. Please connect to the internet to complete your purchase.");
+      return;
+    }
+
     setCheckingOut(true);
     
     try {
