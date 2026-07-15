@@ -210,6 +210,18 @@ const Cart = () => {
           </div>
         )}
 
+        {!online && (
+          <div className="mb-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-sm flex items-start gap-2">
+            <WifiOff className="h-4 w-4 mt-0.5 text-yellow-600" />
+            <div>
+              <p className="font-medium text-yellow-700 dark:text-yellow-400">You're offline</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                You can review your cart, but you'll need an internet connection to complete your purchase.
+              </p>
+            </div>
+          </div>
+        )}
+
 
 
         <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
