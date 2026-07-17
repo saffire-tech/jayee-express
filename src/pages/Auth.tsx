@@ -10,6 +10,7 @@ import SEO from "@/components/SEO";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { isNativeApp, nativeSignInWithOAuth } from "@/lib/nativeOAuth";
 
 const GoogleIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -90,6 +91,13 @@ const Auth = () => {
     setError("");
     setOauthLoading(provider);
     try {
+      // Native (Capacitor) build: open provider in in-app browser tab (Chrome Custom Tab / SFSafariViewController).
+      if (isNativeApp()) {
+        await nativeSignInWithOAuth(provider);
+        goNext();
+        return;
+      }
+      // Web: Lovable managed OAuth helper renders provider consent in a popup on the same origin.
       const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: nextParam
           ? `${window.location.origin}/auth?next=${encodeURIComponent(nextParam)}`
