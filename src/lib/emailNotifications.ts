@@ -49,30 +49,11 @@ export const sendOrderStatusEmailNotification = async (
   storeName: string
 ) => {
   try {
-    // Look up buyer's name for a friendlier email
-    let buyerName = "";
-    try {
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", buyerId)
-        .maybeSingle();
-      buyerName = (prof as any)?.full_name || "";
-    } catch {}
-
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://jayeeexpress.com";
     const { error } = await supabase.functions.invoke("notify-app-email", {
       body: {
         templateName: "order-status-update",
-        recipientUserId: buyerId,
-        idempotencyKey: `order-status-${orderId}-${status}`,
-        templateData: {
-          buyerName,
-          orderId,
-          status,
-          storeName,
-          orderUrl: `${origin}/purchases`,
-        },
+        orderId,
+        status,
       },
     });
     if (error) console.error("Error sending order status email:", error);
@@ -80,6 +61,8 @@ export const sendOrderStatusEmailNotification = async (
     console.error("Error sending order status email notification:", error);
   }
 };
+// Retained signature args for backward compatibility (buyerId/storeName now derived server-side).
+void ((_: unknown) => _);
 
 export const sendMessageEmailNotification = async (
   receiverId: string,
