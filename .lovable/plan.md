@@ -1,51 +1,68 @@
 
 ## Goal
-When users tap "Continue with Google" or "Continue with Apple" on the Auth page:
-1. The provider sign-in should run **inside the app** (in-app popup / webview) rather than opening an external browser tab.
-2. The consent screen shown by the provider should display **Jayee Express** branding (business name + logo) — not "Lovable".
+Get Jayee Express launch-ready for public use at scale by addressing all 12 launch-readiness items, in a sensible order (blockers first, polish last).
 
-## What's happening today
-`src/pages/Auth.tsx` calls `lovable.auth.signInWithOAuth("google" | "apple", { redirect_uri: window.location.origin })`. The Lovable-managed OAuth client is used, so the Google/Apple consent screen shows "Lovable" as the requesting app. On web, the helper opens a popup; on the installed Android build (Capacitor), it currently escapes to the system browser.
+## Order of work
 
-## Plan
+I'll do these in **four phases** so nothing that depends on something else runs first.
 
-### 1. Rebrand the consent screen (business name + logo)
-Provider consent screens are controlled by the OAuth client registered with Google / Apple, not by app code. To show "Jayee Express" and our logo we must switch from the managed Lovable OAuth credentials to **Bring-Your-Own-Credentials (BYOC)** for each provider:
+### Phase 1 — Blockers (must be done before public launch)
+1. **Security scan pass**
+   - Run `security--run_security_scan`, review Critical/High findings, fix each in code (RLS, GRANTs, exposed columns, edge-function JWT checks), then mark them fixed.
+2. **Payment safety end-to-end**
+   - Confirm you've swapped to Paystack **live** keys in secrets.
+   - Verify `paystack-webhook` checks the `x-paystack-signature` HMAC against `PAYSTACK_SECRET_KEY` and rejects on mismatch (already in code — I'll audit).
+   - Confirm the `finalize_order_payment` RPC + advisory lock + `reconcile-payments` cron are all still wired.
+   - Test the refund path (`cancel-order-refund`) with a live-mode sandbox order.
+3. **Custom OAuth branding + redirect URIs**
+   - Guide you through Google Cloud + Apple Developer BYOC (already documented in the previous turn).
+   - Add the `com.shodel.app://oauth-callback` redirect to Google/Apple client and the Cloud → Auth Settings additional redirect URLs so native sign-in works end-to-end.
+4. **Legal pages + consent**
+   - Audit `/terms`, `/privacy-policy`; add a **refund/return policy** page, a **community/marketplace rules** page, and a signup checkbox that stores acceptance timestamp on the profile.
+   - Add a lightweight cookie/consent notice.
+5. **Email deliverability**
+   - `email_domain--check_email_domain_status` for `jayeeexpress.com`; if not verified, run through the email setup dialog so SPF/DKIM/DMARC are correct and `support@jayeeexpress.com` sends reliably.
 
-- **Google**: Create an OAuth Client ID in Google Cloud Console under a project whose OAuth consent screen is configured with:
-  - App name: `Jayee Express`
-  - App logo: Jayee Express logo (uploaded, verified)
-  - Support email + authorized domain: `jayeeexpress.com`
-  - Authorized redirect URI: the callback URL shown in Lovable Cloud → Auth Settings → Google
-  - Paste Client ID + Secret into Lovable Cloud → Auth Settings → Google (BYOC).
-- **Apple**: Create a Services ID + Sign in with Apple key in Apple Developer Console under the "Jayee Express" App ID (the app name shown on Apple's sheet comes from the Services ID's primary App ID). Generate the client secret JWT in Lovable Cloud → Auth Settings → Apple and paste Team ID, Key ID, Services ID, and the `.p8` contents.
+### Phase 2 — Operational readiness
+6. **Admin readiness**
+   - Verify at least 2 active `admin` rows in `user_roles`; walk through a real withdrawal end-to-end on `/admin/payouts`; confirm each of the 7 category commission rows exists and matches the intended %.
+7. **Backups & recovery**
+   - Confirm the Cloud daily backup is on (Cloud → Advanced settings), document a restore drill in `.lovable/memory/`, and verify the `reconcile-payments` scheduled job is enabled.
+8. **Performance & abuse limits**
+   - Add server-side rate limiting via a `rate_limits` table + RPC used by `initialize-payment`, message sends, product creation, review creation, and auth email endpoints.
+   - Enforce image size cap in `imageCompression.ts` (already 1600×900) and reject uploads > 3 MB in storage RLS.
+   - Add a simple profanity/blocked-word filter for `messages` and product titles.
+9. **Monitoring & error tracking**
+   - Add lightweight client error capture that writes to a `client_errors` table (RLS: authenticated INSERT only) with route + message + userId, surfaced in `/admin` as a "Recent errors" panel. Keeps you inside Cloud instead of adding a third-party dependency.
+   - Add a `payment_webhook_failures` count widget on the existing `PaymentsReconciliation` page.
 
-Both steps require credentials only the account owner has, so this part is a **guided manual setup** — no code change on our side. I'll produce a step-by-step checklist with the exact redirect URIs to paste.
+### Phase 3 — Distribution
+10. **App store readiness (Android)**
+    - Confirm `capacitor.config.ts` (already `com.shodel.app` / Jayee Express).
+    - Add the AndroidManifest deep-link intent-filter for OAuth (documented last turn).
+    - Produce a Play Store checklist: signed AAB, `privacy_policy_url`, data-safety answers, screenshots, feature graphic, content rating.
+11. **SEO & discoverability**
+    - Regenerate `public/sitemap.xml` via `scripts/generate-sitemap.ts` in a build step, verify `robots.txt`, run `seo_chat--trigger_scan`, then walk through Google Search Console verification with a TXT record on `jayeeexpress.com`.
 
-### 2. Keep OAuth inside the app (web)
-On the web the `lovable.auth.signInWithOAuth` helper already opens a popup and posts the tokens back — no external tab. The current call is correct. I'll verify no code path is forcing a full-page redirect and remove the `redirect_uri: window.location.origin` fallback path only if it's redundant. No visible change expected for web users.
+### Phase 4 — Support surface
+12. **Support channel**
+    - Confirm `support@jayeeexpress.com` receives mail (may require MX at your registrar — I'll surface the exact records).
+    - Seed the Help Center with the essential starter topics for buyers/sellers/riders/admins (order placed, payment failed, delivery accepted, withdrawal rejected, account suspended, how to switch modes).
+    - Test `/report` end-to-end.
 
-### 3. Keep OAuth inside the Android app (Capacitor)
-On the installed Android app the popup helper can't render, so today it hands off to the system browser. To keep it in-app we'll:
-- Add `@capacitor/browser` and open the provider authorize URL in an **in-app browser tab** (Chrome Custom Tab) instead of the external browser.
-- Register a deep-link scheme (`com.shodel.app://oauth-callback`) in `capacitor.config.ts` and Android `AndroidManifest.xml`.
-- Add an app-side listener (`App.addListener('appUrlOpen', ...)`) that closes the in-app tab and calls `supabase.auth.setSession` / `exchangeCodeForSession` with the returned tokens.
-- Register the deep-link callback URL in the Google/Apple OAuth client from step 1.
+## What I need from you along the way
+- **Live Paystack keys** — I'll ask via `add_secret` when Phase 1.2 begins.
+- **Google Cloud + Apple Developer access** — only you can register OAuth clients; I'll give exact fields to paste (Phase 1.3).
+- **Confirmation to enable a scheduled cron** for reconcile-payments if it's not already on.
+- **Which second admin email** to promote to `admin` role (Phase 2.6).
+- **Play Store screenshots & feature graphic** when we get to Phase 3.10 (I can generate them if you want).
 
-The web `Auth.tsx` flow is untouched; a small `signInWithProvider()` wrapper picks the Capacitor path only when `Capacitor.isNativePlatform()` is true.
+## Ground rules
+- One phase per turn so we can verify each step before moving to the next.
+- I won't change anything outside the item currently being worked.
+- Every code change gets a build check; every DB change goes through a migration with GRANTs + RLS.
 
-### 4. Verify
-- Web: click Google → popup shows "Jayee Express" logo + name, closes, user lands signed-in on `/`.
-- Android: click Google → Chrome Custom Tab overlays the app showing "Jayee Express", closes automatically after consent, app receives the deep link and completes sign-in.
-- Apple: repeat both checks; Apple sheet shows "Jayee Express".
+## Deliverable at the end
+A launch checklist committed under `.lovable/launch-readiness.md` recording what was verified, what was changed, and what's still on you (Play Store submission, live-mode Paystack verification, etc.).
 
-## Files touched (build phase)
-- `src/pages/Auth.tsx` — route through new wrapper.
-- `src/lib/nativeOAuth.ts` *(new)* — Capacitor Browser + deep-link handler.
-- `capacitor.config.ts` and `android/app/src/main/AndroidManifest.xml` — deep-link intent filter + custom scheme.
-- No changes to `src/integrations/lovable/index.ts` (auto-generated).
-
-## What I need from you
-1. Confirm you want to proceed with BYOC for both Google and Apple (required for custom branding — there is no other way to change the name/logo on the provider sheet).
-2. Confirm the business name to display is exactly **Jayee Express** and share (or point me at) the logo file to upload to Google's consent screen.
-3. Confirm you're OK adding `@capacitor/browser` for the in-app Android flow.
+**Approve this plan and I'll start Phase 1 immediately with the security scan + fixes.**
