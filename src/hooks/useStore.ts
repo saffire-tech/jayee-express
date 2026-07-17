@@ -240,20 +240,12 @@ export const useStore = () => {
       setStore(newStore);
       // Send branded welcome email (best-effort)
       try {
-        if (user.email) {
-          await supabase.functions.invoke("notify-app-email", {
-            body: {
-              templateName: "store-welcome",
-              recipientEmail: user.email,
-              idempotencyKey: `store-welcome-${newStore.id}`,
-              templateData: {
-                ownerName: (user.user_metadata as any)?.full_name || "",
-                storeName: newStore.name,
-                dashboardUrl: `${window.location.origin}/seller`,
-              },
-            },
-          });
-        }
+        await supabase.functions.invoke("notify-app-email", {
+          body: {
+            templateName: "store-welcome",
+            storeId: newStore.id,
+          },
+        });
       } catch (e) {
         console.warn("store-welcome email failed", e);
       }
