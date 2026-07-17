@@ -61,7 +61,6 @@ export const sendOrderStatusEmailNotification = async (
     console.error("Error sending order status email notification:", error);
   }
 };
-};
 
 export const sendMessageEmailNotification = async (
   receiverId: string,
