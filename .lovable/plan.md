@@ -1,47 +1,51 @@
+
 ## Goal
-Let users browse cached homepage products, stores, and their purchase history while offline, then require a live connection only to complete a purchase.
+When users tap "Continue with Google" or "Continue with Apple" on the Auth page:
+1. The provider sign-in should run **inside the app** (in-app popup / webview) rather than opening an external browser tab.
+2. The consent screen shown by the provider should display **Jayee Express** branding (business name + logo) — not "Lovable".
 
-## Approach
-Reuse the existing service worker (`src/sw.ts`) for shell/asset caching and add a data-layer offline cache on top of React Query using IndexedDB. Supabase API responses will also get a runtime SW cache as a network fallback for direct fetches.
+## What's happening today
+`src/pages/Auth.tsx` calls `lovable.auth.signInWithOAuth("google" | "apple", { redirect_uri: window.location.origin })`. The Lovable-managed OAuth client is used, so the Google/Apple consent screen shows "Lovable" as the requesting app. On web, the helper opens a popup; on the installed Android build (Capacitor), it currently escapes to the system browser.
 
-## Changes
+## Plan
 
-### 1. React Query persistence (IndexedDB)
-- Add `@tanstack/react-query-persist-client` + `idb-keyval` based persister.
-- Wrap the app's `QueryClientProvider` with `PersistQueryClientProvider` (in `src/App.tsx`).
-- Config: `maxAge` 7 days, `gcTime` 7 days, persist only whitelisted query keys:
-  - `featured-products`, `recommendations`, `featured-stores`, `stores-list`, `products-list`, `product-detail`, `store-detail`, `purchase-history`, `orders-mine`.
-- Skip persistence for auth-sensitive/mutation queries (cart, messages, notifications, admin, wallet balances).
+### 1. Rebrand the consent screen (business name + logo)
+Provider consent screens are controlled by the OAuth client registered with Google / Apple, not by app code. To show "Jayee Express" and our logo we must switch from the managed Lovable OAuth credentials to **Bring-Your-Own-Credentials (BYOC)** for each provider:
 
-### 2. Runtime SW cache for Supabase reads
-In `src/sw.ts` add a `NetworkFirst` route for `GET` requests to the Supabase REST endpoint (`*.supabase.co/rest/v1/*`) with a 5s timeout and a small `supabase-reads` cache (50 entries, 1 day). Excludes non-GET and realtime/auth endpoints.
+- **Google**: Create an OAuth Client ID in Google Cloud Console under a project whose OAuth consent screen is configured with:
+  - App name: `Jayee Express`
+  - App logo: Jayee Express logo (uploaded, verified)
+  - Support email + authorized domain: `jayeeexpress.com`
+  - Authorized redirect URI: the callback URL shown in Lovable Cloud → Auth Settings → Google
+  - Paste Client ID + Secret into Lovable Cloud → Auth Settings → Google (BYOC).
+- **Apple**: Create a Services ID + Sign in with Apple key in Apple Developer Console under the "Jayee Express" App ID (the app name shown on Apple's sheet comes from the Services ID's primary App ID). Generate the client secret JWT in Lovable Cloud → Auth Settings → Apple and paste Team ID, Key ID, Services ID, and the `.p8` contents.
 
-### 3. Offline UX
-- Add a lightweight `useOnlineStatus` hook.
-- Small persistent "You're offline — showing saved data" banner (top of page) when offline.
-- On product detail / cart / checkout: if offline and user taps Buy/Add to Cart to checkout, show toast "You need internet to complete a purchase" and disable the pay button. Browsing and adding to cart locally stays allowed; only the Paystack/checkout submit is gated.
+Both steps require credentials only the account owner has, so this part is a **guided manual setup** — no code change on our side. I'll produce a step-by-step checklist with the exact redirect URIs to paste.
 
-### 4. Purchase history offline
-`PurchaseHistory.tsx` already uses React Query — once its query key is whitelisted for persistence, the last-seen orders render offline automatically. Add an "Offline — last synced <time>" note using `dataUpdatedAt`.
+### 2. Keep OAuth inside the app (web)
+On the web the `lovable.auth.signInWithOAuth` helper already opens a popup and posts the tokens back — no external tab. The current call is correct. I'll verify no code path is forcing a full-page redirect and remove the `redirect_uri: window.location.origin` fallback path only if it's redundant. No visible change expected for web users.
 
-### 5. Homepage & stores offline
-No component rewrites needed. `FeaturedProducts`, `RecommendedProducts`, `FeaturedStores`, `Stores`, `Products`, `StorePage`, `ProductDetail` all use React Query; whitelisting their keys makes them hydrate from IndexedDB on cold offline loads. Images are already handled by the SW's `CacheFirst` static-asset route; extend it to also cache same-origin and Supabase Storage image responses (`image` destination) with an `ExpirationPlugin` (100 entries, 30 days).
+### 3. Keep OAuth inside the Android app (Capacitor)
+On the installed Android app the popup helper can't render, so today it hands off to the system browser. To keep it in-app we'll:
+- Add `@capacitor/browser` and open the provider authorize URL in an **in-app browser tab** (Chrome Custom Tab) instead of the external browser.
+- Register a deep-link scheme (`com.shodel.app://oauth-callback`) in `capacitor.config.ts` and Android `AndroidManifest.xml`.
+- Add an app-side listener (`App.addListener('appUrlOpen', ...)`) that closes the in-app tab and calls `supabase.auth.setSession` / `exchangeCodeForSession` with the returned tokens.
+- Register the deep-link callback URL in the Google/Apple OAuth client from step 1.
 
-### 6. Guardrails
-- Never persist queries containing PII beyond what the user already sees (orders scoped to the user; profiles limited to `public_profiles`).
-- Bump a `PERSIST_VERSION` string so a future schema change invalidates old caches.
-- Preview/dev guard from the existing PWA skill still applies — no SW in Lovable preview.
+The web `Auth.tsx` flow is untouched; a small `signInWithProvider()` wrapper picks the Capacitor path only when `Capacitor.isNativePlatform()` is true.
 
-## Files touched
-- `src/App.tsx` — swap provider to `PersistQueryClientProvider`.
-- `src/lib/queryPersister.ts` (new) — IndexedDB persister + whitelist.
-- `src/hooks/useOnlineStatus.ts` (new).
-- `src/components/OfflineBanner.tsx` (new), mounted in `App.tsx`.
-- `src/pages/Cart.tsx`, `src/pages/ProductDetail.tsx` — gate purchase actions when offline.
-- `src/pages/PurchaseHistory.tsx` — "last synced" note.
-- `src/sw.ts` — add Supabase REST NetworkFirst route + image CacheFirst.
-- `package.json` — add `@tanstack/react-query-persist-client`, `idb-keyval`.
+### 4. Verify
+- Web: click Google → popup shows "Jayee Express" logo + name, closes, user lands signed-in on `/`.
+- Android: click Google → Chrome Custom Tab overlays the app showing "Jayee Express", closes automatically after consent, app receives the deep link and completes sign-in.
+- Apple: repeat both checks; Apple sheet shows "Jayee Express".
 
-## Out of scope
-- Offline order placement / queued purchases (explicitly not supported — internet required to pay).
-- Offline messaging, notifications, admin dashboards.
+## Files touched (build phase)
+- `src/pages/Auth.tsx` — route through new wrapper.
+- `src/lib/nativeOAuth.ts` *(new)* — Capacitor Browser + deep-link handler.
+- `capacitor.config.ts` and `android/app/src/main/AndroidManifest.xml` — deep-link intent filter + custom scheme.
+- No changes to `src/integrations/lovable/index.ts` (auto-generated).
+
+## What I need from you
+1. Confirm you want to proceed with BYOC for both Google and Apple (required for custom branding — there is no other way to change the name/logo on the provider sheet).
+2. Confirm the business name to display is exactly **Jayee Express** and share (or point me at) the logo file to upload to Google's consent screen.
+3. Confirm you're OK adding `@capacitor/browser` for the in-app Android flow.
