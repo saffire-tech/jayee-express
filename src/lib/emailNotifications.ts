@@ -61,8 +61,7 @@ export const sendOrderStatusEmailNotification = async (
     console.error("Error sending order status email notification:", error);
   }
 };
-// Retained signature args for backward compatibility (buyerId/storeName now derived server-side).
-void ((_: unknown) => _);
+};
 
 export const sendMessageEmailNotification = async (
   receiverId: string,
