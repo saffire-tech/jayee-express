@@ -38,20 +38,10 @@ export async function nativeSignInWithOAuth(provider: "google" | "apple") {
   }
 
   // Promise that resolves when the deep link fires back into the app.
-  const waitForCallback = new Promise<void>((resolve, reject) => {
-    const cleanup = async () => {
-      listener.remove();
-      try {
-        await Browser.close();
-      } catch {
-        /* noop */
-      }
-    };
-
-    const listener = App.addListener("appUrlOpen", async (event) => {
+  const waitForCallback = new Promise<void>(async (resolve, reject) => {
+    const urlListener = await App.addListener("appUrlOpen", async (event) => {
       if (!event.url || !event.url.startsWith(NATIVE_REDIRECT)) return;
       try {
-        // Supabase returns tokens in the URL fragment for implicit flow, or ?code= for PKCE.
         const url = new URL(event.url);
         const hash = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
         const fragment = new URLSearchParams(hash);
@@ -74,20 +64,22 @@ export async function nativeSignInWithOAuth(provider: "google" | "apple") {
           throw new Error("No tokens returned from provider");
         }
 
-        await cleanup();
+        await urlListener.remove();
+        try { await Browser.close(); } catch { /* noop */ }
         resolve();
       } catch (e) {
-        await cleanup();
+        await urlListener.remove();
+        try { await Browser.close(); } catch { /* noop */ }
         reject(e);
       }
     });
 
     // If user backs out of the in-app browser without completing.
-    Browser.addListener("browserFinished", async () => {
-      // Only reject if we're still waiting (session not set)
+    const closeListener = await Browser.addListener("browserFinished", async () => {
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session) {
-        listener.remove();
+        await urlListener.remove();
+        await closeListener.remove();
         reject(new Error("Sign-in was cancelled"));
       }
     });
