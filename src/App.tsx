@@ -160,6 +160,7 @@ const App = () => {
                       <Route path="/download" element={<Download />} />
                       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                       <Route path="/terms" element={<Terms />} />
+                      <Route path="/unsubscribe" element={<Unsubscribe />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     <MobileTabBar />
