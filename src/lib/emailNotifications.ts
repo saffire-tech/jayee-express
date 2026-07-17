@@ -43,10 +43,10 @@ export const sendNewOrderEmailNotification = async (
 };
 
 export const sendOrderStatusEmailNotification = async (
-  buyerId: string,
+  _buyerId: string,
   orderId: string,
   status: string,
-  storeName: string
+  _storeName: string
 ) => {
   try {
     const { error } = await supabase.functions.invoke("notify-app-email", {
