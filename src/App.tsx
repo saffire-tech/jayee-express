@@ -42,6 +42,7 @@ const RiderApplications = lazy(() => import("./pages/admin/RiderApplications"));
 const PayoutsManagement = lazy(() => import("./pages/admin/PayoutsManagement"));
 const PaymentsReconciliation = lazy(() => import("./pages/admin/PaymentsReconciliation"));
 const HelpManagement = lazy(() => import("./pages/admin/HelpManagement"));
+const EmailLogs = lazy(() => import("./pages/admin/EmailLogs"));
 const Help = lazy(() => import("./pages/Help"));
 import { FloatingHelpButton } from "./components/help/FloatingHelpButton";
 
@@ -153,6 +154,7 @@ const App = () => {
                       <Route path="/admin/payouts" element={<AdminRoute><PayoutsManagement /></AdminRoute>} />
                       <Route path="/admin/payments" element={<AdminRoute><PaymentsReconciliation /></AdminRoute>} />
                       <Route path="/admin/help" element={<AdminRoute><HelpManagement /></AdminRoute>} />
+                      <Route path="/admin/emails" element={<AdminRoute><EmailLogs /></AdminRoute>} />
                       <Route path="/help" element={<Help />} />
 
                       <Route path="/delivery" element={<DeliveryDashboard />} />
