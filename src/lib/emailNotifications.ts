@@ -49,23 +49,33 @@ export const sendOrderStatusEmailNotification = async (
   storeName: string
 ) => {
   try {
-    const { error } = await supabase.functions.invoke("send-email-notification", {
+    // Look up buyer's name for a friendlier email
+    let buyerName = "";
+    try {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", buyerId)
+        .maybeSingle();
+      buyerName = (prof as any)?.full_name || "";
+    } catch {}
+
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://jayeeexpress.com";
+    const { error } = await supabase.functions.invoke("notify-app-email", {
       body: {
-        type: "order_status",
+        templateName: "order-status-update",
         recipientUserId: buyerId,
-        data: {
+        idempotencyKey: `order-status-${orderId}-${status}`,
+        templateData: {
+          buyerName,
           orderId,
           status,
           storeName,
+          orderUrl: `${origin}/purchases`,
         },
       },
     });
-
-    if (error) {
-      console.error("Error sending order status email:", error);
-    } else {
-      console.log("Order status email sent successfully");
-    }
+    if (error) console.error("Error sending order status email:", error);
   } catch (error) {
     console.error("Error sending order status email notification:", error);
   }

@@ -238,6 +238,25 @@ export const useStore = () => {
       if (error) throw error;
 
       setStore(newStore);
+      // Send branded welcome email (best-effort)
+      try {
+        if (user.email) {
+          await supabase.functions.invoke("notify-app-email", {
+            body: {
+              templateName: "store-welcome",
+              recipientEmail: user.email,
+              idempotencyKey: `store-welcome-${newStore.id}`,
+              templateData: {
+                ownerName: (user.user_metadata as any)?.full_name || "",
+                storeName: newStore.name,
+                dashboardUrl: `${window.location.origin}/seller`,
+              },
+            },
+          });
+        }
+      } catch (e) {
+        console.warn("store-welcome email failed", e);
+      }
       toast({
         title: "Store submitted for review!",
         description: "An admin will review your store and assign your monthly subscription fee shortly.",
