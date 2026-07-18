@@ -1,30 +1,28 @@
-## Maintenance Mode
+# Custom Maintenance Image
 
-Add an admin-controlled maintenance mode that blocks all non-admin access with a branded "Under Maintenance" screen.
+Let admins upload an image to display on the maintenance page. If none is set, keep the current animated wrench icon as fallback.
 
-### Backend
-- Add row to `platform_settings` table (key = `maintenance_mode`) with `{ enabled, message, eta }` JSON value. Public read (so gate works pre-auth), admin-only write via RLS using `has_role`.
-- Enable realtime on `platform_settings` so toggling propagates instantly to all live sessions.
+## Storage
+- Create a new public storage bucket `maintenance-assets` (admin write, public read via RLS on `storage.objects`).
 
-### Frontend gate
-- New hook `useMaintenanceMode()` — subscribes to the setting via Supabase realtime + initial fetch, cached in React Query.
-- New component `MaintenanceGate` wrapping `<Routes>` in `src/App.tsx`. When `enabled === true`:
-  - If current user is an admin (`useAdmin`) → render children normally + show a small "Maintenance mode ON" banner at top so they can still access `/admin` to toggle it off.
-  - Otherwise → render `MaintenancePage` for every route (including `/auth`).
-- `MaintenancePage` (`src/pages/Maintenance.tsx`) — modern branded screen: Jayee Express logo, animated illustration, headline "We'll be right back", admin-defined message, optional ETA, social links, "Retry" button. Uses existing design tokens (orange primary, glass-morphism, framer-motion), dark-mode aware, mobile-first.
+## Data model
+- Extend the existing `platform_settings.maintenance_mode` JSON value with a new optional `image_url` field. No schema change needed — it's already a JSON blob (`{ enabled, message, eta }`).
 
-### Admin control
-- New card in `AdminDashboard` (or `platform_settings` section): toggle switch + message textarea + optional ETA datetime + Save button. Shows current status and last-updated timestamp.
+## Admin UI — `src/components/admin/MaintenanceModeCard.tsx`
+- Add an image upload control (reuse the same pattern as `src/components/seller/ImageUpload.tsx`: file input, compress via `compressImage`, upload to `maintenance-assets/<uuid>.webp`, get public URL).
+- Show current image preview with a "Remove" button that clears `image_url`.
+- Persist `image_url` inside the same `platform_settings` update the card already performs.
 
-### Notes
-- Keep `/admin/*` routes reachable for admins so they can turn it back off.
-- Lite fallback (`public/lite/`) is static HTML served by an edge function — out of scope for this toggle unless you want it covered too.
-- Service worker: no changes; the gate re-evaluates on every mount and via realtime.
+## Hook — `src/hooks/useMaintenanceMode.ts`
+- Parse and expose `imageUrl: string | null` alongside existing fields.
 
-### Files touched
-- Migration: seed `platform_settings` row + policies + realtime publication.
-- `src/hooks/useMaintenanceMode.ts` (new)
-- `src/components/MaintenanceGate.tsx` (new)
-- `src/pages/Maintenance.tsx` (new)
-- `src/components/admin/MaintenanceModeCard.tsx` (new) + mount in `AdminDashboard.tsx`
-- `src/App.tsx` (wrap routes)
+## Maintenance page — `src/pages/Maintenance.tsx`
+- Accept a new `imageUrl?: string | null` prop.
+- If provided: render the image (rounded, shadowed, `object-cover`, capped height) in place of the animated wrench badge.
+- If not provided: keep the current animated wrench exactly as-is.
+
+## Gate — `src/components/MaintenanceGate.tsx`
+- Pass `imageUrl` from the hook down to `<MaintenancePage />`.
+
+## Out of scope
+- No changes to who can toggle maintenance, no schema migration, no changes to the message/ETA fields.
