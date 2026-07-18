@@ -8,6 +8,7 @@ import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import AnnouncementsManager from '@/components/admin/AnnouncementsManager';
 import SubscriptionPlansManager from '@/components/admin/SubscriptionPlansManager';
 import LocationsManager from '@/components/admin/LocationsManager';
+import MaintenanceModeCard from '@/components/admin/MaintenanceModeCard';
 
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
@@ -100,6 +101,10 @@ export default function AdminDashboard() {
 
       <div className="mt-8">
         <LocationsManager />
+      </div>
+
+      <div className="mt-8">
+        <MaintenanceModeCard />
       </div>
     </AdminLayout>
   );
