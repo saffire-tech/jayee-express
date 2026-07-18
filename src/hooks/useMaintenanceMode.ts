@@ -5,6 +5,7 @@ export type MaintenanceState = {
   enabled: boolean;
   message: string;
   eta: string | null;
+  imageUrl: string | null;
   updatedAt: string | null;
   loaded: boolean;
 };
@@ -13,6 +14,7 @@ const DEFAULT: MaintenanceState = {
   enabled: false,
   message: "We are performing scheduled maintenance. We'll be back shortly.",
   eta: null,
+  imageUrl: null,
   updatedAt: null,
   loaded: false,
 };
@@ -24,6 +26,7 @@ function parse(value: string | null, updatedAt: string | null): MaintenanceState
       enabled: !!v.enabled,
       message: v.message || DEFAULT.message,
       eta: v.eta ?? null,
+      imageUrl: v.image_url ?? null,
       updatedAt,
       loaded: true,
     };
