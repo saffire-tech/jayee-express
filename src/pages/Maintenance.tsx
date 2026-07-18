@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 interface Props {
   message: string;
   eta: string | null;
+  imageUrl?: string | null;
 }
 
-export default function MaintenancePage({ message, eta }: Props) {
+export default function MaintenancePage({ message, eta, imageUrl }: Props) {
   const etaDate = eta ? new Date(eta) : null;
   const etaValid = etaDate && !isNaN(etaDate.getTime());
 
@@ -23,13 +24,28 @@ export default function MaintenancePage({ message, eta }: Props) {
           <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
           <div className="absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
 
-          <motion.div
-            animate={{ rotate: [0, -12, 12, -8, 8, 0] }}
-            transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.2 }}
-            className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"
-          >
-            <Wrench className="h-10 w-10" />
-          </motion.div>
+          {imageUrl ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="relative mx-auto mb-6 overflow-hidden rounded-2xl border border-border/60 shadow-lg shadow-primary/20 max-w-sm"
+            >
+              <img
+                src={imageUrl}
+                alt="Maintenance"
+                className="w-full h-48 md:h-56 object-cover"
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              animate={{ rotate: [0, -12, 12, -8, 8, 0] }}
+              transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.2 }}
+              className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+            >
+              <Wrench className="h-10 w-10" />
+            </motion.div>
+          )}
 
           <h1 className="relative text-3xl md:text-4xl font-bold tracking-tight">
             We'll be right back

@@ -6,7 +6,7 @@ import { AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function MaintenanceGate({ children }: { children: ReactNode }) {
-  const { enabled, message, eta, loaded } = useMaintenanceMode();
+  const { enabled, message, eta, imageUrl, loaded } = useMaintenanceMode();
   const { isAdmin, isLoading: adminLoading } = useAdmin();
 
   if (!enabled || !loaded) return <>{children}</>;
@@ -27,5 +27,5 @@ export function MaintenanceGate({ children }: { children: ReactNode }) {
     );
   }
 
-  return <MaintenancePage message={message} eta={eta} />;
+  return <MaintenancePage message={message} eta={eta} imageUrl={imageUrl} />;
 }
