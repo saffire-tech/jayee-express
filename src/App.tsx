@@ -59,6 +59,7 @@ const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const MobileTabBar = lazy(() => import("./components/layout/MobileTabBar"));
 import RequireCity from "./components/auth/RequireCity";
+import { MaintenanceGate } from "./components/MaintenanceGate";
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -127,6 +128,7 @@ const App = () => {
               <RequireCity />
               <AdminProvider>
                 <CartProvider>
+                  <MaintenanceGate>
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       <Route path="/" element={<Index />} />
@@ -168,6 +170,7 @@ const App = () => {
                     <MobileTabBar />
                     <FloatingHelpButton />
                   </Suspense>
+                  </MaintenanceGate>
                 </CartProvider>
               </AdminProvider>
             </AuthProvider>
