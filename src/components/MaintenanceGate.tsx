@@ -3,13 +3,24 @@ import { useMaintenanceMode } from "@/hooks/useMaintenanceMode";
 import { useAdmin } from "@/contexts/AdminContext";
 import MaintenancePage from "@/pages/Maintenance";
 import { AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+
+// Routes that must remain reachable during maintenance so admins can
+// sign in and turn the mode back off from any device/browser.
+const ALLOWED_PATHS = new Set<string>([
+  "/auth",
+  "/reset-password",
+  "/.lovable/oauth/consent",
+  "/unsubscribe",
+]);
 
 export function MaintenanceGate({ children }: { children: ReactNode }) {
   const { enabled, message, eta, imageUrl, loaded } = useMaintenanceMode();
   const { isAdmin, isLoading: adminLoading } = useAdmin();
+  const location = useLocation();
 
   if (!enabled || !loaded) return <>{children}</>;
+  if (ALLOWED_PATHS.has(location.pathname)) return <>{children}</>;
 
   // Admins can still use the app to toggle it off
   if (!adminLoading && isAdmin) {
