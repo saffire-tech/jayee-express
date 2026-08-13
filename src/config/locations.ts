@@ -1,6 +1,7 @@
 export interface LocationGroup {
   id: string;
   name: string;
+  city?: string;
   locations: string[];
 }
 
