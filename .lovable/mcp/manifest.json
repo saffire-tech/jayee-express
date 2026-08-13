@@ -81,7 +81,7 @@
       {
         "name": "list_stores",
         "title": "List stores",
-        "description": "List verified, active stores on Jayee Express, optionally filtered by city (e.g. Tamale, Wa).",
+        "description": "List verified, active stores on Jayee Express, optionally filtered by city (e.g. Accra, Tamale, Wa).",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

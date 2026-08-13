@@ -93,7 +93,7 @@ function publicClient3() {
 var list_stores_default = defineTool3({
   name: "list_stores",
   title: "List stores",
-  description: "List verified, active stores on Jayee Express, optionally filtered by city (e.g. Tamale, Wa).",
+  description: "List verified, active stores on Jayee Express, optionally filtered by city (e.g. Accra, Tamale, Wa).",
   inputSchema: {
     city: z3.string().trim().optional().describe("Filter by city."),
     query: z3.string().trim().optional().describe("Match store name."),

@@ -92,13 +92,13 @@ function html(body: string, status = 200, opts?: { canonical?: string; descripti
 async function home() {
   const body = `
 <h2>Welcome</h2>
-<p>Browse stores and products from Tamale and Wa on any phone.</p>
+<p>Browse stores and products from Accra, Tamale and Wa on any phone.</p>
 <form class="search" action="/lite/products" method="get">
   <input type="text" name="q" placeholder="Search products" maxlength="60">
   <input type="submit" value="Search">
 </form>
 <ul class="list">
-<li><a href="/lite/stores"><strong>Browse Stores</strong><div class="meta">Verified shops in Tamale &amp; Wa</div></a></li>
+<li><a href="/lite/stores"><strong>Browse Stores</strong><div class="meta">Verified shops in Accra, Tamale &amp; Wa</div></a></li>
 <li><a href="/lite/products"><strong>Browse Products</strong><div class="meta">Latest items and services</div></a></li>
 </ul>`;
   return html(body, 200, { title: 'Home', description: 'Jayee Express lite version for basic phones.' });
@@ -128,7 +128,7 @@ ${s.description ? `<div class="meta">${esc(String(s.description).slice(0, 120))}
   const body = `
 <nav class="crumbs"><a href="/lite/">Home</a> › Stores</nav>
 <h2>Stores${city ? ` in ${esc(city)}` : ''}</h2>
-<p><a href="/lite/stores?city=Tamale">Tamale</a> · <a href="/lite/stores?city=Wa">Wa</a>${city ? ' · <a href="/lite/stores">All</a>' : ''}</p>
+<p><a href="/lite/stores?city=Accra">Accra</a> · <a href="/lite/stores?city=Tamale">Tamale</a> · <a href="/lite/stores?city=Wa">Wa</a>${city ? ' · <a href="/lite/stores">All</a>' : ''}</p>
 <ul class="list">${items || '<li>No stores found.</li>'}</ul>
 <div class="pager">
 ${page > 1 ? `<a href="?p=${page - 1}${city ? `&city=${encodeURIComponent(city)}` : ''}">« Prev</a>` : ''}
