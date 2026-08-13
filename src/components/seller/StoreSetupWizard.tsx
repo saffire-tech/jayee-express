@@ -152,7 +152,7 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
           <p className="text-muted-foreground mb-8">Choose the community where your store is located</p>
           <div className="text-left">
             <Label htmlFor="campus">Area</Label>
-            <LocationSelector value={formData.campus} onChange={(value) => setFormData({ ...formData, campus: value })} placeholder="Select your area" className="mt-2" />
+            <LocationSelector value={formData.campus} onChange={(value) => setFormData({ ...formData, campus: value })} placeholder="Select your area" className="mt-2" city={formData.city} />
           </div>
         </div>
       )}

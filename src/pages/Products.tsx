@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LocationSelector from '@/components/ui/LocationSelector';
+import { useAuth } from '@/contexts/AuthContext';
 import { Search, Package, Heart, ShoppingCart, X, SlidersHorizontal, Eye } from 'lucide-react';
 import { ProductGridSkeleton } from '@/components/ui/skeletons';
 import {
@@ -244,6 +245,7 @@ const Products = () => {
               onChange={setSelectedCampus}
               showAllOption
               allOptionLabel="All Areas"
+              city={profile?.city}
               className="w-full md:w-[200px]"
             />
 

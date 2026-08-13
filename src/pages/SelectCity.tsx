@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 const CITIES = [
   { id: "Tamale", description: "Northern Region" },
   { id: "Wa", description: "Upper West Region" },
+  { id: "Accra", description: "Greater Accra Region" },
 ] as const;
 
 const SelectCity = () => {
@@ -61,7 +62,7 @@ const SelectCity = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {CITIES.map((c) => {
             const isActive = selected === c.id;
             return (

@@ -38,7 +38,7 @@
             },
             "city": {
               "type": "string",
-              "description": "Filter by city (e.g. Tamale, Wa)."
+              "description": "Filter by city (e.g. Accra, Tamale, Wa)."
             },
             "limit": {
               "type": "integer",
