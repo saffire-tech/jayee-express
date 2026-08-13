@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { LOCATION_GROUPS as STATIC_GROUPS, type LocationGroup } from '@/config/locations';
+import { getGroupsByCity, type LocationGroup } from '@/config/locations';
 import { Select, SelectContent, SelectTrigger } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ interface LocationSelectorProps {
   allOptionLabel?: string;
   className?: string;
   disabled?: boolean;
+  /** Limit the areas shown to a single city (Tamale, Wa, Accra). */
+  city?: string | null;
 }
 
 const LocationSelector = ({
@@ -24,39 +26,44 @@ const LocationSelector = ({
   allOptionLabel = 'All Areas',
   className = '',
   disabled = false,
+  city,
 }: LocationSelectorProps) => {
-  const [groups, setGroups] = useState<LocationGroup[]>(STATIC_GROUPS);
+  const [groups, setGroups] = useState<LocationGroup[]>(() => getGroupsByCity(city));
   const [selectedGroup, setSelectedGroup] = useState<LocationGroup | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   // Fetch admin-managed locations
   useEffect(() => {
     let cancelled = false;
+    setGroups(getGroupsByCity(city));
     (async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('locations')
-        .select('zone, name, display_order')
-        .eq('is_active', true)
+        .select('zone, name, display_order, city')
+        .eq('is_active', true);
+      if (city) query = query.eq('city', city);
+      const { data, error } = await query
         .order('zone', { ascending: true })
         .order('display_order', { ascending: true });
       if (cancelled || error || !data || data.length === 0) return;
-      const byZone = new Map<string, string[]>();
+      const byZone = new Map<string, { locations: string[]; city?: string }>();
       for (const row of data) {
-        const arr = byZone.get(row.zone) || [];
-        arr.push(row.name);
-        byZone.set(row.zone, arr);
+        const entry = byZone.get(row.zone) || { locations: [], city: (row as { city?: string }).city };
+        entry.locations.push(row.name);
+        byZone.set(row.zone, entry);
       }
-      const next: LocationGroup[] = Array.from(byZone.entries()).map(([zone, locations]) => ({
+      const next: LocationGroup[] = Array.from(byZone.entries()).map(([zone, entry]) => ({
         id: zone.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         name: zone,
-        locations,
+        city: entry.city,
+        locations: entry.locations,
       }));
       setGroups(next);
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [city]);
 
   const getGroupByLocation = (loc: string) =>
     groups.find((g) => g.locations.includes(loc));
