@@ -88,6 +88,7 @@ const fetchAllProducts = async (): Promise<Product[]> => {
 const ITEMS_PER_PAGE = 12;
 
 const Products = () => {
+  const { profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
