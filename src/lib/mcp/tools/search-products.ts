@@ -20,7 +20,7 @@ export default defineTool({
   inputSchema: {
     query: z.string().trim().optional().describe("Text to match against product name/description."),
     category: z.string().trim().optional().describe("Filter by product category."),
-    city: z.string().trim().optional().describe("Filter by city (e.g. Tamale, Wa)."),
+    city: z.string().trim().optional().describe("Filter by city (e.g. Accra, Tamale, Wa)."),
     limit: z.number().int().min(1).max(50).optional().describe("Max results (default 20)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

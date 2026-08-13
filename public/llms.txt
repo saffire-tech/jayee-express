@@ -1,6 +1,6 @@
 # Jayee Express
 
-> Community marketplace in Ghana — buy and sell goods and services with local delivery across Tamale and Wa.
+> Community marketplace in Ghana — buy and sell goods and services with local delivery across Accra, Tamale and Wa.
 
 Jayee Express is a peer-to-peer marketplace where local entrepreneurs set up stores, list products and services, and reach buyers in their community. Buyers can browse stores, order with secure payment, and receive items via local delivery or pickup.
 

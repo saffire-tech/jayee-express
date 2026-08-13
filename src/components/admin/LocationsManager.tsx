@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 
 interface Location {
   id: string;
+  city: string;
   zone: string;
   name: string;
   is_active: boolean;
@@ -26,15 +27,16 @@ const LocationsManager = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Location | null>(null);
   const [form, setForm] = useState<{
-    zone: string; name: string; display_order: number; is_active: boolean;
+    city: string; zone: string; name: string; display_order: number; is_active: boolean;
     latitude: string; longitude: string;
-  }>({ zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
+  }>({ city: 'Tamale', zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
 
   const fetchLocations = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('locations')
       .select('*')
+      .order('city', { ascending: true })
       .order('zone', { ascending: true })
       .order('display_order', { ascending: true });
     if (error) toast.error(error.message);
@@ -48,13 +50,14 @@ const LocationsManager = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
+    setForm({ city: 'Tamale', zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
     setOpen(true);
   };
 
   const openEdit = (loc: Location) => {
     setEditing(loc);
     setForm({
+      city: loc.city || 'Tamale',
       zone: loc.zone,
       name: loc.name,
       display_order: loc.display_order,
@@ -77,6 +80,7 @@ const LocationsManager = () => {
       return;
     }
     const payload = {
+      city: form.city,
       zone: form.zone.trim(),
       name: form.name.trim(),
       display_order: form.display_order || 0,
@@ -109,7 +113,8 @@ const LocationsManager = () => {
 
   // Group by zone
   const grouped = locations.reduce<Record<string, Location[]>>((acc, l) => {
-    (acc[l.zone] = acc[l.zone] || []).push(l);
+    const key = `${l.city || 'Tamale'} — ${l.zone}`;
+    (acc[key] = acc[key] || []).push(l);
     return acc;
   }, {});
 
@@ -130,6 +135,18 @@ const LocationsManager = () => {
               <DialogTitle>{editing ? 'Edit Location' : 'Add Location'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
+              <div>
+                <Label>City</Label>
+                <select
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="Tamale">Tamale</option>
+                  <option value="Wa">Wa</option>
+                  <option value="Accra">Accra</option>
+                </select>
+              </div>
               <div>
                 <Label>Zone</Label>
                 <Input

@@ -23,7 +23,7 @@ var search_products_default = defineTool({
   inputSchema: {
     query: z.string().trim().optional().describe("Text to match against product name/description."),
     category: z.string().trim().optional().describe("Filter by product category."),
-    city: z.string().trim().optional().describe("Filter by city (e.g. Tamale, Wa)."),
+    city: z.string().trim().optional().describe("Filter by city (e.g. Accra, Tamale, Wa)."),
     limit: z.number().int().min(1).max(50).optional().describe("Max results (default 20).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -93,7 +93,7 @@ function publicClient3() {
 var list_stores_default = defineTool3({
   name: "list_stores",
   title: "List stores",
-  description: "List verified, active stores on Jayee Express, optionally filtered by city (e.g. Tamale, Wa).",
+  description: "List verified, active stores on Jayee Express, optionally filtered by city (e.g. Accra, Tamale, Wa).",
   inputSchema: {
     city: z3.string().trim().optional().describe("Filter by city."),
     query: z3.string().trim().optional().describe("Match store name."),
@@ -120,7 +120,7 @@ var mcp_default = defineMcp({
   name: "jayee-express-mcp",
   title: "Jayee Express",
   version: "0.1.0",
-  instructions: "Read-only tools for the Jayee Express community marketplace (Tamale & Wa, Ghana). Use search_products to find items by keyword/category/city, get_product for a single product's details, and list_stores to browse verified stores. Prices are in Ghana Cedis (GHS).",
+  instructions: "Read-only tools for the Jayee Express community marketplace (Accra, Tamale & Wa, Ghana). Use search_products to find items by keyword/category/city, get_product for a single product's details, and list_stores to browse verified stores. Prices are in Ghana Cedis (GHS).",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"

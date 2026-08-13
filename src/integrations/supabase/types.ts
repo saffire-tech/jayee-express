@@ -424,6 +424,7 @@ export type Database = {
       }
       locations: {
         Row: {
+          city: string
           created_at: string
           display_order: number
           id: string
@@ -435,6 +436,7 @@ export type Database = {
           zone: string
         }
         Insert: {
+          city?: string
           created_at?: string
           display_order?: number
           id?: string
@@ -446,6 +448,7 @@ export type Database = {
           zone: string
         }
         Update: {
+          city?: string
           created_at?: string
           display_order?: number
           id?: string
