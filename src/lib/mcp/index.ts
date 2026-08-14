@@ -15,7 +15,7 @@ export default defineMcp({
   title: "Jayee Express",
   version: "0.1.0",
   instructions:
-    "Read-only tools for the Jayee Express community marketplace (Accra, Tamale & Wa, Ghana). Use search_products to find items by keyword/category/city, get_product for a single product's details, and list_stores to browse verified stores. Prices are in Ghana Cedis (GHS).",
+    "Read-only tools for Jayee Express — buy and sell locally in Ghana (Accra, Tamale & Wa). Use search_products to find items by keyword/category/city, get_product for a single product's details, and list_stores to browse verified stores. Prices are in Ghana Cedis (GHS).",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",

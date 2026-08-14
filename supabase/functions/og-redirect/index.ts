@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     let title = 'Jayee Express';
-    let description = 'Community Marketplace';
+    let description = "Buy and sell locally in Ghana";
     let imageUrl = 'https://storage.googleapis.com/gpt-engineer-file-uploads/pUKptGpdl1OV5MDWb5P8hRjCVWI2/social-images/social-1781157791512-ChatGPT_Image_May_6,_2026,_03_29_35_PM.webp';
 
     if (type === 'product') {

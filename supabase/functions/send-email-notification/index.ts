@@ -54,7 +54,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #f97316; margin: 0;">Jayee Express</h1>
-              <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
+              <p style="color: #666; margin-top: 5px;">Buy & Sell Locally in Ghana</p>
             </div>
             
             <div style="background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
@@ -88,7 +88,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             <p style="color: #666; text-align: center;">Please check your seller dashboard to manage this order.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">Jayee Express - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Jayee Express - Buy & Sell Locally in Ghana</p>
             </div>
           </div>
         `
@@ -114,7 +114,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #f97316; margin: 0;">Jayee Express</h1>
-              <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
+              <p style="color: #666; margin-top: 5px;">Buy & Sell Locally in Ghana</p>
             </div>
             
             <div style="background: ${statusColors[data.status || ''] || '#666'}; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
@@ -130,7 +130,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             <p style="color: #666; text-align: center;">Check your purchase history for more details.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">Jayee Express - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Jayee Express - Buy & Sell Locally in Ghana</p>
             </div>
           </div>
         `
@@ -143,7 +143,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #f97316; margin: 0;">Jayee Express</h1>
-              <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
+              <p style="color: #666; margin-top: 5px;">Buy & Sell Locally in Ghana</p>
             </div>
             
             <div style="background: #3b82f6; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
@@ -158,7 +158,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             <p style="color: #666; text-align: center;">Log in to Jayee Express to reply to this message.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">Jayee Express - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Jayee Express - Buy & Sell Locally in Ghana</p>
             </div>
           </div>
         `
@@ -180,7 +180,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #f97316; margin: 0;">Jayee Express</h1>
-              <p style="color: #666; margin-top: 5px;">Community Marketplace</p>
+              <p style="color: #666; margin-top: 5px;">Buy & Sell Locally in Ghana</p>
             </div>
             
             <div style="background: #f97316; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
@@ -205,7 +205,7 @@ const getEmailContent = (type: string, data: EmailNotificationRequest["data"]) =
             <p style="color: #666; text-align: center;">Please restock these products to avoid missing sales.</p>
             
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #999; font-size: 12px;">Jayee Express - Your Community Marketplace</p>
+              <p style="color: #999; font-size: 12px;">Jayee Express - Buy & Sell Locally in Ghana</p>
             </div>
           </div>
         `

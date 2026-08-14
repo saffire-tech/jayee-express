@@ -33,7 +33,7 @@ const Index = () => {
 
   const mobileContent = (
     <>
-      <h1 className="sr-only">Jayee Express — community marketplace in Ghana.</h1>
+      <h1 className="sr-only">Jayee Express — Buy & Sell Locally in Ghana</h1>
       <AnnouncementBanner />
       <AdvertisementCarousel />
       <div className="-mt-2">
@@ -54,7 +54,7 @@ const Index = () => {
 
   const desktopContent = (
     <>
-      <h1 className="sr-only">Jayee Express — community marketplace in Ghana.</h1>
+      <h1 className="sr-only">Jayee Express — Buy & Sell Locally in Ghana</h1>
       <AnnouncementBanner />
       <HomeUtilityStrip />
       <AdvertisementCarousel />
@@ -87,8 +87,8 @@ const Index = () => {
   return (
     <main className="min-h-screen bg-background pb-16 md:pb-0">
       <SEO
-        title="Jayee Express — Community Marketplace in Ghana"
-        description="Buy and sell goods and services in your community. Discover local stores, shop with delivery across Accra, Tamale and Wa on Jayee Express."
+        title="Jayee Express — Buy & Sell Locally in Ghana"
+        description="Buy and sell locally in Ghana. Set up a store, find trusted sellers, and shop with delivery across Accra, Tamale and Wa on Jayee Express."
         canonicalPath="/"
       />
       <Navbar />

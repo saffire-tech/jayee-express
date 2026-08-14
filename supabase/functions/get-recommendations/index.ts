@@ -163,7 +163,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a product recommendation engine for a community marketplace. 
+            content: `You are a product recommendation engine for Jayee Express, where users buy and sell locally in Ghana. 
             Analyze the user's behavior and recommend products they would likely be interested in.
             Return ONLY a JSON array of product IDs (maximum 8 products).
             Consider: purchase history, search patterns, category preferences, and area preferences.
