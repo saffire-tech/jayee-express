@@ -26,14 +26,14 @@ export function MessageMedia({ url, type, name, size, mime, isOwn }: Props) {
         >
           <img
             src={url}
-            alt={name || 'Image'}
+            alt={name || 'Shared image attachment'}
             className="w-full h-auto max-h-[360px] object-cover"
             loading="lazy"
           />
         </button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-4xl p-2 bg-background">
-            <img src={url} alt={name || 'Image'} className="w-full h-auto max-h-[85vh] object-contain rounded" />
+            <img src={url} alt={name || 'Shared image attachment'} className="w-full h-auto max-h-[85vh] object-contain rounded" />
             <div className="flex justify-end pt-2">
               <a href={url} download={name || 'image'} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="outline"><Download className="h-4 w-4 mr-2" />Download</Button>
@@ -100,7 +100,7 @@ export function MediaPreviewChip({
   return (
     <div className="flex items-center gap-3 p-2 border border-border rounded-lg bg-muted/40">
       {kind === 'image' ? (
-        <img src={url} alt="" className="h-12 w-12 rounded object-cover" />
+        <img src={url} alt={file.name || 'Image attachment preview'} className="h-12 w-12 rounded object-cover" />
       ) : kind === 'video' ? (
         <div className="h-12 w-12 rounded bg-black flex items-center justify-center">
           <Play className="h-5 w-5 text-white" />

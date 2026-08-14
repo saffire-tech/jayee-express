@@ -162,6 +162,24 @@ const Stores = () => {
         title="Browse Local Stores | Jayee Express"
         description="Discover verified community stores in Ghana. Browse local entrepreneurs, hustles, and shops on Jayee Express."
         canonicalPath="/stores"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Browse Local Stores",
+          description:
+            "Directory of verified community stores across Accra, Tamale and Wa on Jayee Express.",
+          url: "https://jayeeexpress.com/stores",
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: filteredAndSortedStores.length,
+            itemListElement: filteredAndSortedStores.slice(0, 50).map((store, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              url: `https://jayeeexpress.com/store/${(store as any).slug || store.id}`,
+              name: store.name,
+            })),
+          },
+        }}
       />
       <Navbar />
       
@@ -265,7 +283,7 @@ const Stores = () => {
         ) : filteredAndSortedStores.length === 0 ? (
           <div className="text-center py-16 bg-card border border-border rounded-xl">
             <Store className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-xl mb-2">No stores found</h3>
+            <h2 className="font-semibold text-xl mb-2">No stores found</h2>
             <p className="text-muted-foreground mb-6">
               {hasActiveFilters 
                 ? 'Try adjusting your filters or search query'
@@ -323,9 +341,9 @@ const Stores = () => {
                       )}
                     </div>
 
-                    <h3 className="text-sm font-bold text-foreground mb-0.5 group-hover:text-primary transition-colors line-clamp-1">
+                    <h2 className="text-sm font-bold text-foreground mb-0.5 group-hover:text-primary transition-colors line-clamp-1">
                       {store.name}
-                    </h3>
+                    </h2>
                     <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
                       {store.description || 'No description'}
                     </p>

@@ -1,12 +1,13 @@
-import { Helmet } from "react-helmet-async";
+import SEO from "@/components/SEO";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 const PrivacyPolicy = () => {
   return <>
-      <Helmet>
-        <title>Privacy Policy | Jayee Express</title>
-        <meta name="description" content="Jayee Express Privacy Policy - Learn how we collect, use, and protect your personal information." />
-      </Helmet>
+      <SEO
+        title="Privacy Policy | Jayee Express"
+        description="Learn how Jayee Express collects, uses, shares and protects your personal information when you buy, sell or deliver on our Ghana marketplace."
+        canonicalPath="/privacy-policy"
+      />
       
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />

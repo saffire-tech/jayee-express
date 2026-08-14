@@ -112,10 +112,10 @@ export default function OAuthConsent() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="max-w-md w-full">
         <CardHeader>
-          <CardTitle>Connect {clientName} to Shodel</CardTitle>
+          <CardTitle>Connect {clientName} to Jayee Express</CardTitle>
           <CardDescription>
-            {clientName} will be able to call Shodel's enabled tools while you are signed in.
-            This does not bypass Shodel's permissions or backend policies.
+            {clientName} will be able to call Jayee Express's enabled tools while you are signed in.
+            This does not bypass Jayee Express's permissions or backend policies.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex gap-2 justify-end">
