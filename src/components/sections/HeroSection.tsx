@@ -64,7 +64,7 @@ const HeroSection = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-8 animate-fade-up">
             <Zap className="h-4 w-4" />
-            <span>Your Community Marketplace</span>
+            <span>Buy & Sell Locally in Ghana</span>
           </div>
 
           {/* Main Heading */}
