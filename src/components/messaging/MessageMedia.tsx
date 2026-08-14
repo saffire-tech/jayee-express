@@ -100,7 +100,7 @@ export function MediaPreviewChip({
   return (
     <div className="flex items-center gap-3 p-2 border border-border rounded-lg bg-muted/40">
       {kind === 'image' ? (
-        <img src={url} alt={name || 'Image attachment preview'} className="h-12 w-12 rounded object-cover" />
+        <img src={url} alt={file.name || 'Image attachment preview'} className="h-12 w-12 rounded object-cover" />
       ) : kind === 'video' ? (
         <div className="h-12 w-12 rounded bg-black flex items-center justify-center">
           <Play className="h-5 w-5 text-white" />
