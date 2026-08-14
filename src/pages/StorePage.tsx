@@ -164,7 +164,7 @@ const StorePage = () => {
   const storeImage = store.logo_url || store.cover_url || 'https://jayeeexpress.com/icons/icon-512x512.png';
   const storeDescription = store.description
     ? store.description.slice(0, 155)
-    : `Shop at ${store.name}${store.location ? ` in ${store.location}` : ''} on Jayee Express — the community marketplace.`;
+    : `Shop at ${store.name}${store.location ? ` in ${store.location}` : ''} on Jayee Express — buy and sell locally in Ghana.`;
 
   const storeJsonLd = {
     "@context": "https://schema.org",
