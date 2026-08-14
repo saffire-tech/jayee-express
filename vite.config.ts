@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: "Jayee Express",
         short_name: "Jayee Express",
-        description: "Connect to Commerce - The community marketplace for Accra",
+        description: "Buy and sell locally in Ghana. Set up a store, find trusted sellers, and shop with delivery across Accra, Tamale and Wa on Jayee Express.",
         start_url: "/",
         display: "standalone",
         background_color: "#f97316",
