@@ -322,7 +322,7 @@ const StorePage = () => {
                           <Package className="h-12 w-12 text-muted-foreground" />
                         </div>
                       )}
-                      <button className="absolute top-3 right-3 p-2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background transition-colors">
+                      <button aria-label={`Save ${product.name} to favourites`} className="absolute top-3 right-3 p-2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background transition-colors">
                         <Heart className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
                       </button>
                       <div className="absolute bottom-3 left-3 flex gap-2">

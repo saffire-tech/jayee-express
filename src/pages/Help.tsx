@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, HelpCircle, Search } from "lucide-react";
-import { Helmet } from "react-helmet-async";
+import SEO from "@/components/SEO";
 
 type Topic = {
   id: string;
@@ -70,10 +70,11 @@ export default function Help() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <Helmet>
-        <title>{title} | Shodel</title>
-        <meta name="description" content={`Help and tutorials for ${audience}s on Shodel.`} />
-      </Helmet>
+      <SEO
+        title={`${title} | Jayee Express`}
+        description={`Help centre for ${audience}s on Jayee Express — step-by-step tutorials, answers and videos for buying, selling and delivery in Ghana.`}
+        canonicalPath="/help"
+      />
       <div className="container max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">

@@ -5,6 +5,7 @@ import { MapPin, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import SEO from "@/components/SEO";
 
 const CITIES = [
   { id: "Tamale", description: "Northern Region" },
@@ -32,7 +33,7 @@ const SelectCity = () => {
     setSaving(true);
     try {
       await updateProfile({ city: selected } as any);
-      toast({ title: `Welcome to Shodel ${selected}!`, description: "You're all set." });
+      toast({ title: `Welcome to Jayee Express ${selected}!`, description: "You're all set." });
       navigate("/", { replace: true });
     } catch (e: any) {
       toast({ title: "Couldn't save", description: e.message, variant: "destructive" });
@@ -51,6 +52,12 @@ const SelectCity = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
+      <SEO
+        title="Choose Your City | Jayee Express"
+        description="Pick your city on Jayee Express to see stores, products and delivery jobs near you in Accra, Tamale or Wa."
+        canonicalPath="/select-city"
+        noindex
+      />
       <div className="max-w-xl w-full">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent mb-4">

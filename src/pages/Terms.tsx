@@ -1,12 +1,13 @@
-import { Helmet } from "react-helmet-async";
+import SEO from "@/components/SEO";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 const Terms = () => {
   return <>
-      <Helmet>
-        <title>Terms of Service | Jayee Express</title>
-        <meta name="description" content="Jayee Express Terms of Service - Read our terms and conditions for using the platform." />
-      </Helmet>
+      <SEO
+        title="Terms of Service | Jayee Express"
+        description="Read the Jayee Express Terms of Service: account rules, marketplace guidelines, payments, store verification and dispute resolution for buyers and sellers in Ghana."
+        canonicalPath="/terms"
+      />
       
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />

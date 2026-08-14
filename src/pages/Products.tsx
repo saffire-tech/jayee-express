@@ -202,6 +202,24 @@ const Products = () => {
         title="Browse Products & Services | Jayee Express"
         description="Shop products and services from verified local sellers across Ghana. Find fashion, electronics, food, beauty, and more on Jayee Express."
         canonicalPath="/products"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Browse Products & Services",
+          description:
+            "Products and services from verified local sellers across Accra, Tamale and Wa on Jayee Express.",
+          url: "https://jayeeexpress.com/products",
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: filteredAndSortedProducts.length,
+            itemListElement: paginatedProducts.map((product, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              url: `https://jayeeexpress.com/product/${product.id}`,
+              name: product.name,
+            })),
+          },
+        }}
       />
       <Navbar />
       
@@ -326,7 +344,7 @@ const Products = () => {
         ) : filteredAndSortedProducts.length === 0 ? (
           <div className="text-center py-16 bg-card border border-border rounded-xl">
             <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-xl mb-2">No products found</h3>
+            <h2 className="font-semibold text-xl mb-2">No products found</h2>
             <p className="text-muted-foreground mb-6">
               {hasActiveFilters 
                 ? 'Try adjusting your filters or search query'
@@ -359,7 +377,7 @@ const Products = () => {
                           <Package className="h-8 w-8 text-muted-foreground" />
                         </div>
                       )}
-                      <button className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background transition-colors">
+                      <button aria-label={`Save ${product.name} to favourites`} className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background transition-colors">
                         <Heart className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive transition-colors" />
                       </button>
                       <div className="absolute bottom-2 left-2 flex gap-1">
@@ -384,9 +402,9 @@ const Products = () => {
                   {/* Content */}
                   <div className="p-2.5 sm:p-3">
                     <Link to={`/product/${product.id}`}>
-                      <h3 className="font-semibold text-sm text-foreground mb-0.5 group-hover:text-primary transition-colors line-clamp-1">
+                      <h2 className="font-semibold text-sm text-foreground mb-0.5 group-hover:text-primary transition-colors line-clamp-1">
                         {product.name}
-                      </h3>
+                      </h2>
                     </Link>
                     <p className="text-xs text-muted-foreground mb-1 line-clamp-1">
                       by {product.store?.name || 'Unknown Seller'}
