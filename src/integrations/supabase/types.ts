@@ -692,8 +692,11 @@ export type Database = {
           kind: string
           last_error: string | null
           orders_created_at: string | null
+          payer_channel: number | null
+          payer_number: string | null
           payload: Json
-          paystack_status: string | null
+          provider: string
+          provider_status: string | null
           reference: string
           status: string
           updated_at: string
@@ -708,8 +711,11 @@ export type Database = {
           kind?: string
           last_error?: string | null
           orders_created_at?: string | null
+          payer_channel?: number | null
+          payer_number?: string | null
           payload?: Json
-          paystack_status?: string | null
+          provider?: string
+          provider_status?: string | null
           reference: string
           status?: string
           updated_at?: string
@@ -724,8 +730,11 @@ export type Database = {
           kind?: string
           last_error?: string | null
           orders_created_at?: string | null
+          payer_channel?: number | null
+          payer_number?: string | null
           payload?: Json
-          paystack_status?: string | null
+          provider?: string
+          provider_status?: string | null
           reference?: string
           status?: string
           updated_at?: string
