@@ -31,42 +31,24 @@ Deno.serve(async (req) => {
     }
   };
 
-  // 1. Status endpoint (harmless, tells us if auth works)
-  await probe("status", "https://api.moolre.com/open/transact/status", {
-    type: 1,
-    accountnumber: acct,
-    externalref: "probe-" + Date.now(),
+  // Status endpoint shape discovery
+  await probe("status_idtype1", "https://api.moolre.com/open/transact/status", {
+    type: 1, idtype: 1, id: "probe-nonexistent-123", accountnumber: acct,
+  });
+  await probe("status_idtype2", "https://api.moolre.com/open/transact/status", {
+    type: 1, idtype: 2, id: "probe-nonexistent-123", accountnumber: acct,
   });
 
-  // 2. Payin / direct MoMo debit — deliberately invalid payer so nothing is charged
-  await probe("payin", "https://api.moolre.com/open/transact/payment", {
-    type: 1,
-    channel: 13,
-    currency: "GHS",
-    payer: "0000000000",
-    amount: "0.01",
-    accountnumber: acct,
-    reference: "probe",
-    externalref: "probe-" + Date.now(),
+  // Channel enumeration (invalid channel -> expect list of options)
+  await probe("payin_badchannel", "https://api.moolre.com/open/transact/payment", {
+    type: 1, channel: 999, currency: "GHS", payer: "0200000000", amount: "1",
+    accountnumber: acct, reference: "probe", externalref: "probe-" + Date.now(),
   });
 
-  // 3. Hosted checkout / payment link variants
-  await probe("checkout", "https://api.moolre.com/open/transact/checkout", {
-    type: 1,
-    currency: "GHS",
-    amount: "0.01",
-    accountnumber: acct,
-    reference: "probe",
-    externalref: "probe-" + Date.now(),
-    redirecturl: "https://jayeeexpress.com/purchases",
-  });
-
-  await probe("paymentlink", "https://api.moolre.com/open/transact/paymentlink", {
-    type: 1,
-    currency: "GHS",
-    amount: "0.01",
-    accountnumber: acct,
-    externalref: "probe-" + Date.now(),
+  // Missing-field discovery with a valid amount but no channel
+  await probe("payin_nochannel", "https://api.moolre.com/open/transact/payment", {
+    type: 1, currency: "GHS", payer: "0200000000", amount: "1",
+    accountnumber: acct, reference: "probe", externalref: "probe-" + Date.now(),
   });
 
   return new Response(
