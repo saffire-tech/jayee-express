@@ -31,25 +31,12 @@ Deno.serve(async (req) => {
     }
   };
 
-  // Status endpoint shape discovery
-  await probe("status_idtype1", "https://api.moolre.com/open/transact/status", {
-    type: 1, idtype: 1, id: "probe-nonexistent-123", accountnumber: acct,
-  });
-  await probe("status_idtype2", "https://api.moolre.com/open/transact/status", {
-    type: 1, idtype: 2, id: "probe-nonexistent-123", accountnumber: acct,
-  });
-
-  // Channel enumeration (invalid channel -> expect list of options)
-  await probe("payin_badchannel", "https://api.moolre.com/open/transact/payment", {
-    type: 1, channel: 999, currency: "GHS", payer: "0200000000", amount: "1",
-    accountnumber: acct, reference: "probe", externalref: "probe-" + Date.now(),
-  });
-
-  // Missing-field discovery with a valid amount but no channel
-  await probe("payin_nochannel", "https://api.moolre.com/open/transact/payment", {
-    type: 1, currency: "GHS", payer: "0200000000", amount: "1",
-    accountnumber: acct, reference: "probe", externalref: "probe-" + Date.now(),
-  });
+  for (const ch of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]) {
+    await probe("channel_" + ch, "https://api.moolre.com/open/transact/payment", {
+      type: 1, channel: ch, currency: "GHS", payer: "0200000000",
+      accountnumber: acct, reference: "probe", externalref: "probe-" + Date.now(),
+    });
+  }
 
   return new Response(
     JSON.stringify({ configured: { user: !!user, pub: !!pub, priv: !!priv, acct: !!acct }, results }, null, 2),
