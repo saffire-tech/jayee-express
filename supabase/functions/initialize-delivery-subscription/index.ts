@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { moolrePayin, newReference, normalisePhone, isValidChannel } from "../_shared/moolre.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,9 +10,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY not set");
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
@@ -24,11 +22,20 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { email, months } = await req.json();
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { months, payer, channel, otpcode, reference: existingRef } = await req.json();
     const monthsInt = Math.max(1, Math.min(12, parseInt(months) || 1));
 
-    // Look up rider's approved application for the assigned monthly fee
-    const { data: app, error: appErr } = await supabase
+    const payerNumber = normalisePhone(payer);
+    if (!payerNumber) throw new Error("Enter a valid Ghanaian mobile money number");
+    const channelInt = parseInt(channel);
+    if (!isValidChannel(channelInt)) throw new Error("Choose a valid mobile money network");
+
+    const { data: app, error: appErr } = await admin
       .from("rider_applications")
       .select("monthly_fee, status")
       .eq("user_id", user.id)
@@ -40,37 +47,63 @@ Deno.serve(async (req) => {
     if (appErr || !app) throw new Error("No approved rider application found");
     if (!app.monthly_fee || Number(app.monthly_fee) <= 0) throw new Error("Monthly fee not set by admin");
 
-    const totalGhs = Number(app.monthly_fee) * monthsInt;
-    const amountKobo = Math.round(totalGhs * 100);
+    const totalGhs = Number((Number(app.monthly_fee) * monthsInt).toFixed(2));
 
     const metadata = {
-      type: "rider_subscription",
       user_id: user.id,
       monthly_fee: Number(app.monthly_fee),
       months: monthsInt,
     };
 
-    const res = await fetch("https://api.paystack.co/transaction/initialize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        amount: amountKobo,
+    let reference = newReference("jxr");
+    if (otpcode && existingRef) {
+      const { data: prior } = await admin
+        .from("payment_attempts").select("reference, buyer_id, status")
+        .eq("reference", existingRef).maybeSingle();
+      if (!prior || prior.buyer_id !== user.id) throw new Error("Unknown payment reference");
+      if (prior.status !== "initialized") throw new Error("This payment has already been processed");
+      reference = prior.reference;
+    } else {
+      const { error: attemptErr } = await admin.from("payment_attempts").insert({
+        reference,
+        buyer_id: user.id,
+        amount: totalGhs,
         currency: "GHS",
-        metadata,
-        callback_url: `${req.headers.get("origin") || ""}/delivery?subscription=success`,
-      }),
+        kind: "rider_subscription",
+        status: "initialized",
+        provider: "moolre",
+        payer_number: payerNumber,
+        payer_channel: channelInt,
+        payload: metadata,
+      });
+      if (attemptErr) throw new Error("Could not record payment attempt. Please try again.");
+    }
+
+    const payin = await moolrePayin({
+      amount: totalGhs,
+      payer: payerNumber,
+      channel: channelInt,
+      externalref: reference,
+      reference: "Jayee Express rider subscription",
+      otpcode: otpcode || undefined,
     });
-    const data = await res.json();
-    if (!data.status) throw new Error(data.message || "Paystack init failed");
+
+    if (!payin.ok && !payin.requiresOtp) {
+      await admin.from("payment_attempts").update({
+        status: "failed", provider_status: payin.code || "failed",
+        last_error: payin.message, verified_at: new Date().toISOString(),
+      }).eq("reference", reference);
+      throw new Error(payin.message);
+    }
 
     return new Response(JSON.stringify({
-      authorization_url: data.data.authorization_url,
-      access_code: data.data.access_code,
-      reference: data.data.reference,
+      reference,
+      pending: true,
+      requires_otp: payin.requiresOtp,
+      amount: totalGhs,
+      message: payin.requiresOtp
+        ? payin.message
+        : "Approve the payment prompt on your phone to activate your subscription.",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("init-rider-subscription error:", e);

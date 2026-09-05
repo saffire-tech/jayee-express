@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { moolrePayin, newReference, normalisePhone, isValidChannel } from "../_shared/moolre.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,9 +10,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY not set");
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
@@ -24,56 +22,91 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { plan_id, months, email } = await req.json();
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { plan_id, months, payer, channel, otpcode, reference: existingRef } = await req.json();
     const monthsInt = Math.max(1, Math.min(12, parseInt(months) || 1));
 
-    // Look up plan and store
-    const { data: plan, error: planErr } = await supabase
+    const payerNumber = normalisePhone(payer);
+    if (!payerNumber) throw new Error("Enter a valid Ghanaian mobile money number");
+    const channelInt = parseInt(channel);
+    if (!isValidChannel(channelInt)) throw new Error("Choose a valid mobile money network");
+
+    const { data: plan, error: planErr } = await admin
       .from("subscription_plans")
       .select("id, name, price_per_month, max_products, is_active")
       .eq("id", plan_id)
       .single();
     if (planErr || !plan || !plan.is_active) throw new Error("Invalid plan");
 
-    const { data: store, error: storeErr } = await supabase
+    const { data: store, error: storeErr } = await admin
       .from("stores")
       .select("id, name")
       .eq("user_id", user.id)
       .single();
     if (storeErr || !store) throw new Error("Store not found");
 
-    const totalGhs = Number(plan.price_per_month) * monthsInt;
-    const amountKobo = Math.round(totalGhs * 100);
+    const totalGhs = Number((Number(plan.price_per_month) * monthsInt).toFixed(2));
 
     const metadata = {
-      type: "subscription",
       user_id: user.id,
       store_id: store.id,
       plan_id: plan.id,
       months: monthsInt,
     };
 
-    const res = await fetch("https://api.paystack.co/transaction/initialize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        amount: amountKobo,
+    let reference = newReference("jxp");
+    if (otpcode && existingRef) {
+      const { data: prior } = await admin
+        .from("payment_attempts").select("reference, buyer_id, status")
+        .eq("reference", existingRef).maybeSingle();
+      if (!prior || prior.buyer_id !== user.id) throw new Error("Unknown payment reference");
+      if (prior.status !== "initialized") throw new Error("This payment has already been processed");
+      reference = prior.reference;
+    } else {
+      const { error: attemptErr } = await admin.from("payment_attempts").insert({
+        reference,
+        buyer_id: user.id,
+        amount: totalGhs,
         currency: "GHS",
-        metadata,
-        callback_url: `${req.headers.get("origin") || ""}/seller?subscription=success`,
-      }),
+        kind: "subscription",
+        status: "initialized",
+        provider: "moolre",
+        payer_number: payerNumber,
+        payer_channel: channelInt,
+        payload: metadata,
+      });
+      if (attemptErr) throw new Error("Could not record payment attempt. Please try again.");
+    }
+
+    const payin = await moolrePayin({
+      amount: totalGhs,
+      payer: payerNumber,
+      channel: channelInt,
+      externalref: reference,
+      reference: `Jayee Express ${plan.name} plan`,
+      otpcode: otpcode || undefined,
     });
-    const data = await res.json();
-    if (!data.status) throw new Error(data.message || "Paystack init failed");
+
+    if (!payin.ok && !payin.requiresOtp) {
+      await admin.from("payment_attempts").update({
+        status: "failed", provider_status: payin.code || "failed",
+        last_error: payin.message, verified_at: new Date().toISOString(),
+      }).eq("reference", reference);
+      throw new Error(payin.message);
+    }
 
     return new Response(JSON.stringify({
-      authorization_url: data.data.authorization_url,
-      access_code: data.data.access_code,
-      reference: data.data.reference,
+      reference,
+      pending: true,
+      requires_otp: payin.requiresOtp,
+      amount: totalGhs,
+      message: payin.requiresOtp
+        ? payin.message
+        : "Approve the payment prompt on your phone to activate your plan.",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("init-subscription error:", e);

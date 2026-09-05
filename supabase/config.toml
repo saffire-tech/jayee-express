@@ -25,7 +25,7 @@ project_id = "brqzedcxzjqwzpkwrmow"
     verify_jwt = false
   [functions.payout-delivery]
     verify_jwt = false
-  [functions.paystack-webhook]
+  [functions.moolre-webhook]
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = true
