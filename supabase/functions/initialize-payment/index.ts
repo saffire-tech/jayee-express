@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { moolrePayin, newReference, normalisePhone, isValidChannel } from "../_shared/moolre.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,9 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY not set");
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
@@ -31,8 +29,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { items, deliveryData, email } = await req.json();
+    const { items, deliveryData, payer, channel, otpcode, reference: existingRef } = await req.json();
     if (!Array.isArray(items) || items.length === 0) throw new Error("No items provided");
+
+    const payerNumber = normalisePhone(payer);
+    if (!payerNumber) throw new Error("Enter a valid Ghanaian mobile money number");
+    const channelInt = parseInt(channel);
+    if (!isValidChannel(channelInt)) throw new Error("Choose a valid mobile money network");
 
     // Fetch authoritative product data — never trust client prices
     const productIds = items.map((i: any) => i.product_id).filter(Boolean);
@@ -76,7 +79,8 @@ Deno.serve(async (req) => {
       deliveryFee = Number((feeRes as any).fee) || 0;
     }
 
-    const totalAmount = Math.round((subtotal + deliveryFee) * 100); // pesewas
+    const totalGhs = Number((subtotal + deliveryFee).toFixed(2));
+    if (totalGhs <= 0.01) throw new Error("Order total is too small to charge");
 
     const storeGroups: Record<string, any[]> = {};
     for (const item of items) {
@@ -92,6 +96,7 @@ Deno.serve(async (req) => {
 
     const metadata = {
       buyer_id: user.id,
+      user_id: user.id,
       delivery_type: deliveryType,
       delivery_fee: deliveryFee,
       delivery_latitude: destLat,
@@ -104,46 +109,64 @@ Deno.serve(async (req) => {
       })),
     };
 
-
-    const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        amount: totalAmount,
+    // Resuming an OTP challenge: reuse the reference already recorded.
+    let reference = newReference();
+    if (otpcode && existingRef) {
+      const { data: prior } = await admin
+        .from("payment_attempts")
+        .select("reference, buyer_id, status")
+        .eq("reference", existingRef)
+        .maybeSingle();
+      if (!prior || prior.buyer_id !== user.id) throw new Error("Unknown payment reference");
+      if (prior.status !== "initialized") throw new Error("This payment has already been processed");
+      reference = prior.reference;
+    } else {
+      // Record the attempt BEFORE charging — source of truth for reconciliation
+      const { error: attemptErr } = await admin.from("payment_attempts").insert({
+        reference,
+        buyer_id: user.id,
+        amount: totalGhs,
         currency: "GHS",
-        metadata,
-        callback_url: `${req.headers.get("origin") || ""}/purchases?payment=success`,
-      }),
+        kind: "order",
+        status: "initialized",
+        provider: "moolre",
+        payer_number: payerNumber,
+        payer_channel: channelInt,
+        payload: metadata,
+      });
+      if (attemptErr) {
+        console.error("Failed to record payment_attempt:", attemptErr);
+        throw new Error("Could not record payment attempt. Please try again.");
+      }
+    }
+
+    const payin = await moolrePayin({
+      amount: totalGhs,
+      payer: payerNumber,
+      channel: channelInt,
+      externalref: reference,
+      reference: `Jayee Express order`,
+      otpcode: otpcode || undefined,
     });
 
-    const paystackData = await paystackRes.json();
-    if (!paystackData.status) throw new Error(paystackData.message || "Paystack initialization failed");
-
-    const reference = paystackData.data.reference as string;
-
-    // Record the attempt BEFORE redirecting — source of truth for reconciliation
-    const { error: attemptErr } = await admin.from("payment_attempts").insert({
-      reference,
-      buyer_id: user.id,
-      amount: (subtotal + deliveryFee),
-      currency: "GHS",
-      kind: "order",
-      status: "initialized",
-      payload: metadata,
-    });
-    if (attemptErr) {
-      console.error("Failed to record payment_attempt:", attemptErr);
-      throw new Error("Could not record payment attempt. Please try again.");
+    if (!payin.ok && !payin.requiresOtp) {
+      await admin.from("payment_attempts").update({
+        status: "failed",
+        provider_status: payin.code || "failed",
+        last_error: payin.message,
+        verified_at: new Date().toISOString(),
+      }).eq("reference", reference);
+      throw new Error(payin.message);
     }
 
     return new Response(JSON.stringify({
-      authorization_url: paystackData.data.authorization_url,
-      access_code: paystackData.data.access_code,
       reference,
+      pending: true,
+      requires_otp: payin.requiresOtp,
+      amount: totalGhs,
+      message: payin.requiresOtp
+        ? payin.message
+        : "Approve the payment prompt on your phone to complete this order.",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error: unknown) {
     console.error("Payment init error:", error);
