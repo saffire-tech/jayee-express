@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { openPaystackCheckout } from "@/lib/paystackInline";
+import MoMoPaymentDialog from "@/components/payments/MoMoPaymentDialog";
 
 interface Plan {
   id: string;
@@ -28,6 +28,7 @@ const SubscribeDialog = ({ open, onOpenChange }: Props) => {
   const [selected, setSelected] = useState<string | null>(null);
   const [months, setMonths] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -45,38 +46,9 @@ const SubscribeDialog = ({ open, onOpenChange }: Props) => {
   const plan = plans.find(p => p.id === selected);
   const total = plan ? Number(plan.price_per_month) * months : 0;
 
-  const handleSubscribe = async () => {
-    if (!plan || !user?.email) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("initialize-subscription", {
-        body: { plan_id: plan.id, months, email: user.email },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.access_code || data?.authorization_url) {
-        await openPaystackCheckout({
-          accessCode: data.access_code,
-          authorizationUrl: data.authorization_url,
-          onSuccess: async (reference) => {
-            try {
-              if (reference) await supabase.functions.invoke("verify-payment", { body: { reference } });
-              toast.success("Subscription activated");
-              onOpenChange(false);
-            } catch (err: any) {
-              toast.error(err.message || "Verification failed");
-            } finally {
-              setLoading(false);
-            }
-          },
-          onClose: () => setLoading(false),
-        });
-        return;
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Failed to start subscription");
-      setLoading(false);
-    }
+  const handleSubscribe = () => {
+    if (!plan) return;
+    setPayOpen(true);
   };
 
   return (
@@ -141,6 +113,23 @@ const SubscribeDialog = ({ open, onOpenChange }: Props) => {
           </Button>
         </div>
       </DialogContent>
+
+      {plan && (
+        <MoMoPaymentDialog
+          open={payOpen}
+          onOpenChange={setPayOpen}
+          amount={total}
+          title="Pay for your plan"
+          description={`You are paying ₵${total.toFixed(2)} for ${months} month(s) of the ${plan.name} plan.`}
+          functionName="initialize-subscription"
+          body={{ plan_id: plan.id, months }}
+          onSuccess={() => {
+            toast.success("Subscription activated");
+            setPayOpen(false);
+            onOpenChange(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 };
