@@ -131,7 +131,7 @@ const MoMoPaymentDialog = ({
       if (data?.error) throw new Error(data.error);
 
       setReference(data.reference);
-      if (data.requires_otp) {
+      if (data.requires_otp && !otpcode) {
         setStage("otp");
         setStatusMessage(data.message || "Enter the code sent to your phone.");
       } else {

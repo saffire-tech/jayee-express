@@ -91,7 +91,10 @@ export async function moolrePayin(params: {
   const code = data?.code as string | undefined;
   const message = String(data?.message || "Payment request failed");
   // TP14 / OTP-related codes ask the payer for a one-time code before the debit.
-  const requiresOtp = code === "TP14" || /otp/i.test(message);
+  // Once we have already sent an OTP code, Moolre's reply often still mentions
+  // "OTP" (e.g. "OTP verified, awaiting approval") — that must NOT send the
+  // payer back to the code screen, otherwise the PIN prompt never fires.
+  const requiresOtp = !params.otpcode && (code === "TP14" || /otp/i.test(message));
 
   return {
     ok: status === "1",
