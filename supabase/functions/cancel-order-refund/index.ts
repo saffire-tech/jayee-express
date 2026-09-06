@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { moolrePayout } from "../_shared/moolre.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,9 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
-    if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY not set");
-
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
@@ -161,25 +159,46 @@ Deno.serve(async (req) => {
     }
 
 
-    // Initiate Paystack refund if there's a payment reference
+    // Refund the buyer's mobile money account via Moolre.
     if (order.payment_reference) {
       try {
-        const refundRes = await fetch("https://api.paystack.co/refund", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            transaction: order.payment_reference,
-          }),
-        });
-        const refundData = await refundRes.json();
-        if (!refundData.status) {
-          console.error("Paystack refund failed:", refundData.message);
+        const { data: attempt } = await adminClient
+          .from("payment_attempts")
+          .select("payer_number, payer_channel, provider")
+          .eq("reference", order.payment_reference)
+          .maybeSingle();
+
+        const refundAmount = Number(order.total_amount || 0);
+        let refunded = false;
+
+        if (attempt?.provider === "moolre" && attempt.payer_number && attempt.payer_channel && refundAmount > 0) {
+          const payout = await moolrePayout({
+            amount: refundAmount,
+            receiver: attempt.payer_number,
+            channel: Number(attempt.payer_channel),
+            externalref: `refund_${order_id}`,
+            reference: "Jayee Express order refund",
+          });
+          refunded = payout.ok;
+          if (!payout.ok) console.error("Moolre refund failed:", payout.message);
+        }
+
+        if (!refunded) {
+          // Fall back to a manual refund task for admins.
+          const { data: admins } = await adminClient
+            .from("user_roles").select("user_id").eq("role", "admin");
+          for (const a of admins || []) {
+            await adminClient.from("notifications").insert({
+              user_id: a.user_id,
+              type: "payment",
+              title: "Manual refund needed",
+              body: `Order #${order_id.slice(0, 8)} was cancelled but the automatic refund of ₵${refundAmount.toLocaleString()} did not go through. Please refund the buyer manually.`,
+              data: { order_id, reference: order.payment_reference },
+            });
+          }
         }
       } catch (refundErr) {
-        console.error("Refund API error:", refundErr);
+        console.error("Refund error:", refundErr);
       }
     }
 

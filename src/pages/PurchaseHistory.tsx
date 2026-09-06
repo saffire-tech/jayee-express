@@ -270,7 +270,7 @@ const PurchaseHistory = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Verify payment on redirect from Paystack — with retry/backoff for webhook race
+  // Verify payment on redirect from the payment provider — with retry/backoff for webhook race
   useEffect(() => {
     const reference = searchParams.get("reference");
     const paymentParam = searchParams.get("payment");

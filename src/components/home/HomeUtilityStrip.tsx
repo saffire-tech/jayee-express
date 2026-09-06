@@ -3,7 +3,7 @@ import { Truck, ShieldCheck, Lock } from "lucide-react";
 const items = [
   { icon: Truck, label: "Fast local delivery across Ghana" },
   { icon: ShieldCheck, label: "Buyer protection & verified stores" },
-  { icon: Lock, label: "100% secure Paystack payments" },
+  { icon: Lock, label: "100% secure mobile money payments" },
 ];
 
 const HomeUtilityStrip = () => {

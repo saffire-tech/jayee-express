@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarClock, Crown, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import SubscribeDialog from "./SubscribeDialog";
-import { openPaystackCheckout } from "@/lib/paystackInline";
+import MoMoPaymentDialog from "@/components/payments/MoMoPaymentDialog";
 
 interface Props {
   storeId: string;
@@ -45,6 +45,7 @@ const SubscriptionCard = ({ storeId, productCount, onUpdated }: Props) => {
   const [planName, setPlanName] = useState<string>("");
   const [open, setOpen] = useState(false);
   const [payLoading, setPayLoading] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   const load = async () => {
     const { data } = await supabase
@@ -75,7 +76,7 @@ const SubscriptionCard = ({ storeId, productCount, onUpdated }: Props) => {
     return () => window.removeEventListener("focus", onFocus);
   }, [storeId]);
 
-  // If returning from Paystack with a reference, verify it (fallback if webhook is delayed)
+  // If returning with a payment reference, verify it (fallback if webhook is delayed)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const reference = params.get("reference") || params.get("trxref");
@@ -98,40 +99,26 @@ const SubscriptionCard = ({ storeId, productCount, onUpdated }: Props) => {
   const isPending = store?.is_verified === false;
   const hasAdminFee = !!store?.monthly_fee && Number(store.monthly_fee) > 0;
 
-  const payAdminFee = async () => {
-    if (!user?.email || !hasAdminFee) return;
-    setPayLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("initialize-store-subscription", {
-        body: { email: user.email, store_id: storeId, months: 1 },
-      });
-      if (error) throw error;
-      if (data?.access_code || data?.authorization_url) {
-        await openPaystackCheckout({
-          accessCode: data.access_code,
-          authorizationUrl: data.authorization_url,
-          onSuccess: async (reference) => {
-            try {
-              if (reference) await supabase.functions.invoke("verify-payment", { body: { reference } });
-              toast.success("Subscription paid");
-              await load();
-            } catch (err: any) {
-              toast.error(err.message || "Verification failed");
-            } finally {
-              setPayLoading(false);
-            }
-          },
-          onClose: () => setPayLoading(false),
-        });
-        return;
-      }
-      throw new Error(data?.error || "Could not start payment");
-    } catch (e: any) {
-      toast.error(e.message || "Payment failed to start");
-    } finally {
-      setPayLoading(false);
-    }
+  const payAdminFee = () => {
+    if (!hasAdminFee) return;
+    setPayOpen(true);
   };
+
+  const feeDialog = (
+    <MoMoPaymentDialog
+      open={payOpen}
+      onOpenChange={setPayOpen}
+      amount={Number(store?.monthly_fee || 0)}
+      title="Pay your store fee"
+      description={`You are paying ₵${Number(store?.monthly_fee || 0).toFixed(2)} for one month.`}
+      functionName="initialize-store-subscription"
+      body={{ store_id: storeId, months: 1 }}
+      onSuccess={async () => {
+        toast.success("Subscription paid");
+        await load();
+      }}
+    />
+  );
 
   // Pending admin approval — no fee yet
   if (isPending) {

@@ -28,7 +28,7 @@ const DeliveryDashboard = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [togglingOnline, setTogglingOnline] = useState(false);
 
-  // Verify rider subscription payment on Paystack callback
+  // Verify rider subscription payment on payment callback
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const reference = params.get('reference') || params.get('trxref');

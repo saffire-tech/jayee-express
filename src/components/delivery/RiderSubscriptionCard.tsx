@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
-import { openPaystackCheckout } from "@/lib/paystackInline";
+import MoMoPaymentDialog from "@/components/payments/MoMoPaymentDialog";
 
 const RiderSubscriptionCard = () => {
   const { user } = useAuth();
@@ -15,6 +15,7 @@ const RiderSubscriptionCard = () => {
   const [app, setApp] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -42,38 +43,9 @@ const RiderSubscriptionCard = () => {
     load();
   }, [user]);
 
-  const handleRenew = async () => {
-    if (!user || !app?.monthly_fee) return;
-    setPaying(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("initialize-delivery-subscription", {
-        body: { email: user.email, months: 1 },
-      });
-      if (error) throw error;
-      if (data?.access_code || data?.authorization_url) {
-        await openPaystackCheckout({
-          accessCode: data.access_code,
-          authorizationUrl: data.authorization_url,
-          onSuccess: async (reference) => {
-            try {
-              if (reference) await supabase.functions.invoke("verify-payment", { body: { reference } });
-              toast.success("Subscription activated");
-              await load();
-            } catch (err: any) {
-              toast.error(err.message || "Verification failed");
-            } finally {
-              setPaying(false);
-            }
-          },
-          onClose: () => setPaying(false),
-        });
-        return;
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Failed to start payment");
-    } finally {
-      setPaying(false);
-    }
+  const handleRenew = () => {
+    if (!app?.monthly_fee) return;
+    setPayOpen(true);
   };
 
   if (loading) return <Loader2 className="h-5 w-5 animate-spin" />;
@@ -113,6 +85,20 @@ const RiderSubscriptionCard = () => {
           {isActive ? "Renew Now" : "Pay & Activate"}
         </Button>
       </CardContent>
+
+      <MoMoPaymentDialog
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        amount={Number(app?.monthly_fee || 0)}
+        title="Pay your rider fee"
+        description={`You are paying ₵${Number(app?.monthly_fee || 0).toFixed(2)} for one month.`}
+        functionName="initialize-delivery-subscription"
+        body={{ months: 1 }}
+        onSuccess={async () => {
+          toast.success("Subscription activated");
+          await load();
+        }}
+      />
     </Card>
   );
 };

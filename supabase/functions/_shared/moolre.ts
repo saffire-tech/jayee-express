@@ -142,3 +142,44 @@ export async function moolreStatus(externalref: string): Promise<StatusResult> {
 
   return { status, amount, message: message || `txstatus ${txStatus}`, raw: data };
 }
+
+export interface PayoutResult {
+  ok: boolean;
+  message: string;
+  code?: string;
+  raw: any;
+}
+
+/** Sends money out to a mobile money wallet (used for refunds). */
+export async function moolrePayout(params: {
+  amount: number;
+  receiver: string;
+  channel: number;
+  externalref: string;
+  reference: string;
+}): Promise<PayoutResult> {
+  const receiver = normalisePhone(params.receiver);
+  if (!receiver) return { ok: false, message: "Invalid receiver number", raw: null };
+
+  const res = await fetch(`${MOOLRE_BASE}/transfer`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      type: 1,
+      channel: params.channel,
+      currency: "GHS",
+      receiver,
+      amount: params.amount.toFixed(2),
+      accountnumber: moolreAccount(),
+      reference: params.reference.slice(0, 100),
+      externalref: params.externalref,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return {
+    ok: String(data?.status ?? "0") === "1",
+    message: String(data?.message || "Transfer failed"),
+    code: data?.code,
+    raw: data,
+  };
+}

@@ -15,7 +15,7 @@ interface Attempt {
   buyer_id: string;
   amount: number;
   status: string;
-  paystack_status: string | null;
+  provider_status: string | null;
   kind: string;
   last_error: string | null;
   created_at: string;
@@ -65,7 +65,7 @@ export default function PaymentsReconciliation() {
   };
 
   return (
-    <AdminLayout title="Payments" description="Reconcile Paystack transactions">
+    <AdminLayout title="Payments" description="Reconcile mobile money transactions">
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm text-muted-foreground">
@@ -115,7 +115,7 @@ export default function PaymentsReconciliation() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="capitalize">{r.paystack_status || r.status}</Badge>
+                          <Badge variant="outline" className="capitalize">{r.provider_status || r.status}</Badge>
                           {s === "initialized" && (
                             <Button
                               size="sm"

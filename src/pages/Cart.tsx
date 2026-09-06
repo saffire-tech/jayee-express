@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { openPaystackCheckout } from '@/lib/paystackInline';
+import MoMoPaymentDialog from '@/components/payments/MoMoPaymentDialog';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,6 +29,7 @@ const Cart = () => {
   const online = useOnlineStatus();
   const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const [deliveryData, setDeliveryData] = useState<{
     deliveryType: 'pickup' | 'delivery';
     deliveryFee: number;
@@ -75,63 +76,13 @@ const Cart = () => {
       });
   }, [items]);
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!user || items.length === 0) return;
     if (!online) {
       toast.error("You're offline. Please connect to the internet to complete your purchase.");
       return;
     }
-
-    setCheckingOut(true);
-    
-    try {
-      // Call initialize-payment edge function
-      const { data, error } = await supabase.functions.invoke('initialize-payment', {
-        body: {
-          items: items.map(item => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-            product: {
-              store_id: item.product.store_id,
-              price: item.product.price,
-              name: item.product.name,
-            },
-          })),
-          deliveryData,
-          email: user.email,
-        },
-      });
-
-      if (error) throw new Error(error.message || 'Payment initialization failed');
-      if (data?.error) throw new Error(data.error);
-
-      // Open Paystack as an in-app overlay (falls back to redirect if inline fails)
-      if (data?.access_code || data?.authorization_url) {
-        await openPaystackCheckout({
-          accessCode: data.access_code,
-          authorizationUrl: data.authorization_url,
-          onSuccess: async (reference) => {
-            try {
-              if (reference) {
-                await supabase.functions.invoke('verify-payment', { body: { reference } });
-              }
-              toast.success('Payment successful');
-              navigate('/purchase-history');
-            } catch (e: any) {
-              toast.error(e.message || 'Payment verification failed');
-            }
-          },
-          onClose: () => setCheckingOut(false),
-        });
-      } else {
-        throw new Error('No payment URL returned');
-      }
-    } catch (error: any) {
-      console.error('Payment error:', error);
-      toast.error(error.message || 'Failed to initialize payment. Please try again.');
-    } finally {
-      setCheckingOut(false);
-    }
+    setPayOpen(true);
   };
 
   if (!user) {
@@ -371,6 +322,32 @@ const Cart = () => {
           </div>
         </div>
       </main>
+
+      <MoMoPaymentDialog
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        amount={totalPrice + deliveryData.deliveryFee}
+        title="Pay with Mobile Money"
+        description={`You are paying ₵${(totalPrice + deliveryData.deliveryFee).toLocaleString()} for your order.`}
+        functionName="initialize-payment"
+        body={{
+          items: items.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            product: {
+              store_id: item.product.store_id,
+              price: item.product.price,
+              name: item.product.name,
+            },
+          })),
+          deliveryData,
+          email: user.email,
+        }}
+        onSuccess={() => {
+          toast.success('Payment successful');
+          navigate('/purchases');
+        }}
+      />
 
       <Footer />
     </div>
