@@ -124,16 +124,20 @@ const MoMoPaymentDialog = ({
           ...(body || {}),
           payer: phone,
           channel: Number(network),
-          ...(otpcode ? { otpcode, reference } : {}),
+          ...(reference ? { reference } : {}),
+          ...(otpcode ? { otpcode } : {}),
         },
       });
       if (error) throw new Error(error.message || "Could not start the payment");
       if (data?.error) throw new Error(data.error);
 
       setReference(data.reference);
-      if (data.requires_otp && !otpcode) {
+      if (data.requires_otp) {
+        // Either the provider is asking for a code, or the code we sent was
+        // rejected — stay on the code screen either way.
+        if (data.otp_error) setOtp("");
         setStage("otp");
-        setStatusMessage(data.message || "Enter the code sent to your phone.");
+        setStatusMessage(data.otp_error || data.message || "Enter the confirmation code to continue.");
       } else {
         setStage("waiting");
         setStatusMessage(data.message || "Approve the prompt on your phone.");
@@ -142,10 +146,12 @@ const MoMoPaymentDialog = ({
     } catch (e: any) {
       toast.error(e.message || "Payment could not be started");
       setStage("form");
+      setReference(null);
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => (stage === "waiting" ? null : onOpenChange(v))}>
@@ -202,6 +208,13 @@ const MoMoPaymentDialog = ({
         {stage === "otp" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">{statusMessage}</p>
+            <div className="rounded-lg border bg-muted/50 p-3 text-xs text-muted-foreground">
+              {network === "13" ? (
+                <>Dial <span className="font-medium text-foreground">*170#</span> on your MTN number, choose <span className="font-medium text-foreground">My Wallet → My Approvals</span> and get the code.</>
+              ) : (
+                <>Dial <span className="font-medium text-foreground">*110#</span> on your number and follow the approvals menu to get the code.</>
+              )}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="momo-otp">Confirmation code</Label>
               <Input
@@ -215,6 +228,14 @@ const MoMoPaymentDialog = ({
               {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Confirm
             </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              disabled={busy}
+              onClick={() => startPayment()}
+            >
+              Get a new code
+            </Button>
           </div>
         )}
 
@@ -224,10 +245,11 @@ const MoMoPaymentDialog = ({
             <p className="font-medium">Check your phone</p>
             <p className="text-sm text-muted-foreground">{statusMessage}</p>
             <p className="text-xs text-muted-foreground">
-              Keep this window open until the payment is confirmed.
+              Enter your mobile money PIN on your phone when it asks. Keep this window open until the payment is confirmed.
             </p>
           </div>
         )}
+
 
         {stage === "success" && (
           <div className="py-6 text-center space-y-3">

@@ -50,11 +50,18 @@ export function newReference(prefix = "jx"): string {
 export interface PayinResult {
   ok: boolean;
   pending: boolean;
+  /** Moolre wants a verification code before it will push the PIN prompt. */
   requiresOtp: boolean;
+  /** A code was submitted but Moolre rejected it (wrong/expired). */
+  otpRejected: boolean;
   message: string;
   code?: string;
   raw: any;
 }
+
+/** Codes Moolre returns when a verification code is required / was rejected. */
+const OTP_REQUIRED_CODES = ["TP14"];
+const OTP_REJECTED_CODES = ["TP15"];
 
 /**
  * Initiates a mobile-money debit. Amount is in GHS units (not pesewas).
@@ -90,21 +97,39 @@ export async function moolrePayin(params: {
   const status = String(data?.status ?? "0");
   const code = data?.code as string | undefined;
   const message = String(data?.message || "Payment request failed");
-  // TP14 / OTP-related codes ask the payer for a one-time code before the debit.
-  // Once we have already sent an OTP code, Moolre's reply often still mentions
-  // "OTP" (e.g. "OTP verified, awaiting approval") — that must NOT send the
-  // payer back to the code screen, otherwise the PIN prompt never fires.
-  const requiresOtp = !params.otpcode && (code === "TP14" || /otp/i.test(message));
+  const ok = status === "1";
+
+  // Decide the OTP step from the provider's response CODE, never from wording:
+  // once a code has been submitted, Moolre's success reply often still mentions
+  // "OTP", and matching on that text sent payers back to the code screen so the
+  // PIN prompt never fired.
+  const requiresOtp = !ok && !params.otpcode && OTP_REQUIRED_CODES.includes(code || "");
+  const otpRejected = !ok && OTP_REJECTED_CODES.includes(code || "");
+
+  // Never logs credentials — only what Moolre replied.
+  console.log("moolre payin", JSON.stringify({
+    externalref: params.externalref,
+    channel: params.channel,
+    amount: params.amount,
+    withOtp: Boolean(params.otpcode),
+    status,
+    code,
+    message,
+    requiresOtp,
+    otpRejected,
+  }));
 
   return {
-    ok: status === "1",
-    pending: status === "1",
+    ok,
+    pending: ok,
     requiresOtp,
+    otpRejected,
     message,
     code,
     raw: data,
   };
 }
+
 
 export type MoolreTxStatus = "success" | "pending" | "failed" | "not_found";
 
