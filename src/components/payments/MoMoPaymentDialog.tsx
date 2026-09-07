@@ -124,16 +124,20 @@ const MoMoPaymentDialog = ({
           ...(body || {}),
           payer: phone,
           channel: Number(network),
-          ...(otpcode ? { otpcode, reference } : {}),
+          ...(reference ? { reference } : {}),
+          ...(otpcode ? { otpcode } : {}),
         },
       });
       if (error) throw new Error(error.message || "Could not start the payment");
       if (data?.error) throw new Error(data.error);
 
       setReference(data.reference);
-      if (data.requires_otp && !otpcode) {
+      if (data.requires_otp) {
+        // Either the provider is asking for a code, or the code we sent was
+        // rejected — stay on the code screen either way.
+        if (data.otp_error) setOtp("");
         setStage("otp");
-        setStatusMessage(data.message || "Enter the code sent to your phone.");
+        setStatusMessage(data.otp_error || data.message || "Enter the confirmation code to continue.");
       } else {
         setStage("waiting");
         setStatusMessage(data.message || "Approve the prompt on your phone.");
@@ -142,10 +146,12 @@ const MoMoPaymentDialog = ({
     } catch (e: any) {
       toast.error(e.message || "Payment could not be started");
       setStage("form");
+      setReference(null);
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => (stage === "waiting" ? null : onOpenChange(v))}>
