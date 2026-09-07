@@ -88,20 +88,23 @@ Deno.serve(async (req) => {
       otpcode: otpcode || undefined,
     });
 
-    if (!payin.ok && !payin.requiresOtp) {
-      await admin.from("payment_attempts").update({
-        status: "failed", provider_status: payin.code || "failed",
-        last_error: payin.message, verified_at: new Date().toISOString(),
-      }).eq("reference", reference);
-      throw new Error(payin.message);
-    }
+    const needsCode = payin.requiresOtp || payin.otpRejected;
+
+    await admin.from("payment_attempts").update({
+      ...(payin.ok || needsCode ? {} : { status: "failed", verified_at: new Date().toISOString() }),
+      provider_status: payin.code || (payin.ok ? "pending" : "failed"),
+      last_error: payin.ok ? null : payin.message,
+    }).eq("reference", reference);
+
+    if (!payin.ok && !needsCode) throw new Error(payin.message);
 
     return new Response(JSON.stringify({
       reference,
       pending: true,
-      requires_otp: payin.requiresOtp,
+      requires_otp: needsCode,
+      otp_error: payin.otpRejected ? payin.message : null,
       amount: totalGhs,
-      message: payin.requiresOtp
+      message: needsCode
         ? payin.message
         : "Approve the payment prompt on your phone to activate your subscription.",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
