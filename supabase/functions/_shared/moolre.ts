@@ -60,7 +60,10 @@ export interface PayinResult {
 }
 
 /** Codes Moolre returns when a verification code is required / was rejected. */
-const OTP_REQUIRED_CODES = ["TP14"];
+// TP14 = "verification code required". TP15 appears both ways: on a first
+// charge it means "request a code first" (so it must open the code screen);
+// after a code was submitted it means the code was wrong/expired.
+const OTP_REQUIRED_CODES = ["TP14", "TP15"];
 const OTP_REJECTED_CODES = ["TP15"];
 
 /**
