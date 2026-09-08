@@ -56,6 +56,9 @@ export interface PayinResult {
   otpRejected: boolean;
   message: string;
   code?: string;
+  /** Moolre's own transaction id, returned by the initial charge. Must be
+   *  echoed back when verifying an OTP so Moolre resumes the same session. */
+  txid?: string;
   raw: any;
 }
 
@@ -77,6 +80,9 @@ export async function moolrePayin(params: {
   externalref: string;
   reference: string;
   otpcode?: string;
+  /** Moolre transaction id from the initial charge — required when verifying
+   *  an OTP so the code is applied to the ORIGINAL session, not a new charge. */
+  transactionid?: string;
 }): Promise<PayinResult> {
   const body: Record<string, unknown> = {
     type: 1,
@@ -89,6 +95,7 @@ export async function moolrePayin(params: {
     externalref: params.externalref,
   };
   if (params.otpcode) body.otpcode = params.otpcode;
+  if (params.transactionid) body.transactionid = params.transactionid;
 
   const res = await fetch(`${MOOLRE_BASE}/payment`, {
     method: "POST",
@@ -101,6 +108,11 @@ export async function moolrePayin(params: {
   const code = data?.code as string | undefined;
   const message = String(data?.message || "Payment request failed");
   const rawOk = status === "1";
+
+  // Moolre's transaction id can appear under several keys depending on channel.
+  const txRaw = data?.data?.transactionid ?? data?.data?.transaction_id ?? data?.data?.id
+    ?? data?.transactionid ?? data?.transaction_id;
+  const txid = txRaw != null && txRaw !== "" ? String(txRaw) : undefined;
 
   // Decide the OTP step from the provider's response CODE, never from wording.
   // Moolre returns TP14 ("verification code sent") WITH status 1, so a code
@@ -122,6 +134,7 @@ export async function moolrePayin(params: {
     message,
     requiresOtp,
     otpRejected,
+    txid,
   }));
 
   return {
@@ -131,6 +144,7 @@ export async function moolrePayin(params: {
     otpRejected,
     message,
     code,
+    txid,
     raw: data,
   };
 }
