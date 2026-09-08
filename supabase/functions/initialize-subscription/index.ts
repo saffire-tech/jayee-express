@@ -59,13 +59,15 @@ Deno.serve(async (req) => {
     };
 
     let reference = newReference("jxp");
+    let providerTxid: string | undefined;
     if (otpcode && existingRef) {
       const { data: prior } = await admin
-        .from("payment_attempts").select("reference, buyer_id, status")
+        .from("payment_attempts").select("reference, buyer_id, status, provider_txid")
         .eq("reference", existingRef).maybeSingle();
       if (!prior || prior.buyer_id !== user.id) throw new Error("Unknown payment reference");
       if (prior.status !== "initialized") throw new Error("This payment has already been processed");
       reference = prior.reference;
+      providerTxid = prior.provider_txid || undefined;
     } else {
       const { error: attemptErr } = await admin.from("payment_attempts").insert({
         reference,
@@ -89,6 +91,7 @@ Deno.serve(async (req) => {
       externalref: reference,
       reference: `Jayee Express ${plan.name} plan`,
       otpcode: otpcode || undefined,
+      transactionid: providerTxid,
     });
 
     const needsCode = payin.requiresOtp || payin.otpRejected;
@@ -97,6 +100,7 @@ Deno.serve(async (req) => {
       ...(payin.ok || needsCode ? {} : { status: "failed", verified_at: new Date().toISOString() }),
       provider_status: payin.code || (payin.ok ? "pending" : "failed"),
       last_error: payin.ok ? null : payin.message,
+      ...(payin.txid ? { provider_txid: payin.txid } : {}),
     }).eq("reference", reference);
 
     if (!payin.ok && !needsCode) throw new Error(payin.message);
