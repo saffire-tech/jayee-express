@@ -109,17 +109,20 @@ Deno.serve(async (req) => {
       })),
     };
 
-    // Resuming an OTP challenge: reuse the reference already recorded.
+    // Resuming an OTP challenge: reuse the reference AND the provider's own
+    // transaction id already recorded, so Moolre resumes the same session.
     let reference = newReference();
+    let providerTxid: string | undefined;
     if (otpcode && existingRef) {
       const { data: prior } = await admin
         .from("payment_attempts")
-        .select("reference, buyer_id, status")
+        .select("reference, buyer_id, status, provider_txid")
         .eq("reference", existingRef)
         .maybeSingle();
       if (!prior || prior.buyer_id !== user.id) throw new Error("Unknown payment reference");
       if (prior.status !== "initialized") throw new Error("This payment has already been processed");
       reference = prior.reference;
+      providerTxid = prior.provider_txid || undefined;
     } else {
       // Record the attempt BEFORE charging — source of truth for reconciliation
       const { error: attemptErr } = await admin.from("payment_attempts").insert({
@@ -147,6 +150,7 @@ Deno.serve(async (req) => {
       externalref: reference,
       reference: `Jayee Express order`,
       otpcode: otpcode || undefined,
+      transactionid: providerTxid,
     });
 
     const needsCode = payin.requiresOtp || payin.otpRejected;
@@ -155,6 +159,7 @@ Deno.serve(async (req) => {
       ...(payin.ok || needsCode ? {} : { status: "failed", verified_at: new Date().toISOString() }),
       provider_status: payin.code || (payin.ok ? "pending" : "failed"),
       last_error: payin.ok ? null : payin.message,
+      ...(payin.txid ? { provider_txid: payin.txid } : {}),
     }).eq("reference", reference);
 
     if (!payin.ok && !needsCode) throw new Error(payin.message);

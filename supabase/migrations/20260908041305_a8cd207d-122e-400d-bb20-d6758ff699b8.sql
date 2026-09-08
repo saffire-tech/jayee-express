@@ -1,0 +1,1 @@
+ALTER TABLE public.payment_attempts ADD COLUMN IF NOT EXISTS provider_txid text;

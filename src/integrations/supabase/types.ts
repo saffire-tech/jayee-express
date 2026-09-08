@@ -697,6 +697,7 @@ export type Database = {
           payload: Json
           provider: string
           provider_status: string | null
+          provider_txid: string | null
           reference: string
           status: string
           updated_at: string
@@ -716,6 +717,7 @@ export type Database = {
           payload?: Json
           provider?: string
           provider_status?: string | null
+          provider_txid?: string | null
           reference: string
           status?: string
           updated_at?: string
@@ -735,6 +737,7 @@ export type Database = {
           payload?: Json
           provider?: string
           provider_status?: string | null
+          provider_txid?: string | null
           reference?: string
           status?: string
           updated_at?: string
