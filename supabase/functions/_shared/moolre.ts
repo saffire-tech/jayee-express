@@ -100,14 +100,16 @@ export async function moolrePayin(params: {
   const status = String(data?.status ?? "0");
   const code = data?.code as string | undefined;
   const message = String(data?.message || "Payment request failed");
-  const ok = status === "1";
+  const rawOk = status === "1";
 
-  // Decide the OTP step from the provider's response CODE, never from wording:
-  // once a code has been submitted, Moolre's success reply often still mentions
-  // "OTP", and matching on that text sent payers back to the code screen so the
-  // PIN prompt never fired.
-  const requiresOtp = !ok && !params.otpcode && OTP_REQUIRED_CODES.includes(code || "");
-  const otpRejected = !ok && OTP_REJECTED_CODES.includes(code || "");
+  // Decide the OTP step from the provider's response CODE, never from wording.
+  // Moolre returns TP14 ("verification code sent") WITH status 1, so a code
+  // check must come before the success check or the payer sits on a spinner.
+  const codeIsOtp = OTP_REQUIRED_CODES.includes(code || "");
+  const requiresOtp = codeIsOtp && !params.otpcode;
+  const otpRejected = Boolean(params.otpcode) && OTP_REJECTED_CODES.includes(code || "");
+  // A charge that only asked for a code has not started yet.
+  const ok = rawOk && !codeIsOtp;
 
   // Never logs credentials — only what Moolre replied.
   console.log("moolre payin", JSON.stringify({
