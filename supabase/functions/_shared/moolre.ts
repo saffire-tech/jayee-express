@@ -67,7 +67,10 @@ export interface PayinResult {
 // charge it means "request a code first" (so it must open the code screen);
 // after a code was submitted it means the code was wrong/expired.
 const OTP_REQUIRED_CODES = ["TP14", "TP15"];
-const OTP_REJECTED_CODES = ["TP15"];
+// TP15 = wrong/expired code. TP16 = the OTP session could not be resumed at all
+// ("Unknown Error ... request a new code") — both keep the payer on the code
+// screen so they can request a fresh code instead of seeing a hard failure.
+const OTP_REJECTED_CODES = ["TP15", "TP16"];
 
 /**
  * Initiates a mobile-money debit. Amount is in GHS units (not pesewas).
@@ -142,7 +145,9 @@ export async function moolrePayin(params: {
     pending: ok,
     requiresOtp,
     otpRejected,
-    message,
+    message: otpRejected && code === "TP16"
+      ? "That code didn't work. Tap \"Get a new code\" and try again."
+      : message,
     code,
     txid,
     raw: data,
