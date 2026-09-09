@@ -145,7 +145,9 @@ export async function moolrePayin(params: {
     pending: ok,
     requiresOtp,
     otpRejected,
-    message,
+    message: otpRejected && code === "TP16"
+      ? "That code didn't work. Tap \"Get a new code\" and try again."
+      : message,
     code,
     txid,
     raw: data,
