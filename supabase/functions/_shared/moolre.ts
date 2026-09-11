@@ -26,7 +26,7 @@ export function normalisePhone(raw: string): string | null {
 function headers() {
   const user = Deno.env.get("MOOLRE_API_USER");
   const pub = Deno.env.get("MOOLRE_PUBLIC_KEY");
-  const priv = Deno.env.get("MOOLRE_PRIVATE_KEY");
+  const priv = Deno.env.get("MOOLRE_PRIVATE_KEY") ?? Deno.env.get("MMOLRE_PRIVATE_KEY");
   if (!user || !pub || !priv) throw new Error("Moolre credentials are not configured");
   return {
     "Content-Type": "application/json",
