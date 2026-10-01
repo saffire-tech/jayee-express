@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { moolrePayin, newReference, normalisePhone, isValidChannel } from "../_shared/moolre.ts";
+import { paystackInitialize, newReference } from "../_shared/paystack.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,13 +27,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { plan_id, months, payer, channel, otpcode, reference: existingRef } = await req.json();
+    const { plan_id, months } = await req.json();
     const monthsInt = Math.max(1, Math.min(12, parseInt(months) || 1));
 
-    const payerNumber = normalisePhone(payer);
-    if (!payerNumber) throw new Error("Enter a valid Ghanaian mobile money number");
-    const channelInt = parseInt(channel);
-    if (!isValidChannel(channelInt)) throw new Error("Choose a valid mobile money network");
 
     const { data: plan, error: planErr } = await admin
       .from("subscription_plans")
@@ -59,61 +55,37 @@ Deno.serve(async (req) => {
     };
 
     let reference = newReference("jxp");
-    let providerTxid: string | undefined;
-    if (otpcode && existingRef) {
-      const { data: prior } = await admin
-        .from("payment_attempts").select("reference, buyer_id, status, provider_txid")
-        .eq("reference", existingRef).maybeSingle();
-      if (!prior || prior.buyer_id !== user.id) throw new Error("Unknown payment reference");
-      if (prior.status !== "initialized") throw new Error("This payment has already been processed");
-      reference = prior.reference;
-      providerTxid = prior.provider_txid || undefined;
-    } else {
-      const { error: attemptErr } = await admin.from("payment_attempts").insert({
-        reference,
-        buyer_id: user.id,
-        amount: totalGhs,
-        currency: "GHS",
-        kind: "subscription",
-        status: "initialized",
-        provider: "moolre",
-        payer_number: payerNumber,
-        payer_channel: channelInt,
-        payload: metadata,
-      });
-      if (attemptErr) throw new Error("Could not record payment attempt. Please try again.");
-    }
-
-    const payin = await moolrePayin({
+    const { error: attemptErr } = await admin.from("payment_attempts").insert({
+      reference,
+      buyer_id: user.id,
       amount: totalGhs,
-      payer: payerNumber,
-      channel: channelInt,
-      externalref: reference,
-      reference: `Jayee Express ${plan.name} plan`,
-      otpcode: otpcode || undefined,
-      transactionid: providerTxid,
+      currency: "GHS",
+      kind: "subscription",
+      status: "initialized",
+      provider: "paystack",
+      payload: metadata,
     });
+    if (attemptErr) throw new Error("Could not record payment attempt. Please try again.");
 
-    const needsCode = payin.requiresOtp || payin.otpRejected;
-
-    await admin.from("payment_attempts").update({
-      ...(payin.ok || needsCode ? {} : { status: "failed", verified_at: new Date().toISOString() }),
-      provider_status: payin.code || (payin.ok ? "pending" : "failed"),
-      last_error: payin.ok ? null : payin.message,
-      ...(payin.txid ? { provider_txid: payin.txid } : {}),
-    }).eq("reference", reference);
-
-    if (!payin.ok && !needsCode) throw new Error(payin.message);
+    const init = await paystackInitialize({
+      email: user.email || `${user.id}@users.jayeeexpress.com`,
+      amountGhs: totalGhs,
+      reference,
+      metadata: { user_id: user.id },
+    });
+    if (!init.ok) {
+      await admin.from("payment_attempts").update({
+        status: "failed", provider_status: "init_failed", last_error: init.message,
+        verified_at: new Date().toISOString(),
+      }).eq("reference", reference);
+      throw new Error(init.message);
+    }
 
     return new Response(JSON.stringify({
       reference,
-      pending: true,
-      requires_otp: needsCode,
-      otp_error: payin.otpRejected ? payin.message : null,
+      access_code: init.accessCode,
+      authorization_url: init.authorizationUrl,
       amount: totalGhs,
-      message: needsCode
-        ? payin.message
-        : "Approve the payment prompt on your phone to activate your plan.",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("init-subscription error:", e);
