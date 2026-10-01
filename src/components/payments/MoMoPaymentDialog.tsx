@@ -26,7 +26,20 @@ export const MOMO_NETWORKS = [
   { value: "7", label: "AirtelTigo Money" },
 ];
 
-type Stage = "form" | "otp" | "waiting" | "success" | "failed";
+type Stage = "form" | "paying" | "waiting" | "success" | "failed";
+
+let paystackLoader: Promise<void> | null = null;
+const loadPaystack = () => {
+  if ((window as any).PaystackPop) return Promise.resolve();
+  paystackLoader ??= new Promise<void>((resolve, reject) => {
+    const el = document.createElement("script");
+    el.src = "https://js.paystack.co/v2/inline.js";
+    el.onload = () => resolve();
+    el.onerror = () => { paystackLoader = null; reject(new Error("Could not load Paystack. Check your connection.")); };
+    document.body.appendChild(el);
+  });
+  return paystackLoader;
+};
 
 interface Props {
   open: boolean;
@@ -49,16 +62,13 @@ const MoMoPaymentDialog = ({
   open,
   onOpenChange,
   amount,
-  title = "Pay with Mobile Money",
+  title = "Complete payment",
   description,
   functionName,
   body,
   onSuccess,
 }: Props) => {
   const [stage, setStage] = useState<Stage>("form");
-  const [phone, setPhone] = useState("");
-  const [network, setNetwork] = useState("13");
-  const [otp, setOtp] = useState("");
   const [reference, setReference] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -78,7 +88,6 @@ const MoMoPaymentDialog = ({
     if (!open) {
       stopPolling();
       setStage("form");
-      setOtp("");
       setReference(null);
       setStatusMessage("");
       setBusy(false);
@@ -116,33 +125,33 @@ const MoMoPaymentDialog = ({
     }, POLL_INTERVAL_MS);
   };
 
-  const startPayment = async (otpcode?: string) => {
+  const startPayment = async () => {
     setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: {
-          ...(body || {}),
-          payer: phone,
-          channel: Number(network),
-          ...(reference ? { reference } : {}),
-          ...(otpcode ? { otpcode } : {}),
-        },
-      });
+      const { data, error } = await supabase.functions.invoke(functionName, { body: body || {} });
       if (error) throw new Error(error.message || "Could not start the payment");
       if (data?.error) throw new Error(data.error);
-
-      setReference(data.reference);
-      if (data.requires_otp) {
-        // Either the provider is asking for a code, or the code we sent was
-        // rejected — stay on the code screen either way.
-        if (data.otp_error) setOtp("");
-        setStage("otp");
-        setStatusMessage(data.otp_error || data.message || "Enter the confirmation code to continue.");
-      } else {
-        setStage("waiting");
-        setStatusMessage(data.message || "Approve the prompt on your phone.");
-        startPolling(data.reference);
-      }
+      const ref = data.reference as string;
+      setReference(ref);
+      await loadPaystack();
+      const popup = new (window as any).PaystackPop();
+      // Hide our dialog while Paystack's window is on screen.
+      setStage("paying");
+      popup.resumeTransaction(data.access_code, {
+        onSuccess: () => {
+          setStage("waiting");
+          setStatusMessage("Confirming your payment...");
+          startPolling(ref);
+        },
+        onCancel: () => {
+          setStage("form");
+          toast.message("Payment cancelled. You were not charged.");
+        },
+        onError: (err: any) => {
+          setStage("failed");
+          setStatusMessage(err?.message || "Payment could not be completed.");
+        },
+      });
     } catch (e: any) {
       toast.error(e.message || "Payment could not be started");
       setStage("form");
@@ -154,7 +163,7 @@ const MoMoPaymentDialog = ({
 
 
   return (
-    <Dialog open={open} onOpenChange={(v) => (stage === "waiting" ? null : onOpenChange(v))}>
+    <Dialog open={open && stage !== "paying"} onOpenChange={(v) => (stage === "waiting" ? null : onOpenChange(v))}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -168,73 +177,12 @@ const MoMoPaymentDialog = ({
 
         {stage === "form" && (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="momo-network">Network</Label>
-              <Select value={network} onValueChange={setNetwork}>
-                <SelectTrigger id="momo-network">
-                  <SelectValue placeholder="Choose your network" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MOMO_NETWORKS.map((n) => (
-                    <SelectItem key={n.value} value={n.value}>
-                      {n.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="momo-phone">Mobile money number</Label>
-              <Input
-                id="momo-phone"
-                inputMode="tel"
-                placeholder="0244123456"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-            <Button
-              className="w-full"
-              variant="hero"
-              disabled={busy || phone.replace(/\D/g, "").length < 9}
-              onClick={() => startPayment()}
-            >
+            <p className="text-sm text-muted-foreground">
+              Pay securely with Mobile Money or card through Paystack.
+            </p>
+            <Button className="w-full" variant="hero" disabled={busy} onClick={() => startPayment()}>
               {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Pay ₵{Number(amount || 0).toFixed(2)}
-            </Button>
-          </div>
-        )}
-
-        {stage === "otp" && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">{statusMessage}</p>
-            <div className="rounded-lg border bg-muted/50 p-3 text-xs text-muted-foreground">
-              {network === "13" ? (
-                <>Dial <span className="font-medium text-foreground">*170#</span> on your MTN number, choose <span className="font-medium text-foreground">My Wallet → My Approvals</span> and get the code.</>
-              ) : (
-                <>Dial <span className="font-medium text-foreground">*110#</span> on your number and follow the approvals menu to get the code.</>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="momo-otp">Confirmation code</Label>
-              <Input
-                id="momo-otp"
-                inputMode="numeric"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-            </div>
-            <Button className="w-full" variant="hero" disabled={busy || !otp} onClick={() => startPayment(otp)}>
-              {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Confirm
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              disabled={busy}
-              onClick={() => startPayment()}
-            >
-              Get a new code
             </Button>
           </div>
         )}
@@ -242,10 +190,10 @@ const MoMoPaymentDialog = ({
         {stage === "waiting" && (
           <div className="py-6 text-center space-y-3">
             <Loader2 className="h-10 w-10 mx-auto animate-spin text-primary" />
-            <p className="font-medium">Check your phone</p>
+            <p className="font-medium">Confirming payment</p>
             <p className="text-sm text-muted-foreground">{statusMessage}</p>
             <p className="text-xs text-muted-foreground">
-              Enter your mobile money PIN on your phone when it asks. Keep this window open until the payment is confirmed.
+              Keep this window open until the payment is confirmed.
             </p>
           </div>
         )}
