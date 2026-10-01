@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { moolreStatus } from "../_shared/moolre.ts";
+import { paystackStatus } from "../_shared/paystack.ts";
 import { finalizeSuccessfulPayment, markAttemptFailed } from "../_shared/payment-finalize.ts";
 
 const corsHeaders = {
@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// A transaction Moolre has not surfaced yet is treated as still pending
+// A transaction Paystack has not surfaced yet is treated as still pending
 // for this long before we call it failed.
 const NOT_FOUND_GRACE_MS = 10 * 60 * 1000;
 
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Already settled — report the stored outcome without calling Moolre again.
+    // Already settled — report the stored outcome without calling Paystack again.
     if (attempt.status === "success") {
       return new Response(JSON.stringify({ verified: true, status: "success", already: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -76,13 +76,13 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const result = await moolreStatus(reference);
+    const result = await paystackStatus(reference);
     const age = Date.now() - new Date(attempt.created_at).getTime();
 
     if (result.status === "pending" || (result.status === "not_found" && age < NOT_FOUND_GRACE_MS)) {
       return new Response(JSON.stringify({
         verified: false, status: "pending",
-        message: "Waiting for you to approve the prompt on your phone.",
+        message: "Waiting for you to complete the payment.",
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 

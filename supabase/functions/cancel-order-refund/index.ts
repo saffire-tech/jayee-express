@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { moolrePayout } from "../_shared/moolre.ts";
+import { paystackRefund } from "../_shared/paystack.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
     }
 
 
-    // Refund the buyer's mobile money account via Moolre.
+    // Refund the buyer's mobile money account via Paystack.
     if (order.payment_reference) {
       try {
         const { data: attempt } = await adminClient
@@ -171,16 +171,10 @@ Deno.serve(async (req) => {
         const refundAmount = Number(order.total_amount || 0);
         let refunded = false;
 
-        if (attempt?.provider === "moolre" && attempt.payer_number && attempt.payer_channel && refundAmount > 0) {
-          const payout = await moolrePayout({
-            amount: refundAmount,
-            receiver: attempt.payer_number,
-            channel: Number(attempt.payer_channel),
-            externalref: `refund_${order_id}`,
-            reference: "Jayee Express order refund",
-          });
-          refunded = payout.ok;
-          if (!payout.ok) console.error("Moolre refund failed:", payout.message);
+        if (attempt?.provider === "paystack" && refundAmount > 0) {
+          const r = await paystackRefund(order.payment_reference, refundAmount);
+          refunded = r.ok;
+          if (!r.ok) console.error("Paystack refund failed:", r.message);
         }
 
         if (!refunded) {

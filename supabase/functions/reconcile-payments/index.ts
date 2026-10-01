@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { moolreStatus } from "../_shared/moolre.ts";
+import { paystackStatus } from "../_shared/paystack.ts";
 import { finalizeSuccessfulPayment, markAttemptFailed } from "../_shared/payment-finalize.ts";
 
 const corsHeaders = {
@@ -46,12 +46,12 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { /* ignore */ }
     const onlyReference: string | undefined = body?.reference;
 
-    // Moolre-only: legacy Paystack rows are left untouched for history.
+    // Paystack-only: legacy Paystack rows are left untouched for history.
     let query = supabase
       .from("payment_attempts")
       .select("*")
       .eq("status", "initialized")
-      .eq("provider", "moolre");
+      .eq("provider", "paystack");
 
     if (onlyReference) {
       query = query.eq("reference", onlyReference);
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     for (const attempt of pending || []) {
       try {
-        const result = await moolreStatus(attempt.reference);
+        const result = await paystackStatus(attempt.reference);
 
         if (result.status === "success") {
           const amountPaid = result.amount ?? Number(attempt.amount);
