@@ -327,7 +327,7 @@ const Cart = () => {
         open={payOpen}
         onOpenChange={setPayOpen}
         amount={totalPrice + deliveryData.deliveryFee}
-        title="Pay with Mobile Money"
+        title="Complete payment"
         description={`You are paying ₵${(totalPrice + deliveryData.deliveryFee).toLocaleString()} for your order.`}
         functionName="initialize-payment"
         body={{
