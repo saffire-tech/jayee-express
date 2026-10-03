@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -338,7 +339,7 @@ const AvailableOrders = ({ onAccept, isOnline = true }: AvailableOrdersProps) =>
                         {orderDetail.items.map((item, i) => (
                           <div key={i} className="flex items-center gap-2 text-sm">
                             {item.image_url ? (
-                              <img src={item.image_url} alt={item.name} className="w-8 h-8 rounded object-cover" />
+                              <img loading="lazy" src={getCdnImageUrl(item.image_url)} alt={item.name} className="w-8 h-8 rounded object-cover" />
                             ) : (
                               <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
                                 <Package className="h-4 w-4 text-muted-foreground" />

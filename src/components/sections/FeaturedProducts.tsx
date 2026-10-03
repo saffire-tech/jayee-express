@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Star, Package } from "lucide-react";
@@ -124,7 +125,7 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   {product.image_url && !product.image_url.startsWith('data:') ? (
                     <img
-                      src={product.image_url}
+                      src={getCdnImageUrl(product.image_url)}
                       alt={product.name}
                       loading="lazy"
                       className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
@@ -140,7 +141,7 @@ const FeaturedProducts = ({ selectedCategory }: FeaturedProductsProps) => {
                     <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded-full bg-background/85 backdrop-blur-md border border-border/40 shadow-sm">
                       <div className="w-4 h-4 rounded-full bg-muted overflow-hidden flex-shrink-0 flex items-center justify-center">
                         {product.store.logo_url ? (
-                          <img src={product.store.logo_url} alt="" className="w-full h-full object-cover" />
+                          <img loading="lazy" src={getCdnImageUrl(product.store.logo_url)} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-[8px] font-bold text-muted-foreground">
                             {product.store.name?.[0] ?? "?"}

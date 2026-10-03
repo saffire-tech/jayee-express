@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,7 +87,7 @@ const ProductsList = ({ products, onAdd, onUpdate, onDelete }: ProductsListProps
             >
               {product.image_url ? (
                 <img
-                  src={product.image_url}
+                  src={getCdnImageUrl(product.image_url)} loading="lazy"
                   alt={product.name}
                   className="w-full h-40 object-cover"
                 />

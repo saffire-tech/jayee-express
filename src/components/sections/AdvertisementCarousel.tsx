@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -79,7 +80,7 @@ const AdvertisementCarousel = () => {
             >
               {product.image_url ? (
                 <img
-                  src={product.image_url}
+                  src={getCdnImageUrl(product.image_url)}
                   alt={product.name}
                   width={1200}
                   height={400}

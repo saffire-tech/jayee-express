@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
@@ -105,7 +106,7 @@ const SimilarProducts = ({ currentProductId, category, price }: SimilarProductsP
                 <div className="aspect-square relative overflow-hidden bg-muted">
                   {product.image_url ? (
                     <img 
-                      src={product.image_url} 
+                      src={getCdnImageUrl(product.image_url)}  loading="lazy"
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />

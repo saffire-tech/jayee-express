@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -305,7 +306,7 @@ const Stores = () => {
                   <div className="relative h-24 sm:h-28 overflow-hidden bg-muted">
                     {store.cover_url ? (
                       <img
-                        src={store.cover_url}
+                        src={getCdnImageUrl(store.cover_url)}
                         alt={store.name}
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -325,7 +326,7 @@ const Stores = () => {
                       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg border-2 border-card shadow-md bg-muted flex items-center justify-center overflow-hidden">
                         {store.logo_url ? (
                           <img
-                            src={store.logo_url}
+                            src={getCdnImageUrl(store.logo_url)}
                             alt={store.name}
                             loading="lazy"
                             className="w-full h-full object-cover"

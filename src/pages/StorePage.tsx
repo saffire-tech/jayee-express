@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import SEO from '@/components/SEO';
@@ -197,7 +198,7 @@ const StorePage = () => {
           <div className="h-48 md:h-64 bg-muted overflow-hidden">
             {store.cover_url ? (
               <img
-                src={store.cover_url}
+                src={getCdnImageUrl(store.cover_url)} loading="lazy"
                 alt={`${store.name} cover`}
                 className="w-full h-full object-cover"
               />
@@ -215,7 +216,7 @@ const StorePage = () => {
                   <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl border-4 border-background bg-card shadow-lg overflow-hidden flex items-center justify-center">
                     {store.logo_url ? (
                       <img
-                        src={store.logo_url}
+                        src={getCdnImageUrl(store.logo_url)} loading="lazy"
                         alt={store.name}
                         className="w-full h-full object-cover"
                       />
@@ -313,7 +314,7 @@ const StorePage = () => {
                     <div className="relative aspect-square overflow-hidden">
                       {product.image_url ? (
                         <img
-                          src={product.image_url}
+                          src={getCdnImageUrl(product.image_url)} loading="lazy"
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />

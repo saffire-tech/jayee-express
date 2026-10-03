@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -379,7 +380,7 @@ const Messages = () => {
                     }`}
                   >
                     <Avatar className="h-12 w-12 shrink-0">
-                      <AvatarImage src={conv.otherUserAvatar || ''} />
+                      <AvatarImage src={getCdnImageUrl(conv.otherUserAvatar)} />
                       <AvatarFallback>{conv.otherUserName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
@@ -424,7 +425,7 @@ const Messages = () => {
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                   <Avatar>
-                    <AvatarImage src={activeConversationDetails?.otherUserAvatar || ''} />
+                    <AvatarImage src={getCdnImageUrl(activeConversationDetails?.otherUserAvatar)} />
                     <AvatarFallback>
                       {activeConversationDetails?.otherUserName?.charAt(0) || '?'}
                     </AvatarFallback>

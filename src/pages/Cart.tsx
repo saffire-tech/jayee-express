@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MoMoPaymentDialog from '@/components/payments/MoMoPaymentDialog';
@@ -185,7 +186,7 @@ const Cart = () => {
                     <div className="w-20 h-20 md:w-24 md:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                       {item.product.image_url ? (
                         <img 
-                          src={item.product.image_url} 
+                          src={getCdnImageUrl(item.product.image_url)}  loading="lazy"
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                         />

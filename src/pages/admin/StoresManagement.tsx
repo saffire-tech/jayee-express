@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -359,7 +360,7 @@ export default function StoresManagement() {
           {reviewing && (
             <div className="space-y-4">
               {reviewing.cover_url && (
-                <img src={reviewing.cover_url} alt={reviewing.name} className="w-full h-40 object-cover rounded-lg" />
+                <img loading="lazy" src={getCdnImageUrl(reviewing.cover_url)} alt={reviewing.name} className="w-full h-40 object-cover rounded-lg" />
               )}
               <div className="text-sm space-y-1">
                 <p><span className="text-muted-foreground">City:</span> {reviewing.city || '—'}</p>

@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, X, Package, Store, Loader2 } from "lucide-react";
@@ -165,7 +166,7 @@ const GlobalSearch = ({ variant = "navbar", placeholder = "Search products, stor
                   <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                     {result.image_url && !result.image_url.startsWith("data:") ? (
                       <img
-                        src={result.image_url}
+                        src={getCdnImageUrl(result.image_url)} loading="lazy"
                         alt={result.name}
                         className="h-full w-full object-cover"
                       />
