@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadImageToR2 } from "@/lib/r2Upload";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, ImageIcon } from "lucide-react";
@@ -40,21 +40,7 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }: Image
         maxWidth: 1600,
         maxHeight: 1600,
       });
-      const fileName = `${user.id}/${Date.now()}.${extension}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, blob, {
-          cacheControl: '31536000',
-          upsert: false,
-          contentType: blob.type,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
+      const publicUrl = await uploadImageToR2(blob, 'products');
 
       setPreviewUrl(publicUrl);
       onImageUploaded(publicUrl);
