@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SEO from '@/components/SEO';
@@ -270,7 +271,7 @@ const ProductDetail = () => {
             <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
               {galleryImages.length > 0 ? (
                 <img 
-                  src={galleryImages[currentImageIndex]} 
+                  src={getCdnImageUrl(galleryImages[currentImageIndex])} 
                   alt={product.name}
                   className="w-full h-full object-contain"
                 />
@@ -313,7 +314,7 @@ const ProductDetail = () => {
                       idx === currentImageIndex ? 'border-primary' : 'border-transparent'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-contain bg-muted" />
+                    <img loading="lazy" src={getCdnImageUrl(img)} alt="" className="w-full h-full object-contain bg-muted" />
                   </button>
                 ))}
               </div>
@@ -418,7 +419,7 @@ const ProductDetail = () => {
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-14 w-14">
-                    <AvatarImage src={product.store?.logo_url || ''} />
+                    <AvatarImage src={getCdnImageUrl(product.store?.logo_url)} />
                     <AvatarFallback>
                       <Store className="h-6 w-6" />
                     </AvatarFallback>
@@ -498,7 +499,7 @@ const ProductDetail = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <Avatar>
-                        <AvatarImage src={review.profile?.avatar_url || ''} />
+                        <AvatarImage src={getCdnImageUrl(review.profile?.avatar_url)} />
                         <AvatarFallback>
                           {review.profile?.full_name?.charAt(0) || 'U'}
                         </AvatarFallback>

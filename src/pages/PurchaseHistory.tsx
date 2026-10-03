@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -562,7 +563,7 @@ const PurchaseHistory = () => {
                   <div className="flex items-center gap-3">
                     {order.store?.logo_url ? (
                       <img
-                        src={order.store.logo_url}
+                        src={getCdnImageUrl(order.store.logo_url)} loading="lazy"
                         alt={order.store.name}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -608,7 +609,7 @@ const PurchaseHistory = () => {
                     <div key={item.id} className="flex items-center gap-3">
                       {item.product?.image_url ? (
                         <img
-                          src={item.product.image_url}
+                          src={getCdnImageUrl(item.product.image_url)} loading="lazy"
                           alt={item.product.name}
                           className="w-12 h-12 rounded-lg object-cover"
                         />

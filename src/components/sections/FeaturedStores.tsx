@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Verified, Store } from "lucide-react";
@@ -109,7 +110,7 @@ const FeaturedStores = () => {
                 className="group block relative rounded-2xl overflow-hidden border border-border/60 bg-card shadow-sm h-44"
               >
                 {store.cover_url ? (
-                  <img src={store.cover_url} alt={store.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={getCdnImageUrl(store.cover_url)} alt={store.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10" />
                 )}
@@ -117,7 +118,7 @@ const FeaturedStores = () => {
                 <div className="absolute top-3 left-3 right-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-background/95 backdrop-blur-md shadow-md border border-border/40">
                   <div className="w-8 h-8 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
                     {store.logo_url ? (
-                      <img src={store.logo_url} alt="" className="w-full h-full object-cover" />
+                      <img loading="lazy" src={getCdnImageUrl(store.logo_url)} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <Store className="h-4 w-4 text-muted-foreground" />
                     )}
@@ -156,7 +157,7 @@ const FeaturedStores = () => {
               >
                 <div className="relative h-32 overflow-hidden bg-muted">
                   {store.cover_url ? (
-                    <img src={store.cover_url} alt={store.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={getCdnImageUrl(store.cover_url)} alt={store.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5" />
                   )}
@@ -166,7 +167,7 @@ const FeaturedStores = () => {
                   <div className="relative -mt-6 mb-2">
                     <div className="w-12 h-12 rounded-xl border-2 border-card shadow-sm bg-muted flex items-center justify-center overflow-hidden">
                       {store.logo_url ? (
-                        <img src={store.logo_url} alt={store.name} loading="lazy" className="w-full h-full object-cover" />
+                        <img src={getCdnImageUrl(store.logo_url)} alt={store.name} loading="lazy" className="w-full h-full object-cover" />
                       ) : (
                         <Store className="h-4 w-4 text-muted-foreground" />
                       )}

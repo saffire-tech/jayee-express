@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -367,7 +368,7 @@ const Products = () => {
                     <div className="relative aspect-square overflow-hidden">
                       {product.image_url && !product.image_url.startsWith('data:') ? (
                         <img
-                          src={product.image_url}
+                          src={getCdnImageUrl(product.image_url)}
                           alt={product.name}
                           loading="lazy"
                           className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"

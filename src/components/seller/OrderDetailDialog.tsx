@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -135,7 +136,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
                     <div className="flex items-center gap-3">
                       {(item.product as any)?.image_url && (
                         <img
-                          src={(item.product as any).image_url}
+                          src={getCdnImageUrl((item.product as any).image_url)} loading="lazy"
                           alt={(item.product as any)?.name}
                           className="h-10 w-10 rounded-md object-cover"
                         />

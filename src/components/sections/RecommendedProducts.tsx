@@ -1,3 +1,4 @@
+import { getCdnImageUrl } from "@/lib/cdn";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -148,7 +149,7 @@ const RecommendedProducts = () => {
                 <div className="aspect-square relative overflow-hidden bg-muted">
                   {product.image_url ? (
                     <img
-                      src={product.image_url}
+                      src={getCdnImageUrl(product.image_url)}
                       alt={product.name}
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
