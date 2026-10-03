@@ -38,7 +38,7 @@ const StoreImageUpload = ({ type, currentImageUrl, onImageUploaded, onImageRemov
     try {
       // Compress with appropriate dimensions for type
       const maxDim = type === 'logo' ? 512 : 1200;
-      const { blob, extension } = await compressImage(file, {
+      const { blob } = await compressImage(file, {
         maxWidth: type === 'cover' ? 1600 : maxDim,
         maxHeight: maxDim,
       });

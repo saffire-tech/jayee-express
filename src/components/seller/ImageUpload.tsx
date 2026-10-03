@@ -36,7 +36,7 @@ const ImageUpload = ({ currentImageUrl, onImageUploaded, onImageRemoved }: Image
 
     try {
       // Compress image before upload (preserve original aspect ratio)
-      const { blob, extension } = await compressImage(file, {
+      const { blob } = await compressImage(file, {
         maxWidth: 1600,
         maxHeight: 1600,
       });

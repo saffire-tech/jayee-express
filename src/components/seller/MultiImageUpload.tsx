@@ -52,7 +52,7 @@ const MultiImageUpload = ({
 
       for (const file of filesToUpload) {
         // Compress each image before upload (preserve original aspect ratio)
-        const { blob, extension } = await compressImage(file, {
+        const { blob } = await compressImage(file, {
           maxWidth: 1600,
           maxHeight: 1600,
         });
