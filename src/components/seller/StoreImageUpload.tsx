@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadImageToR2 } from "@/lib/r2Upload";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, ImageIcon, Store } from "lucide-react";
@@ -38,25 +38,11 @@ const StoreImageUpload = ({ type, currentImageUrl, onImageUploaded, onImageRemov
     try {
       // Compress with appropriate dimensions for type
       const maxDim = type === 'logo' ? 512 : 1200;
-      const { blob, extension } = await compressImage(file, {
+      const { blob } = await compressImage(file, {
         maxWidth: type === 'cover' ? 1600 : maxDim,
         maxHeight: maxDim,
       });
-      const fileName = `${user.id}/${type}-${Date.now()}.${extension}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('store-images')
-        .upload(fileName, blob, {
-          cacheControl: '31536000',
-          upsert: false,
-          contentType: blob.type,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('store-images')
-        .getPublicUrl(fileName);
+      const publicUrl = await uploadImageToR2(blob, 'stores');
 
       setPreviewUrl(publicUrl);
       onImageUploaded(publicUrl);
