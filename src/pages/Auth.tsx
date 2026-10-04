@@ -97,11 +97,25 @@ const Auth = () => {
         goNext();
         return;
       }
-      // Web: Lovable managed OAuth helper renders provider consent in a popup on the same origin.
+      const redirectTo = nextParam
+        ? `${window.location.origin}/auth?next=${encodeURIComponent(nextParam)}`
+        : window.location.origin;
+      if (provider === "google") {
+        // Google uses the project's own OAuth credentials (configured in Cloud
+        // auth settings), so the consent screen shows Jayee Express branding.
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo },
+        });
+        if (error) {
+          setError(error.message || "Could not sign in with google");
+          setOauthLoading(null);
+        }
+        return; // Browser redirects to Google
+      }
+      // Apple: Lovable managed OAuth helper renders provider consent in a popup on the same origin.
       const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: nextParam
-          ? `${window.location.origin}/auth?next=${encodeURIComponent(nextParam)}`
-          : window.location.origin,
+        redirect_uri: redirectTo,
       });
       if (result.error) {
         setError(result.error.message || `Could not sign in with ${provider}`);
