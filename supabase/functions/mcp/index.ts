@@ -6,7 +6,7 @@
 import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
 
 // src/lib/mcp/tools/search-products.ts
-import { createClient } from "npm:@supabase/supabase-js@^2.117.2";
+import { createClient } from "npm:@supabase/supabase-js@^2.87.1";
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z } from "npm:zod@^3.25.76";
 function publicClient() {
@@ -47,7 +47,7 @@ var search_products_default = defineTool({
 });
 
 // src/lib/mcp/tools/get-product.ts
-import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.117.2";
+import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.87.1";
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z2 } from "npm:zod@^3.25.76";
 function publicClient2() {
@@ -80,7 +80,7 @@ var get_product_default = defineTool2({
 });
 
 // src/lib/mcp/tools/list-stores.ts
-import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.117.2";
+import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.87.1";
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.20.0";
 import { z as z3 } from "npm:zod@^3.25.76";
 function publicClient3() {
@@ -115,7 +115,7 @@ var list_stores_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "brqzedcxzjqwzpkwrmow";
+var projectRef = "cszyyoicfmxhsivmlrpu";
 var mcp_default = defineMcp({
   name: "jayee-express-mcp",
   title: "Jayee Express",
