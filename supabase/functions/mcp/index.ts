@@ -115,7 +115,7 @@ var list_stores_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "brqzedcxzjqwzpkwrmow";
+var projectRef = "cszyyoicfmxhsivmlrpu";
 var mcp_default = defineMcp({
   name: "jayee-express-mcp",
   title: "Jayee Express",
