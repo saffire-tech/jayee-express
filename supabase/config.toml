@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.notify-app-email]
 verify_jwt = true
+
+[functions.tmp-apply-schema]
+verify_jwt = false
