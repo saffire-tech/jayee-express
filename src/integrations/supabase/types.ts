@@ -983,6 +983,7 @@ export type Database = {
           campus: string | null
           city: string | null
           created_at: string
+          current_mode: Database["public"]["Enums"]["user_mode"] | null
           full_name: string | null
           id: string
           is_online: boolean
@@ -996,6 +997,7 @@ export type Database = {
           campus?: string | null
           city?: string | null
           created_at?: string
+          current_mode?: Database["public"]["Enums"]["user_mode"] | null
           full_name?: string | null
           id?: string
           is_online?: boolean
@@ -1009,6 +1011,7 @@ export type Database = {
           campus?: string | null
           city?: string | null
           created_at?: string
+          current_mode?: Database["public"]["Enums"]["user_mode"] | null
           full_name?: string | null
           id?: string
           is_online?: boolean
@@ -1958,6 +1961,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "delivery"
       help_audience: "buyer" | "seller" | "delivery"
+      user_mode: "buyer" | "seller"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2087,6 +2091,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "delivery"],
       help_audience: ["buyer", "seller", "delivery"],
+      user_mode: ["buyer", "seller"],
     },
   },
 } as const

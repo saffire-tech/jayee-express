@@ -1,0 +1,2 @@
+DO $$ BEGIN CREATE TYPE public.user_mode AS ENUM ('buyer','seller'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS current_mode public.user_mode DEFAULT 'buyer';
