@@ -1,0 +1,11 @@
+          avatar_url
+          campus
+          city
+          created_at
+          full_name
+          id
+          is_online
+          is_suspended
+          phone
+          updated_at
+          user_id
