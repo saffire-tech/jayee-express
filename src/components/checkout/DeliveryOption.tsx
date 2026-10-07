@@ -113,7 +113,8 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
     [stores]
   );
 
-  const hasDeliveryStores = storesWithCoords.length > 0;
+  const storesMissingCoords = stores.filter((s) => !(s.latitude && s.longitude));
+  const hasDeliveryStores = stores.length > 0 && storesMissingCoords.length === 0;
 
   // Store markers for MapPicker
   const storeMarkers = useMemo(
@@ -196,6 +197,15 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
           </div>
         </Label>
       </RadioGroup>
+
+      {stores.length > 0 && storesMissingCoords.length > 0 && (
+        <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+          Delivery isn't available yet because{' '}
+          <strong>{storesMissingCoords.map((s) => s.name).join(', ')}</strong>{' '}
+          {storesMissingCoords.length > 1 ? "haven't" : "hasn't"} pinned a store location on the map.
+          Ask the seller to set it in Store Settings, or choose Pick Up.
+        </p>
+      )}
 
       {deliveryType === 'delivery' && hasDeliveryStores && (
         <div className="space-y-3">
