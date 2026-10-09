@@ -7,7 +7,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import shodelLogo from "@/assets/shodel-logo-white.png";
 import SEO from "@/components/SEO";
-import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { isNativeApp, nativeSignInWithOAuth } from "@/lib/nativeOAuth";
@@ -51,16 +50,18 @@ const Auth = () => {
   })();
   const goNext = () => navigate(nextParam ?? "/");
 
-  // After an OAuth full-page redirect back to /auth?next=..., the session is
-  // hydrated asynchronously. Watch for it and forward to nextParam (e.g. the
-  // OAuth consent screen) so the external app's authorization can complete.
+  // After authentication, watch for session updates to navigate or handle popup completion
   useEffect(() => {
-    if (user && nextParam) {
-      navigate(nextParam, { replace: true });
+    if (user) {
+      if (window.opener && window.opener !== window) {
+        // If opened inside a pop-up window, notify parent and close popup
+        window.opener.location.reload();
+        window.close();
+      } else {
+        goNext();
+      }
     }
   }, [user, nextParam, navigate]);
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,27 +86,55 @@ const Auth = () => {
     setError("");
     setOauthLoading(provider);
     try {
-      // Native (Capacitor) build: open provider in in-app browser tab (Chrome Custom Tab / SFSafariViewController).
+      // Native (Capacitor) build: open provider in in-app browser tab
       if (isNativeApp()) {
         await nativeSignInWithOAuth(provider);
         goNext();
         return;
       }
+
       const redirectTo = nextParam
         ? `${window.location.origin}/auth?next=${encodeURIComponent(nextParam)}`
         : window.location.origin;
+
       if (provider === "google") {
-        // Google uses the project's own OAuth credentials (configured in Cloud
-        // auth settings), so the consent screen shows Jayee Express branding.
-        const { error } = await supabase.auth.signInWithOAuth({
+        // Fetch OAuth URL from Supabase with browser redirect disabled
+        const { data, error } = await supabase.auth.signInWithOAuth({
           provider: "google",
-          options: { redirectTo },
+          options: {
+            redirectTo,
+            skipBrowserRedirect: true,
+          },
         });
+
         if (error) {
           setError(error.message || "Could not sign in with google");
           setOauthLoading(null);
+          return;
         }
-        return; // Browser redirects to Google
+
+        // Open OAuth consent in a centered pop-up window within the app context
+        if (data?.url) {
+          const width = 500;
+          const height = 600;
+          const left = window.screenX + (window.innerWidth - width) / 2;
+          const top = window.screenY + (window.innerHeight - height) / 2;
+
+          const popup = window.open(
+            data.url,
+            "Google Sign In",
+            `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,scrollbars=yes`
+          );
+
+          // Monitor pop-up closure
+          const timer = setInterval(() => {
+            if (popup?.closed) {
+              clearInterval(timer);
+              setOauthLoading(null);
+            }
+          }, 1000);
+        }
+        return;
       }
       goNext();
     } catch (err: any) {
@@ -113,7 +142,6 @@ const Auth = () => {
       setOauthLoading(null);
     }
   };
-
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,7 +359,6 @@ const Auth = () => {
                   {isLogin ? "Sign up" : "Sign in"}
                 </button>
               </p>
-
             </>
           )}
         </div>
