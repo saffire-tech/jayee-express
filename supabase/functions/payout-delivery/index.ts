@@ -43,6 +43,12 @@ Deno.serve(async (req) => {
     if (!order.delivery_person_id) throw new Error("No delivery person assigned");
     if (order.delivery_fee <= 0) throw new Error("No delivery fee to pay out");
 
+    // Platform keeps 10% of every delivery fee; rider receives the rest.
+    const RIDER_COMMISSION_PCT = 10;
+    const grossFee = Number(order.delivery_fee);
+    const commission = Math.round(grossFee * RIDER_COMMISSION_PCT) / 100;
+    const riderNet = Math.round((grossFee - commission) * 100) / 100;
+
     // Credit delivery person's wallet — idempotent per order
     const { data: existingCredit } = await adminClient
       .from("wallet_transactions")
@@ -54,17 +60,23 @@ Deno.serve(async (req) => {
       .limit(1);
 
     if (!existingCredit || existingCredit.length === 0) {
-      try {
-        await adminClient.rpc("update_wallet_balance", {
-          _user_id: order.delivery_person_id,
-          _amount: order.delivery_fee,
-          _type: "credit",
-          _description: `Delivery fee for order #${order_id.slice(0, 8)}`,
-          _reference_id: order_id,
-        });
-      } catch (e) {
-        throw new Error("Failed to credit delivery wallet");
-      }
+      const { error: walletErr } = await adminClient.rpc("update_wallet_balance", {
+        _user_id: order.delivery_person_id,
+        _amount: riderNet,
+        _type: "credit",
+        _description: `Delivery fee for order #${order_id.slice(0, 8)} (after ${RIDER_COMMISSION_PCT}% commission)`,
+        _reference_id: order_id,
+      });
+      if (walletErr) throw new Error("Failed to credit delivery wallet");
+
+      await adminClient.from("platform_commission_ledger").insert({
+        order_id,
+        product_id: null,
+        category: "Delivery",
+        gross_amount: grossFee,
+        commission_pct: RIDER_COMMISSION_PCT,
+        commission_amount: commission,
+      });
     }
 
     // Mark as paid
@@ -78,7 +90,7 @@ Deno.serve(async (req) => {
       user_id: order.delivery_person_id,
       type: "payout",
       title: "Delivery Payment Received!",
-      body: `₵${Number(order.delivery_fee).toLocaleString()} delivery fee credited to your wallet from order #${order_id.slice(0, 8)}.`,
+      body: `₵${riderNet.toLocaleString()} credited to your wallet for order #${order_id.slice(0, 8)} (₵${grossFee.toLocaleString()} fee less ${RIDER_COMMISSION_PCT}% commission).`,
       data: { order_id },
     });
 
