@@ -21,19 +21,13 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const AppleIcon = () => (
-  <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-    <path d="M16.365 1.43c0 1.14-.49 2.27-1.27 3.08-.85.88-2.24 1.56-3.39 1.47-.13-1.12.41-2.29 1.18-3.09.86-.9 2.35-1.58 3.48-1.46zM20.5 17.27c-.57 1.32-.85 1.91-1.59 3.07-1.04 1.62-2.5 3.64-4.31 3.66-1.61.01-2.02-1.04-4.2-1.03-2.18.01-2.63 1.05-4.24 1.04-1.81-.02-3.2-1.84-4.24-3.46-2.9-4.52-3.2-9.83-1.41-12.66 1.27-2.01 3.27-3.19 5.15-3.19 1.91 0 3.11 1.05 4.69 1.05 1.53 0 2.46-1.05 4.67-1.05 1.67 0 3.45.91 4.71 2.48-4.14 2.27-3.46 8.18.77 10.09z" />
-  </svg>
-);
-
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
   const [error, setError] = useState("");
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
@@ -87,7 +81,7 @@ const Auth = () => {
     }
   };
 
-  const handleOAuth = async (provider: "google" | "apple") => {
+  const handleOAuth = async (provider: "google") => {
     setError("");
     setOauthLoading(provider);
     try {
@@ -113,16 +107,6 @@ const Auth = () => {
         }
         return; // Browser redirects to Google
       }
-      // Apple: Lovable managed OAuth helper renders provider consent in a popup on the same origin.
-      const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: redirectTo,
-      });
-      if (result.error) {
-        setError(result.error.message || `Could not sign in with ${provider}`);
-        setOauthLoading(null);
-        return;
-      }
-      if (result.redirected) return;
       goNext();
     } catch (err: any) {
       setError(err.message || `Could not sign in with ${provider}`);
@@ -247,21 +231,6 @@ const Auth = () => {
                     <span className="mr-2"><GoogleIcon /></span>
                   )}
                   Continue with Google
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                  onClick={() => handleOAuth("apple")}
-                  disabled={oauthLoading !== null || loading}
-                >
-                  {oauthLoading === "apple" ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <span className="mr-2"><AppleIcon /></span>
-                  )}
-                  Continue with Apple
                 </Button>
               </div>
 
