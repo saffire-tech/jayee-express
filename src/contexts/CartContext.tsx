@@ -11,13 +11,13 @@ interface CartItem {
   color?: string | null;
   size?: string | null;
   material?: string | null;
-  product: {
+  product?: {
     id: string;
     name: string;
     price: number;
     image_url: string | null;
     store_id: string;
-  };
+  } | null;
 }
 
 interface CartContextType {
@@ -49,29 +49,35 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const { data, error } = await supabase
-      .from('cart_items')
-      .select(`
-        id,
-        product_id,
-        quantity,
-        variant_id,
-        color,
-        size,
-        material,
-        product:products(id, name, price, image_url, store_id)
-      `)
-      .eq('user_id', user.id);
+    try {
+      const { data, error } = await supabase
+        .from('cart_items')
+        .select(`
+          id,
+          product_id,
+          quantity,
+          variant_id,
+          color,
+          size,
+          material,
+          product:products(id, name, price, image_url, store_id)
+        `)
+        .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error fetching cart:', error);
-    } else {
-      setItems(data?.map(item => ({
-        ...item,
-        product: Array.isArray(item.product) ? item.product[0] : item.product
-      })) || []);
+      if (error) {
+        console.error('Error fetching cart:', error);
+      } else {
+        const formattedItems = (data || []).map((item: any) => ({
+          ...item,
+          product: Array.isArray(item.product) ? item.product[0] : item.product
+        }));
+        setItems(formattedItems);
+      }
+    } catch (err) {
+      console.error('Cart fetch exception:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -116,7 +122,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const size = variantMeta?.size || null;
       const material = variantMeta?.material || null;
 
-      // Check if exact product + variant combination already exists in cart
       const existingItem = items.find(item => 
         item.product_id === productId && 
         (item.variant_id || null) === variantId
