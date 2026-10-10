@@ -16,7 +16,6 @@ import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, Loader2, History, WifiOff
 import { toast } from 'sonner';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
-
 interface StoreInfo {
   id: string;
   name: string;
@@ -63,9 +62,7 @@ const Cart = () => {
       setCartStores([]);
       return;
     }
-
     const uniqueStoreIds = [...new Set(items.map((item) => item.product.store_id))];
-
     supabase
       .from('stores')
       .select('id, name, latitude, longitude')
@@ -133,22 +130,14 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEO
-        title="Your Cart | Jayee Express"
-        description="Review the items in your Jayee Express cart and check out."
-        canonicalPath="/cart"
-        noindex
-      />
+      <SEO title="Your Cart | Jayee Express" description="Review the items in your Jayee Express cart and check out." canonicalPath="/cart" noindex />
       <Navbar />
-      
-      
       <main className="container mx-auto px-4 pt-24 pb-8">
         <div className="flex items-center justify-between mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold">Shopping Cart</h1>
           <Link to="/purchases">
             <Button variant="outline" size="sm">
-              <History className="mr-2 h-4 w-4" />
-              View Purchases
+              <History className="mr-2 h-4 w-4" /> View Purchases
             </Button>
           </Link>
         </div>
@@ -174,8 +163,6 @@ const Cart = () => {
           </div>
         )}
 
-
-
         <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-3 md:space-y-4">
@@ -184,11 +171,12 @@ const Cart = () => {
                 <CardContent className="p-3 md:p-4">
                   <div className="flex gap-3 md:gap-4">
                     <div className="w-20 h-20 md:w-24 md:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                      {item.product.image_url ? (
+                      {item.product?.image_url ? (
                         <img 
-                          src={getCdnImageUrl(item.product.image_url)}  loading="lazy"
-                          alt={item.product.name}
-                          className="w-full h-full object-cover"
+                          src={getCdnImageUrl(item.product.image_url)} 
+                          loading="lazy" 
+                          alt={item.product.name} 
+                          className="w-full h-full object-cover" 
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -198,51 +186,42 @@ const Cart = () => {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <Link 
-                        to={`/product/${item.product_id}`}
-                        className="font-semibold hover:text-primary truncate block text-sm md:text-base"
-                      >
-                        {item.product.name}
+                      <Link to={`/product/${item.product_id}`} className="font-semibold hover:text-primary truncate block text-sm md:text-base">
+                        {item.product?.name}
                       </Link>
+
+                      {/* Display Selected Variant Specifications */}
+                      {(item.color || item.size || item.material) && (
+                        <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                          {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
+                          {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
+                          {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
+                        </div>
+                      )}
+
                       <p className="text-base md:text-lg font-bold text-primary mt-1">
-                        ₵{item.product.price.toLocaleString()}
+                        ₵{item.product?.price.toLocaleString()}
                       </p>
-                      
+
                       <div className="flex items-center justify-between mt-2 md:mt-3">
                         <div className="flex items-center border rounded-md">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
                             <Minus className="h-3 w-3" />
                           </Button>
                           <span className="w-8 text-center text-sm">{item.quantity}</span>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="text-destructive hover:text-destructive h-8 w-8"
-                          onClick={() => removeFromCart(item.id)}
-                        >
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => removeFromCart(item.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                    
+
                     <div className="text-right hidden sm:block">
                       <p className="font-bold">
-                        ₵{(item.product.price * item.quantity).toLocaleString()}
+                        ₵{((item.product?.price || 0) * item.quantity).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -255,10 +234,7 @@ const Cart = () => {
           <div className="lg:col-span-1 space-y-4">
             <Card>
               <CardContent className="p-4">
-                <DeliveryOption
-                  stores={cartStores}
-                  onDeliveryChange={setDeliveryData}
-                />
+                <DeliveryOption stores={cartStores} onDeliveryChange={setDeliveryData} />
               </CardContent>
             </Card>
 
@@ -286,36 +262,23 @@ const Cart = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex-col gap-2 md:gap-3">
-                <Button 
-                  className="w-full" 
-                  size="lg" 
-                  onClick={handleCheckout}
-                  disabled={checkingOut || !!pendingAttempt || !online}
-                >
+                <Button className="w-full" size="lg" onClick={handleCheckout} disabled={checkingOut || !!pendingAttempt || !online}>
                   {checkingOut ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                     </>
                   ) : (
                     <>
-                      Checkout
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      Checkout <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
                 </Button>
                 <Link to="/purchases" className="w-full">
                   <Button variant="outline" className="w-full">
-                    <History className="mr-2 h-4 w-4" />
-                    View Purchases
+                    <History className="mr-2 h-4 w-4" /> View Purchases
                   </Button>
                 </Link>
-                <Button 
-                  variant="ghost" 
-                  className="w-full text-destructive hover:text-destructive" 
-                  onClick={clearCart}
-                  disabled={checkingOut}
-                >
+                <Button variant="ghost" className="w-full text-destructive hover:text-destructive" onClick={clearCart} disabled={checkingOut}>
                   Clear Cart
                 </Button>
               </CardFooter>
@@ -324,30 +287,34 @@ const Cart = () => {
         </div>
       </main>
 
-      <MoMoPaymentDialog
-        open={payOpen}
-        onOpenChange={setPayOpen}
-        amount={totalPrice + deliveryData.deliveryFee}
-        title="Complete payment"
-        description={`You are paying ₵${(totalPrice + deliveryData.deliveryFee).toLocaleString()} for your order.`}
-        functionName="initialize-payment"
+      <MoMoPaymentDialog 
+        open={payOpen} 
+        onOpenChange={setPayOpen} 
+        amount={totalPrice + deliveryData.deliveryFee} 
+        title="Complete payment" 
+        description={`You are paying ₵${(totalPrice + deliveryData.deliveryFee).toLocaleString()} for your order.`} 
+        functionName="initialize-payment" 
         body={{
           items: items.map((item) => ({
             product_id: item.product_id,
             quantity: item.quantity,
+            variant_id: item.variant_id || null,
+            color: item.color || null,
+            size: item.size || null,
+            material: item.material || null,
             product: {
-              store_id: item.product.store_id,
-              price: item.product.price,
-              name: item.product.name,
+              store_id: item.product?.store_id,
+              price: item.product?.price,
+              name: item.product?.name,
             },
-          })),
-          deliveryData,
-          email: user.email,
-        }}
+          })), 
+          deliveryData, 
+          email: user.email, 
+        }} 
         onSuccess={() => {
           toast.success('Payment successful');
           navigate('/purchases');
-        }}
+        }} 
       />
 
       <Footer />
