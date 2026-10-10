@@ -319,15 +319,44 @@ export const useStore = () => {
     return newProduct;
   };
 
-  const updateProduct = async (productId: string, updates: Partial<Product>) => {
+  const updateProduct = async (productId: string, updates: Partial<Product> & { variants?: ProductVariantInput[] }) => {
+    const { variants, ...productData } = updates;
+
+    // 1. Update main product details
     const { error } = await supabase
       .from("products")
-      .update(updates)
+      .update(productData)
       .eq("id", productId);
 
     if (error) throw error;
+
+    // 2. If variants were updated, replace existing ones
+    if (variants) {
+      // Delete old variants for this product
+      await supabase.from("product_variants").delete().eq("product_id", productId);
+
+      // Insert new variants if any exist
+      if (variants.length > 0) {
+        const variantRows = variants.map(v => ({
+          product_id: productId,
+          color: v.color || null,
+          size: v.size || null,
+          material: v.material || null,
+          stock: v.stock || 0,
+        }));
+
+        const { error: variantError } = await supabase
+          .from("product_variants")
+          .insert(variantRows);
+
+        if (variantError) {
+          console.error("Error updating variants:", variantError);
+          toast({ title: "Warning", description: "Product updated, but failed to update variants.", variant: "destructive" });
+        }
+      }
+    }
     
-    setProducts(products.map(p => p.id === productId ? { ...p, ...updates } : p));
+    setProducts(products.map(p => p.id === productId ? { ...p, ...productData } : p));
     toast({ title: "Product updated!" });
   };
 
