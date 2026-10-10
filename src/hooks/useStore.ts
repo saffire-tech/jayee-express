@@ -118,6 +118,9 @@ export const useStore = () => {
         *,
         order_items (
           *,
+          color,
+          size,
+          material,
           product:products (name, image_url)
         )
       `)
