@@ -7,6 +7,10 @@ interface CartItem {
   id: string;
   product_id: string;
   quantity: number;
+  variant_id?: string | null;
+  color?: string | null;
+  size?: string | null;
+  material?: string | null;
   product: {
     id: string;
     name: string;
@@ -19,7 +23,11 @@ interface CartItem {
 interface CartContextType {
   items: CartItem[];
   loading: boolean;
-  addToCart: (productId: string, quantity?: number) => Promise<void>;
+  addToCart: (
+    productId: string, 
+    quantity?: number, 
+    variantMeta?: { variantId?: string | null; color?: string | null; size?: string | null; material?: string | null }
+  ) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -47,6 +55,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id,
         product_id,
         quantity,
+        variant_id,
+        color,
+        size,
+        material,
         product:products(id, name, price, image_url, store_id)
       `)
       .eq('user_id', user.id);
@@ -67,7 +79,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!user) return;
 
-    // Subscribe to real-time cart updates
     const channel = supabase
       .channel("cart-realtime")
       .on(
@@ -89,21 +100,42 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user]);
 
-  const addToCart = async (productId: string, quantity = 1) => {
+  const addToCart = async (
+    productId: string, 
+    quantity = 1, 
+    variantMeta?: { variantId?: string | null; color?: string | null; size?: string | null; material?: string | null }
+  ) => {
     if (!user) {
       toast.error('Please login to add items to cart');
       return;
     }
 
     try {
-      const existingItem = items.find(item => item.product_id === productId);
+      const variantId = variantMeta?.variantId || null;
+      const color = variantMeta?.color || null;
+      const size = variantMeta?.size || null;
+      const material = variantMeta?.material || null;
+
+      // Check if exact product + variant combination already exists in cart
+      const existingItem = items.find(item => 
+        item.product_id === productId && 
+        (item.variant_id || null) === variantId
+      );
 
       if (existingItem) {
         await updateQuantity(existingItem.id, existingItem.quantity + quantity);
       } else {
         const { error } = await supabase
           .from('cart_items')
-          .insert({ user_id: user.id, product_id: productId, quantity });
+          .insert({ 
+            user_id: user.id, 
+            product_id: productId, 
+            quantity,
+            variant_id: variantId,
+            color,
+            size,
+            material
+          });
 
         if (error) {
           console.error('Add to cart error:', error);
