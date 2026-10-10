@@ -24,6 +24,13 @@ export interface Store {
   updated_at: string;
 }
 
+export interface ProductVariantInput {
+  color: string;
+  size: string;
+  material: string;
+  stock: number;
+}
+
 export interface Product {
   id: string;
   store_id: string;
@@ -90,7 +97,6 @@ export const useStore = () => {
     return data;
   };
 
-
   const fetchProducts = async (storeId: string) => {
     const { data, error } = await supabase
       .from("products")
@@ -149,18 +155,12 @@ export const useStore = () => {
       return;
     }
 
-    // Subscribe to real-time order updates
     const ordersChannel = supabase
       .channel("store-orders-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders",
-        },
-        async (payload) => {
-          console.log("Order update:", payload);
+        { event: "*", schema: "public", table: "orders" },
+        async () => {
           if (store) {
             const ordersData = await fetchOrders(store.id);
             setOrders(ordersData);
@@ -169,18 +169,12 @@ export const useStore = () => {
       )
       .subscribe();
 
-    // Subscribe to real-time product updates
     const productsChannel = supabase
       .channel("store-products-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "products",
-        },
-        async (payload) => {
-          console.log("Product update:", payload);
+        { event: "*", schema: "public", table: "products" },
+        async () => {
           if (store) {
             const productsData = await fetchProducts(store.id);
             setProducts(productsData);
@@ -238,7 +232,6 @@ export const useStore = () => {
       if (error) throw error;
 
       setStore(newStore);
-      // Send branded welcome email (best-effort)
       try {
         await supabase.functions.invoke("notify-app-email", {
           body: {
@@ -279,14 +272,19 @@ export const useStore = () => {
     toast({ title: "Store updated!" });
   };
 
-  const createProduct = async (data: Omit<Product, "id" | "store_id" | "views" | "created_at" | "updated_at">) => {
+  const createProduct = async (
+    data: Omit<Product, "id" | "store_id" | "views" | "created_at" | "updated_at"> & { variants?: ProductVariantInput[] }
+  ) => {
     if (!store) throw new Error("No store found");
 
+    const { variants, ...productData } = data;
+
+    // 1. Insert product record
     const { data: newProduct, error } = await supabase
       .from("products")
       .insert({
         store_id: store.id,
-        ...data,
+        ...productData,
       })
       .select()
       .single();
@@ -294,6 +292,26 @@ export const useStore = () => {
     if (error) {
       toast({ title: "Cannot add product", description: error.message, variant: "destructive" });
       throw error;
+    }
+
+    // 2. Insert product variants if any were provided
+    if (variants && variants.length > 0 && newProduct) {
+      const variantRows = variants.map(v => ({
+        product_id: newProduct.id,
+        color: v.color || null,
+        size: v.size || null,
+        material: v.material || null,
+        stock: v.stock || 0,
+      }));
+
+      const { error: variantError } = await supabase
+        .from("product_variants")
+        .insert(variantRows);
+
+      if (variantError) {
+        console.error("Error saving variants:", variantError);
+        toast({ title: "Warning", description: "Product created, but failed to save variants.", variant: "destructive" });
+      }
     }
     
     setProducts([newProduct, ...products]);
@@ -329,7 +347,6 @@ export const useStore = () => {
     const order = orders.find(o => o.id === orderId);
     const previousStatus = order?.status;
 
-    // If confirming a delivery order, also set delivery_status to 'pending'
     const isDeliveryConfirm = status === 'confirmed' && (order as any)?.delivery_type === 'delivery';
     
     const updatePayload: Record<string, any> = { status };
@@ -347,7 +364,6 @@ export const useStore = () => {
     setOrders(orders.map(o => o.id === orderId ? { ...o, ...updatePayload } : o));
     toast({ title: "Order status updated!" });
 
-    // Send email notification to buyer about status change
     if (order && status !== previousStatus && store) {
       sendOrderStatusEmailNotification(
         order.buyer_id,
@@ -357,19 +373,16 @@ export const useStore = () => {
       );
     }
 
-    // If order is being completed (and wasn't already completed), update stock
     if (status === "completed" && previousStatus !== "completed" && order?.order_items) {
       const lowStockProducts: Array<{ name: string; stock: number }> = [];
       const LOW_STOCK_THRESHOLD = 5;
 
       for (const item of order.order_items) {
-        // Find the current product
         const product = products.find(p => p.id === item.product_id);
         if (!product || product.is_service) continue;
 
         const newStock = Math.max(0, product.stock - item.quantity);
         
-        // Update stock in database
         const { error: stockError } = await supabase
           .from("products")
           .update({ stock: newStock })
@@ -380,12 +393,10 @@ export const useStore = () => {
           continue;
         }
 
-        // Update local state
         setProducts(prev => prev.map(p => 
           p.id === item.product_id ? { ...p, stock: newStock } : p
         ));
 
-        // Check for low stock
         if (newStock <= LOW_STOCK_THRESHOLD && newStock > 0) {
           lowStockProducts.push({ 
             name: item.product?.name || "Unknown product", 
@@ -404,7 +415,6 @@ export const useStore = () => {
         }
       }
 
-      // Alert for low stock products
       if (lowStockProducts.length > 0) {
         const lowButNotEmpty = lowStockProducts.filter(p => p.stock > 0);
         if (lowButNotEmpty.length > 0) {
@@ -415,13 +425,11 @@ export const useStore = () => {
           });
         }
         
-        // Send email notification for low stock
         if (user) {
           sendLowStockEmailNotification(user.id, lowStockProducts);
         }
       }
 
-      // Update store's total sales count
       if (store) {
         await supabase
           .from("stores")
