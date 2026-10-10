@@ -19,15 +19,29 @@ const categories = [
   "Photography",
 ];
 
+export interface ProductVariantInput {
+  color: string;
+  size: string;
+  material: string;
+  stock: number;
+}
+
 interface ProductFormProps {
   product?: Product;
-  onSubmit: (data: Omit<Product, "id" | "store_id" | "views" | "created_at" | "updated_at">) => Promise<void>;
+  onSubmit: (data: Omit<Product, "id" | "store_id" | "views" | "created_at" | "updated_at"> & { variants?: ProductVariantInput[] }) => Promise<void>;
   onCancel: () => void;
 }
 
 const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
   const [loading, setLoading] = useState(false);
   
+  // Variants state management
+  const [variants, setVariants] = useState<ProductVariantInput[]>([]);
+  const [newColor, setNewColor] = useState("");
+  const [newSize, setNewSize] = useState("");
+  const [newMaterial, setNewMaterial] = useState("");
+  const [newStock, setNewStock] = useState(0);
+
   // Initialize images from product.images or fallback to image_url
   const getInitialImages = () => {
     if (product?.images && product.images.length > 0) {
@@ -64,6 +78,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
         is_service: formData.is_service,
         is_active: formData.is_active,
         stock: parseInt(formData.stock) || 0,
+        variants: variants, // Pass variants data along with the form
       });
     } finally {
       setLoading(false);
@@ -152,7 +167,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
         </div>
 
         <div>
-          <Label htmlFor="stock">Stock Quantity</Label>
+          <Label htmlFor="stock">Base Stock Quantity</Label>
           <Input
             id="stock"
             type="number"
@@ -163,6 +178,73 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
             className="mt-1"
             disabled={formData.is_service}
           />
+        </div>
+
+        {/* Product Variants Section for options like Shoes/Apparel */}
+        <div className="md:col-span-2 border p-4 rounded-lg space-y-4 bg-card">
+          <div>
+            <h4 className="font-medium">Product Specifications & Variations</h4>
+            <p className="text-sm text-muted-foreground">Add available sizes, colors, materials, and individual stock options.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <Input
+              placeholder="Color (e.g. Black)"
+              value={newColor}
+              onChange={(e) => setNewColor(e.target.value)}
+            />
+            <Input
+              placeholder="Size (e.g. 42)"
+              value={newSize}
+              onChange={(e) => setNewSize(e.target.value)}
+            />
+            <Input
+              placeholder="Material (e.g. Leather)"
+              value={newMaterial}
+              onChange={(e) => setNewMaterial(e.target.value)}
+            />
+            <Input
+              type="number"
+              min="0"
+              placeholder="Stock Qty"
+              value={newStock}
+              onChange={(e) => setNewStock(Number(e.target.value))}
+            />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (!newColor && !newSize && !newMaterial) return;
+              setVariants([...variants, { color: newColor, size: newSize, material: newMaterial, stock: newStock }]);
+              setNewColor("");
+              setNewSize("");
+              setNewMaterial("");
+              setNewStock(0);
+            }}
+          >
+            + Add Variant Combination
+          </Button>
+
+          {variants.length > 0 && (
+            <div className="space-y-2 mt-2">
+              {variants.map((v, index) => (
+                <div key={index} className="flex justify-between items-center bg-muted p-2 rounded text-sm">
+                  <span>
+                    Color: {v.color || 'N/A'} | Size: {v.size || 'N/A'} | Material: {v.material || 'N/A'} | Stock: {v.stock}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setVariants(variants.filter((_, i) => i !== index))}
+                    className="text-destructive text-xs hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
