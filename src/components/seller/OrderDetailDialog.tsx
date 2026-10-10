@@ -44,8 +44,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
-            Order #{order.id.slice(0, 8)}
+            <Package className="h-5 w-5 text-primary" /> Order #{order.id.slice(0, 8)}
           </DialogTitle>
         </DialogHeader>
 
@@ -54,8 +53,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
           <div className="flex items-center justify-between">
             <Badge className={status.color}>{status.label}</Badge>
             <span className="text-sm text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {format(new Date(order.created_at), "MMM d, yyyy h:mm a")}
+              <Clock className="h-3 w-3" /> {format(new Date(order.created_at), "MMM d, yyyy h:mm a")}
             </span>
           </div>
 
@@ -64,8 +62,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
           {/* Buyer Info */}
           <div>
             <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <User className="h-4 w-4 text-primary" />
-              Buyer
+              <User className="h-4 w-4 text-primary" /> Buyer
             </h4>
             <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
               <p className="font-medium">{buyer?.full_name || "Unknown"}</p>
@@ -87,8 +84,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
           {/* Delivery Info */}
           <div>
             <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <Truck className="h-4 w-4 text-primary" />
-              Delivery
+              <Truck className="h-4 w-4 text-primary" /> Delivery
             </h4>
             <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
               <p>
@@ -99,14 +95,12 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
               </p>
               {orderData.delivery_address && (
                 <p>
-                  <span className="text-muted-foreground">Address: </span>
-                  {orderData.delivery_address}
+                  <span className="text-muted-foreground">Address: </span> {orderData.delivery_address}
                 </p>
               )}
               {orderData.delivery_landmark && (
                 <p>
-                  <span className="text-muted-foreground">Landmark: </span>
-                  {orderData.delivery_landmark}
+                  <span className="text-muted-foreground">Landmark: </span> {orderData.delivery_landmark}
                 </p>
               )}
               {orderData.delivery_status && (
@@ -117,8 +111,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
               )}
               {orderData.delivery_fee > 0 && (
                 <p>
-                  <span className="text-muted-foreground">Delivery Fee: </span>
-                  ₵{Number(orderData.delivery_fee).toLocaleString()}
+                  <span className="text-muted-foreground">Delivery Fee: </span> ₵{Number(orderData.delivery_fee).toLocaleString()}
                 </p>
               )}
             </div>
@@ -126,24 +119,34 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
 
           <Separator />
 
-          {/* Order Items */}
+          {/* Order Items with Variant details */}
           {order.order_items && order.order_items.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold mb-2">Items</h4>
               <div className="space-y-2">
-                {order.order_items.map((item) => (
+                {order.order_items.map((item: any) => (
                   <div key={item.id} className="flex items-center justify-between bg-muted/50 rounded-lg p-3 text-sm">
                     <div className="flex items-center gap-3">
-                      {(item.product as any)?.image_url && (
-                        <img
-                          src={getCdnImageUrl((item.product as any).image_url)} loading="lazy"
-                          alt={(item.product as any)?.name}
-                          className="h-10 w-10 rounded-md object-cover"
+                      {item.product?.image_url && (
+                        <img 
+                          src={getCdnImageUrl(item.product.image_url)} 
+                          loading="lazy" 
+                          alt={item.product?.name} 
+                          className="h-10 w-10 rounded-md object-cover" 
                         />
                       )}
                       <div>
-                        <p className="font-medium">{(item.product as any)?.name || "Product"}</p>
+                        <p className="font-medium">{item.product?.name || "Product"}</p>
                         <p className="text-muted-foreground">Qty: {item.quantity}</p>
+                        
+                        {/* Display Variant Specifications */}
+                        {(item.color || item.size || item.material) && (
+                          <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
+                            {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
+                            {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
+                            {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <p className="font-semibold">₵{Number(item.price).toLocaleString()}</p>
@@ -158,8 +161,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
           {/* Payment Summary */}
           <div>
             <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-primary" />
-              Payment
+              <CreditCard className="h-4 w-4 text-primary" /> Payment
             </h4>
             <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
               <div className="flex justify-between">
