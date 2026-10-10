@@ -117,7 +117,11 @@ export const useStore = () => {
       .select(`
         *,
         order_items (
-          *,
+          id,
+          order_id,
+          product_id,
+          quantity,
+          price,
           color,
           size,
           material,
