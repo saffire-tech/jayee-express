@@ -25,6 +25,7 @@ export interface ProductVariantInput {
   size: string;
   material: string;
   stock: number;
+  imageUrl?: string | null;
 }
 
 interface ProductFormProps {
@@ -42,6 +43,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
   const [newSize, setNewSize] = useState("");
   const [newMaterial, setNewMaterial] = useState("");
   const [newStock, setNewStock] = useState(0);
+  const [newImageUrl, setNewImageUrl] = useState("");
 
   // Fetch existing variants when editing a product
   useEffect(() => {
@@ -49,7 +51,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
       const fetchExistingVariants = async () => {
         const { data, error } = await supabase
           .from('product_variants')
-          .select('color, size, material, stock')
+          .select('color, size, material, stock, image_url')
           .eq('product_id', product.id);
 
         if (!error && data) {
@@ -59,6 +61,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
               size: v.size || "",
               material: v.material || "",
               stock: v.stock || 0,
+              imageUrl: (v as any).image_url || null,
             }))
           );
         }
@@ -103,7 +106,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
         is_service: formData.is_service,
         is_active: formData.is_active,
         stock: parseInt(formData.stock) || 0,
-        variants: variants, // Pass variants data along with the form
+        variants: variants,
       });
     } finally {
       setLoading(false);
@@ -205,14 +208,14 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
           />
         </div>
 
-        {/* Product Variants Section for options like Shoes/Apparel */}
+        {/* Product Variants Section with Image URL */}
         <div className="md:col-span-2 border p-4 rounded-lg space-y-4 bg-card">
           <div>
             <h4 className="font-medium">Product Specifications & Variations</h4>
-            <p className="text-sm text-muted-foreground">Add available sizes, colors, materials, and individual stock options.</p>
+            <p className="text-sm text-muted-foreground">Add sizes, colors, materials, stock options, and specific variant images.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
             <Input
               placeholder="Color (e.g. Black)"
               value={newColor}
@@ -224,7 +227,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
               onChange={(e) => setNewSize(e.target.value)}
             />
             <Input
-              placeholder="Material (e.g. Leather)"
+              placeholder="Material"
               value={newMaterial}
               onChange={(e) => setNewMaterial(e.target.value)}
             />
@@ -235,6 +238,11 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
               value={newStock}
               onChange={(e) => setNewStock(Number(e.target.value))}
             />
+            <Input
+              placeholder="Image URL"
+              value={newImageUrl}
+              onChange={(e) => setNewImageUrl(e.target.value)}
+            />
           </div>
 
           <Button
@@ -242,11 +250,18 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
             variant="outline"
             onClick={() => {
               if (!newColor && !newSize && !newMaterial) return;
-              setVariants([...variants, { color: newColor, size: newSize, material: newMaterial, stock: newStock }]);
+              setVariants([...variants, { 
+                color: newColor, 
+                size: newSize, 
+                material: newMaterial, 
+                stock: newStock,
+                imageUrl: newImageUrl || null 
+              }]);
               setNewColor("");
               setNewSize("");
               setNewMaterial("");
               setNewStock(0);
+              setNewImageUrl("");
             }}
           >
             + Add Variant Combination
@@ -256,9 +271,14 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
             <div className="space-y-2 mt-2">
               {variants.map((v, index) => (
                 <div key={index} className="flex justify-between items-center bg-muted p-2 rounded text-sm">
-                  <span>
-                    Color: {v.color || 'N/A'} | Size: {v.size || 'N/A'} | Material: {v.material || 'N/A'} | Stock: {v.stock}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {v.imageUrl && (
+                      <img src={v.imageUrl} alt="Variant" className="h-8 w-8 rounded object-cover" />
+                    )}
+                    <span>
+                      Color: {v.color || 'N/A'} | Size: {v.size || 'N/A'} | Material: {v.material || 'N/A'} | Stock: {v.stock}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setVariants(variants.filter((_, i) => i !== index))}
