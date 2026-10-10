@@ -75,12 +75,12 @@ const AdvertisementCarousel = () => {
 
   return (
     <section className="w-full relative pt-14 md:pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <div ref={emblaRef} className="overflow-hidden rounded-2xl shadow-md bg-muted">
+      <div ref={emblaRef} className="overflow-hidden rounded-2xl shadow-md bg-card border border-border">
         <div className="flex">
           {products.map((product) => (
             <div
               key={product.id}
-              className="flex-[0_0_100%] min-w-0 relative aspect-[16/9] sm:aspect-[21/9] max-h-[400px] cursor-pointer bg-muted"
+              className="flex-[0_0_100%] min-w-0 relative aspect-[16/9] sm:aspect-[21/9] max-h-[400px] cursor-pointer bg-card flex items-center justify-center"
               onClick={() => navigate(`/product/${product.id}`)}
             >
               {product.image_url ? (
@@ -91,7 +91,7 @@ const AdvertisementCarousel = () => {
                   height={500}
                   fetchPriority={products.indexOf(product) === 0 ? "high" : "auto"}
                   loading={products.indexOf(product) === 0 ? "eager" : "lazy"}
-                  className="absolute inset-0 w-full h-full object-cover object-center"
+                  className="absolute inset-0 w-full h-full object-contain object-center p-2"
                 />
               ) : (
                 <div className="absolute inset-0 w-full h-full bg-muted flex items-center justify-center">
@@ -99,8 +99,8 @@ const AdvertisementCarousel = () => {
                 </div>
               )}
 
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              {/* Gradient overlay to ensure text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
 
               {/* Product info */}
               <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 text-white z-10">
