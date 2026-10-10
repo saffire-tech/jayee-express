@@ -29,6 +29,7 @@ export interface ProductVariantInput {
   size: string;
   material: string;
   stock: number;
+  imageUrl?: string | null;
 }
 
 export interface Product {
@@ -67,6 +68,9 @@ export interface OrderItem {
   product_id: string;
   quantity: number;
   price: number;
+  color?: string | null;
+  size?: string | null;
+  material?: string | null;
   created_at?: string;
   product?: { name: string; image_url: string | null };
 }
@@ -301,7 +305,7 @@ export const useStore = () => {
       throw error;
     }
 
-    // 2. Insert product variants if any were provided
+    // 2. Insert product variants including optional variant image_url
     if (variants && variants.length > 0 && newProduct) {
       const variantRows = variants.map(v => ({
         product_id: newProduct.id,
@@ -309,6 +313,7 @@ export const useStore = () => {
         size: v.size || null,
         material: v.material || null,
         stock: v.stock || 0,
+        image_url: v.imageUrl || null,
       }));
 
       const { error: variantError } = await supabase
@@ -339,10 +344,8 @@ export const useStore = () => {
 
     // 2. If variants were updated, replace existing ones
     if (variants) {
-      // Delete old variants for this product
       await supabase.from("product_variants").delete().eq("product_id", productId);
 
-      // Insert new variants if any exist
       if (variants.length > 0) {
         const variantRows = variants.map(v => ({
           product_id: productId,
@@ -350,6 +353,7 @@ export const useStore = () => {
           size: v.size || null,
           material: v.material || null,
           stock: v.stock || 0,
+          image_url: v.imageUrl || null,
         }));
 
         const { error: variantError } = await supabase
