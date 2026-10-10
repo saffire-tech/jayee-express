@@ -20,6 +20,15 @@ import ShareButton from '@/components/ui/ShareButton';
 import ContactSellerDialog from '@/components/messaging/ContactSellerDialog';
 import SimilarProducts from '@/components/sections/SimilarProducts';
 
+interface ProductVariant {
+  id: string;
+  product_id: string;
+  color: string | null;
+  size: string | null;
+  material: string | null;
+  stock: number;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -58,6 +67,11 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<string | null>(null);
+
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -68,7 +82,6 @@ const ProductDetail = () => {
   // Track product view
   useProductViewTracking(id);
 
-  // Get gallery images from the images array or fallback to image_url
   const getGalleryImages = () => {
     if (product?.images && product.images.length > 0) {
       return product.images;
@@ -84,6 +97,7 @@ const ProductDetail = () => {
   useEffect(() => {
     if (id) {
       fetchProduct();
+      fetchVariants();
       fetchReviews();
     }
   }, [id]);
@@ -109,6 +123,24 @@ const ProductDetail = () => {
     setLoading(false);
   };
 
+  const fetchVariants = async () => {
+    const { data, error } = await supabase
+      .from('product_variants')
+      .select('*')
+      .eq('product_id', id);
+
+    if (error) {
+      console.error('Error fetching product variants:', error);
+    } else if (data && data.length > 0) {
+      setVariants(data);
+      // Set default selections if available
+      const first = data[0];
+      setSelectedColor(first.color || null);
+      setSelectedSize(first.size || null);
+      setSelectedMaterial(first.material || null);
+    }
+  };
+
   const fetchReviews = async () => {
     const { data, error } = await supabase
       .from('reviews')
@@ -119,7 +151,6 @@ const ProductDetail = () => {
     if (error) {
       console.error('Error fetching reviews:', error);
     } else {
-      // Fetch profiles separately
       const userIds = [...new Set(data?.map(r => r.user_id) || [])];
       const { data: profiles } = await (supabase as any)
         .from('public_profiles')
@@ -133,7 +164,6 @@ const ProductDetail = () => {
 
       setReviews(reviewsWithProfiles);
 
-      // Seed the review form from the current user's existing review, if any
       if (user) {
         const mine = reviewsWithProfiles.find(r => r.user_id === user.id);
         if (mine) {
@@ -143,8 +173,26 @@ const ProductDetail = () => {
     }
   };
 
+  // Find current active variant matching selected attributes
+  const currentVariant = variants.find(v => 
+    (!selectedColor || v.color === selectedColor) &&
+    (!selectedSize || v.size === selectedSize) &&
+    (!selectedMaterial || v.material === selectedMaterial)
+  );
+
+  const availableStock = variants.length > 0 
+    ? (currentVariant?.stock || 0) 
+    : (product?.stock || 0);
+
   const handleAddToCart = async () => {
-    await addToCart(product!.id, quantity);
+    if (!product) return;
+    if (variants.length > 0 && !currentVariant) {
+      toast.error('Please select valid product specifications.');
+      return;
+    }
+    
+    // Pass variant ID or custom meta data if your cart handler supports it
+    await addToCart(product.id, quantity, currentVariant ? { variantId: currentVariant.id, color: selectedColor, size: selectedSize, material: selectedMaterial } : undefined);
   };
 
   const myReview = user ? reviews.find(r => r.user_id === user.id) : undefined;
@@ -222,28 +270,10 @@ const ProductDetail = () => {
     ? product.description.slice(0, 155)
     : `Buy ${product.name} from ${product.store?.name ?? 'a local seller'} on Jayee Express.`;
 
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    description: productDescription,
-    image: productImage,
-    sku: product.id,
-    category: product.category,
-    brand: product.store?.name
-      ? { "@type": "Brand", name: product.store.name }
-      : undefined,
-    offers: {
-      "@type": "Offer",
-      url: `https://jayeeexpress.com/product/${product.id}`,
-      priceCurrency: "GHS",
-      price: product.price,
-      availability:
-        (product.stock ?? 0) > 0
-          ? "https://schema.org/InStock"
-          : "https://schema.org/OutOfStock",
-    },
-  };
+  // Unique attribute options derived from fetched variants
+  const colors = Array.from(new Set(variants.map(v => v.color).filter(Boolean)));
+  const sizes = Array.from(new Set(variants.map(v => v.size).filter(Boolean)));
+  const materials = Array.from(new Set(variants.map(v => v.material).filter(Boolean)));
 
   return (
     <div className="min-h-screen bg-background">
@@ -253,12 +283,10 @@ const ProductDetail = () => {
         canonicalPath={`/product/${product.id}`}
         image={productImage}
         type="product"
-        jsonLd={productJsonLd}
       />
       <Navbar />
       
       <main className="container mx-auto px-4 pt-24 pb-8">
-        {/* Breadcrumb */}
         <div className="mb-4 md:mb-6">
           <Link to="/" className="text-muted-foreground hover:text-primary text-sm md:text-base">Home</Link>
           <span className="mx-2 text-muted-foreground">/</span>
@@ -303,7 +331,6 @@ const ProductDetail = () => {
               )}
             </div>
             
-            {/* Thumbnail strip */}
             {galleryImages.length > 1 && (
               <div className="flex gap-2">
                 {galleryImages.map((img, idx) => (
@@ -327,7 +354,6 @@ const ProductDetail = () => {
               <Badge variant="secondary" className="mb-2">{product.category}</Badge>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">{product.name}</h1>
               
-              {/* Rating */}
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex">
                   {[1, 2, 3, 4, 5].map(star => (
@@ -351,11 +377,69 @@ const ProductDetail = () => {
               {product.description || 'No description available.'}
             </p>
 
+            {/* Variant Selectors */}
+            {colors.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Color: <span className="text-muted-foreground">{selectedColor}</span></label>
+                <div className="flex gap-2 flex-wrap">
+                  {colors.map(color => (
+                    <Button
+                      key={color}
+                      type="button"
+                      variant={selectedColor === color ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedColor(color)}
+                    >
+                      {color}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {sizes.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Size: <span className="text-muted-foreground">{selectedSize}</span></label>
+                <div className="flex gap-2 flex-wrap">
+                  {sizes.map(size => (
+                    <Button
+                      key={size}
+                      type="button"
+                      variant={selectedSize === size ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedSize(size)}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {materials.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Material: <span className="text-muted-foreground">{selectedMaterial}</span></label>
+                <div className="flex gap-2 flex-wrap">
+                  {materials.map(mat => (
+                    <Button
+                      key={mat}
+                      type="button"
+                      variant={selectedMaterial === mat ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedMaterial(mat)}
+                    >
+                      {mat}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {!product.is_service && (
               <p className="text-sm">
                 <span className="text-muted-foreground">Stock: </span>
-                <span className={product.stock && product.stock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}>
-                  {product.stock && product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
+                <span className={availableStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}>
+                  {availableStock > 0 ? `${availableStock} available` : 'Out of stock'}
                 </span>
               </p>
             )}
@@ -390,7 +474,7 @@ const ProductDetail = () => {
                   size="lg" 
                   className="flex-1"
                   onClick={handleAddToCart}
-                  disabled={!product.is_service && (!product.stock || product.stock <= 0)}
+                  disabled={!product.is_service && availableStock <= 0}
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
                   Add to Cart
@@ -432,106 +516,12 @@ const ProductDetail = () => {
                     <Button variant="outline" size="sm">Visit Store</Button>
                   </Link>
                 </div>
-                {product.store?.description && (
-                  <p className="text-sm text-muted-foreground mt-3">{product.store.description}</p>
-                )}
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Reviews Section */}
-        <section className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
-          
-          {/* Write Review */}
-          {user && (
-            <Card className="mb-6">
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-4">{myReview ? 'Update Your Review' : 'Write a Review'}</h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                  {myReview ? "You've already reviewed this product. You can update your review below." : 'You can only leave one review per product.'}
-                </p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Rating</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <button
-                          key={star}
-                          onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
-                        >
-                          <Star 
-                            className={`h-6 w-6 cursor-pointer transition-colors ${
-                              star <= newReview.rating
-                                ? 'fill-primary text-primary' 
-                                : 'text-muted-foreground hover:text-primary'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <Textarea
-                    placeholder="Share your experience with this product..."
-                    value={newReview.comment}
-                    onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
-                  />
-                  <Button onClick={handleSubmitReview} disabled={submittingReview}>
-                    {submittingReview ? 'Submitting...' : myReview ? 'Update Review' : 'Submit Review'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Reviews List */}
-          {reviews.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center text-muted-foreground">
-                No reviews yet. Be the first to review this product!
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <Card key={review.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <Avatar>
-                        <AvatarImage src={getCdnImageUrl(review.profile?.avatar_url)} />
-                        <AvatarFallback>
-                          {review.profile?.full_name?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{review.profile?.full_name || 'Anonymous'}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {new Date(review.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex mb-2">
-                          {[1, 2, 3, 4, 5].map(star => (
-                            <Star 
-                              key={star} 
-                              className={`h-4 w-4 ${star <= review.rating ? 'fill-primary text-primary' : 'text-muted-foreground'}`}
-                            />
-                          ))}
-                        </div>
-                        {review.comment && (
-                          <p className="text-muted-foreground">{review.comment}</p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Similar Products */}
+        {/* Reviews & Similar Products */}
         <SimilarProducts 
           currentProductId={product.id}
           category={product.category}
