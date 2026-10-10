@@ -32,6 +32,7 @@ const AdvertisementCarousel = () => {
         .eq("is_featured", true)
         .order("created_at", { ascending: false })
         .limit(12);
+
       if (error) throw error;
       return (data || []).map((p) => ({
         ...p,
@@ -55,13 +56,17 @@ const AdvertisementCarousel = () => {
     if (!emblaApi) return;
     onSelect();
     emblaApi.on("select", onSelect);
-    return () => { emblaApi.off("select", onSelect); };
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
   }, [emblaApi, onSelect]);
 
   if (isLoading) {
     return (
-      <div className="w-full aspect-video max-h-[520px]">
-        <Skeleton className="w-full h-full" />
+      <div className="w-full relative pt-14 md:pt-16">
+        <div className="w-full aspect-[16/9] sm:aspect-[21/9] max-h-[400px] overflow-hidden rounded-xl bg-muted">
+          <Skeleton className="w-full h-full" />
+        </div>
       </div>
     );
   }
@@ -69,13 +74,13 @@ const AdvertisementCarousel = () => {
   if (products.length === 0) return null;
 
   return (
-    <section className="w-full relative pt-14 md:pt-16">
-      <div ref={emblaRef} className="overflow-hidden">
+    <section className="w-full relative pt-14 md:pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div ref={emblaRef} className="overflow-hidden rounded-2xl shadow-md bg-muted">
         <div className="flex">
           {products.map((product) => (
             <div
               key={product.id}
-              className="flex-[0_0_100%] min-w-0 relative aspect-video max-h-[520px] cursor-pointer bg-muted"
+              className="flex-[0_0_100%] min-w-0 relative aspect-[16/9] sm:aspect-[21/9] max-h-[400px] cursor-pointer bg-muted"
               onClick={() => navigate(`/product/${product.id}`)}
             >
               {product.image_url ? (
@@ -83,38 +88,47 @@ const AdvertisementCarousel = () => {
                   src={getCdnImageUrl(product.image_url)}
                   alt={product.name}
                   width={1200}
-                  height={400}
+                  height={500}
                   fetchPriority={products.indexOf(product) === 0 ? "high" : "auto"}
                   loading={products.indexOf(product) === 0 ? "eager" : "lazy"}
-                  className="w-full h-full object-contain"
+                  className="absolute inset-0 w-full h-full object-cover object-center"
                 />
               ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
+                <div className="absolute inset-0 w-full h-full bg-muted flex items-center justify-center">
                   <ShoppingBag className="h-16 w-16 text-muted-foreground/40" />
                 </div>
               )}
+
               {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
               {/* Product info */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8 text-white">
-                <p className="text-xs md:text-sm font-medium opacity-80 mb-1">
-                  {product.store?.name}{product.store?.campus ? ` • ${product.store.campus}` : ""}
+              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 text-white z-10">
+                <p className="text-xs md:text-sm font-medium opacity-90 mb-1">
+                  {product.store?.name}
+                  {product.store?.campus ? ` • ${product.store.campus}` : ""}
                 </p>
-                <h2 className="text-xl md:text-3xl font-bold mb-1 line-clamp-2">{product.name}</h2>
+                <h2 className="text-lg sm:text-2xl md:text-3xl font-bold mb-1 line-clamp-2">
+                  {product.name}
+                </h2>
                 {product.description && (
-                  <p className="text-sm md:text-base opacity-80 line-clamp-1 mb-2 hidden sm:block">
+                  <p className="text-xs sm:text-sm md:text-base opacity-80 line-clamp-1 mb-3 hidden sm:block">
                     {product.description}
                   </p>
                 )}
                 <div className="flex items-center gap-4">
-                  <span className="text-lg md:text-2xl font-bold">GH₵ {product.price.toFixed(2)}</span>
+                  <span className="text-base sm:text-xl md:text-2xl font-bold">
+                    GH₵ {product.price.toFixed(2)}
+                  </span>
                   <Button
                     size="sm"
                     className="bg-primary hover:bg-primary/90 text-primary-foreground gap-1"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/product/${product.id}`); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/product/${product.id}`);
+                    }}
                   >
-                    <ShoppingBag className="h-4 w-4" />
-                    Shop Now
+                    <ShoppingBag className="h-4 w-4" /> Shop Now
                   </Button>
                 </div>
               </div>
@@ -122,9 +136,10 @@ const AdvertisementCarousel = () => {
           ))}
         </div>
       </div>
+
       {/* Dot indicators */}
       {products.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
           {products.map((_, i) => (
             <button
               key={i}
