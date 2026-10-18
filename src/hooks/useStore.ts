@@ -30,6 +30,8 @@ export interface ProductVariantInput {
   material: string;
   stock: number;
   imageUrl?: string | null;
+  price?: number | null;
+  description?: string | null;
 }
 
 export interface Product {
@@ -305,7 +307,7 @@ export const useStore = () => {
       throw error;
     }
 
-    // 2. Insert product variants including optional variant image_url
+    // 2. Insert product variants including optional variant image_url, price and description
     if (variants && variants.length > 0 && newProduct) {
       const variantRows = variants.map(v => ({
         product_id: newProduct.id,
@@ -314,6 +316,8 @@ export const useStore = () => {
         material: v.material || null,
         stock: v.stock || 0,
         image_url: v.imageUrl || null,
+        price: v.price ?? null,
+        description: v.description ?? null,
       }));
 
       const { error: variantError } = await supabase
@@ -354,6 +358,8 @@ export const useStore = () => {
           material: v.material || null,
           stock: v.stock || 0,
           image_url: v.imageUrl || null,
+          price: v.price ?? null,
+          description: v.description ?? null,
         }));
 
         const { error: variantError } = await supabase
