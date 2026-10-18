@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import MultiImageUpload from "./MultiImageUpload";
+import ImageUpload from "./ImageUpload";
 import type { Product } from "@/hooks/useStore";
 
 const categories = [
@@ -26,6 +27,8 @@ export interface ProductVariantInput {
   material: string;
   stock: number;
   imageUrl?: string | null;
+  price?: number | null;
+  description?: string | null;
 }
 
 interface ProductFormProps {
@@ -43,7 +46,9 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
   const [newSize, setNewSize] = useState("");
   const [newMaterial, setNewMaterial] = useState("");
   const [newStock, setNewStock] = useState(0);
-  const [newImageUrl, setNewImageUrl] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState<string | null>(null);
+  const [newPrice, setNewPrice] = useState<string>("");
+  const [newDescription, setNewDescription] = useState<string>("");
 
   // Fetch existing variants when editing a product
   useEffect(() => {
@@ -51,7 +56,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
       const fetchExistingVariants = async () => {
         const { data, error } = await supabase
           .from('product_variants')
-          .select('color, size, material, stock, image_url')
+          .select('id, color, size, material, stock, image_url, price, description')
           .eq('product_id', product.id);
 
         if (!error && data) {
@@ -62,6 +67,8 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
               material: v.material || "",
               stock: v.stock || 0,
               imageUrl: (v as any).image_url || null,
+              price: (v as any).price ?? null,
+              description: (v as any).description ?? null,
             }))
           );
         }
@@ -208,14 +215,14 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
           />
         </div>
 
-        {/* Product Variants Section with Image URL */}
+        {/* Product Variants Section with Image Upload, Price & Description */}
         <div className="md:col-span-2 border p-4 rounded-lg space-y-4 bg-card">
           <div>
             <h4 className="font-medium">Product Specifications & Variations</h4>
-            <p className="text-sm text-muted-foreground">Add sizes, colors, materials, stock options, and specific variant images.</p>
+            <p className="text-sm text-muted-foreground">Add sizes, colors, materials, stock options, variant price/description and a specific image per variant.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-center">
             <Input
               placeholder="Color (e.g. Black)"
               value={newColor}
@@ -239,9 +246,29 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
               onChange={(e) => setNewStock(Number(e.target.value))}
             />
             <Input
-              placeholder="Image URL"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Variant Price (optional)"
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+            />
+            <div>
+              <ImageUpload
+                currentImageUrl={newImageUrl || undefined}
+                onImageUploaded={(url) => setNewImageUrl(url)}
+                onImageRemoved={() => setNewImageUrl(null)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label>Variant Description (optional)</Label>
+            <Textarea
+              placeholder="Optional variant description"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              className="mt-1"
             />
           </div>
 
@@ -255,13 +282,17 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
                 size: newSize, 
                 material: newMaterial, 
                 stock: newStock,
-                imageUrl: newImageUrl || null 
+                imageUrl: newImageUrl || null,
+                price: newPrice ? parseFloat(newPrice) : null,
+                description: newDescription || null,
               }]);
               setNewColor("");
               setNewSize("");
               setNewMaterial("");
               setNewStock(0);
-              setNewImageUrl("");
+              setNewImageUrl(null);
+              setNewPrice("");
+              setNewDescription("");
             }}
           >
             + Add Variant Combination
@@ -270,22 +301,30 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
           {variants.length > 0 && (
             <div className="space-y-2 mt-2">
               {variants.map((v, index) => (
-                <div key={index} className="flex justify-between items-center bg-muted p-2 rounded text-sm">
+                <div key={index} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-muted p-2 rounded text-sm gap-2">
                   <div className="flex items-center gap-3">
                     {v.imageUrl && (
-                      <img src={v.imageUrl} alt="Variant" className="h-8 w-8 rounded object-cover" />
+                      <img src={v.imageUrl} alt="Variant" className="h-12 w-12 rounded object-cover" />
                     )}
-                    <span>
-                      Color: {v.color || 'N/A'} | Size: {v.size || 'N/A'} | Material: {v.material || 'N/A'} | Stock: {v.stock}
-                    </span>
+                    <div className="text-sm">
+                      <div>
+                        <strong>{v.color || 'N/A'}</strong> {v.size ? `• ${v.size}` : ''} {v.material ? `• ${v.material}` : ''}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Stock: {v.stock} {v.price != null && <>• ₵{Number(v.price).toLocaleString()}</>}
+                      </div>
+                      {v.description && <div className="mt-1 text-xs">{v.description}</div>}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setVariants(variants.filter((_, i) => i !== index))}
-                    className="text-destructive text-xs hover:underline"
-                  >
-                    Remove
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVariants(variants.filter((_, i) => i !== index))}
+                      className="text-destructive text-xs hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
