@@ -27,6 +27,9 @@ interface ProductVariant {
   size: string | null;
   material: string | null;
   stock: number;
+  price?: number | null;
+  description?: string | null;
+  image_url?: string | null;
 }
 
 interface Product {
@@ -100,6 +103,7 @@ const ProductDetail = () => {
       fetchVariants();
       fetchReviews();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchProduct = async () => {
@@ -126,15 +130,16 @@ const ProductDetail = () => {
   const fetchVariants = async () => {
     const { data, error } = await supabase
       .from('product_variants')
-      .select('*')
+      // fetch all variant fields we might use
+      .select('id, product_id, color, size, material, stock, price, description, image_url')
       .eq('product_id', id);
 
     if (error) {
       console.error('Error fetching product variants:', error);
     } else if (data && data.length > 0) {
-      setVariants(data);
-      // Set default selections if available
-      const first = data[0];
+      setVariants(data as ProductVariant[]);
+      // Set default selections if available (first row)
+      const first = data[0] as ProductVariant;
       setSelectedColor(first.color || null);
       setSelectedSize(first.size || null);
       setSelectedMaterial(first.material || null);
@@ -151,16 +156,16 @@ const ProductDetail = () => {
     if (error) {
       console.error('Error fetching reviews:', error);
     } else {
-      const userIds = [...new Set(data?.map(r => r.user_id) || [])];
+      const userIds = [...new Set((data || []).map(r => r.user_id))];
       const { data: profiles } = await (supabase as any)
         .from('public_profiles')
         .select('user_id, full_name, avatar_url')
         .in('user_id', userIds);
 
-      const reviewsWithProfiles = data?.map(review => ({
+      const reviewsWithProfiles = (data || []).map(review => ({
         ...review,
-        profile: profiles?.find(p => p.user_id === review.user_id)
-      })) || [];
+        profile: profiles?.find((p: any) => p.user_id === review.user_id)
+      })) as Review[];
 
       setReviews(reviewsWithProfiles);
 
@@ -174,14 +179,14 @@ const ProductDetail = () => {
   };
 
   // Find current active variant matching selected attributes
-  const currentVariant = variants.find(v => 
+  const currentVariant = variants.find(v =>
     (!selectedColor || v.color === selectedColor) &&
     (!selectedSize || v.size === selectedSize) &&
     (!selectedMaterial || v.material === selectedMaterial)
   );
 
-  const availableStock = variants.length > 0 
-    ? (currentVariant?.stock || 0) 
+  const availableStock = variants.length > 0
+    ? (currentVariant?.stock || 0)
     : (product?.stock || 0);
 
   const handleAddToCart = async () => {
@@ -190,9 +195,13 @@ const ProductDetail = () => {
       toast.error('Please select valid product specifications.');
       return;
     }
-    
-    // Pass variant ID or custom meta data if your cart handler supports it
-    await addToCart(product.id, quantity, currentVariant ? { variantId: currentVariant.id, color: selectedColor, size: selectedSize, material: selectedMaterial } : undefined);
+
+    // Pass variant ID or custom meta data (cart handler stores variant_id/color/size/material)
+    await addToCart(
+      product.id,
+      quantity,
+      currentVariant ? { variantId: currentVariant.id, color: selectedColor, size: selectedSize, material: selectedMaterial } : undefined
+    );
   };
 
   const myReview = user ? reviews.find(r => r.user_id === user.id) : undefined;
@@ -236,8 +245,8 @@ const ProductDetail = () => {
     setSubmittingReview(false);
   };
 
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : 0;
 
   if (loading) {
@@ -265,10 +274,15 @@ const ProductDetail = () => {
     );
   }
 
-  const productImage = galleryImages[0] || 'https://jayeeexpress.com/icons/icon-512x512.png';
-  const productDescription = product.description
-    ? product.description.slice(0, 155)
-    : `Buy ${product.name} from ${product.store?.name ?? 'a local seller'} on Jayee Express.`;
+  // If a variant is selected prefer its image/price/description, otherwise fallback to product values
+  const displayedImage = currentVariant?.image_url || galleryImages[currentImageIndex] || product.image_url || null;
+  const displayedPrice = Number(currentVariant?.price ?? product.price);
+  const displayedDescription = currentVariant?.description ?? product.description;
+
+  const productImage = displayedImage ?? 'https://jayeeexpress.com/icons/icon-512x512.png';
+  const productDescription = (displayedDescription
+    ? displayedDescription.slice(0, 155)
+    : `Buy ${product.name} from ${product.store?.name ?? 'a local seller'} on Jayee Express.`);
 
   // Unique attribute options derived from fetched variants
   const colors = Array.from(new Set(variants.map(v => v.color).filter(Boolean)));
@@ -278,14 +292,14 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title={`${product.name} — ₵${product.price.toLocaleString()} | Jayee Express`}
+        title={`${product.name} — ₵${displayedPrice.toLocaleString()} | Jayee Express`}
         description={productDescription}
         canonicalPath={`/product/${product.id}`}
         image={productImage}
         type="product"
       />
       <Navbar />
-      
+
       <main className="container mx-auto px-4 pt-24 pb-8">
         <div className="mb-4 md:mb-6">
           <Link to="/" className="text-muted-foreground hover:text-primary text-sm md:text-base">Home</Link>
@@ -297,9 +311,9 @@ const ProductDetail = () => {
           {/* Image Gallery */}
           <div className="space-y-4">
             <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-              {galleryImages.length > 0 ? (
-                <img 
-                  src={getCdnImageUrl(galleryImages[currentImageIndex])} 
+              {displayedImage ? (
+                <img
+                  src={getCdnImageUrl(displayedImage)}
                   alt={product.name}
                   className="w-full h-full object-contain"
                 />
@@ -308,7 +322,7 @@ const ProductDetail = () => {
                   No image available
                 </div>
               )}
-              
+
               {galleryImages.length > 1 && (
                 <>
                   <Button
@@ -330,7 +344,7 @@ const ProductDetail = () => {
                 </>
               )}
             </div>
-            
+
             {galleryImages.length > 1 && (
               <div className="flex gap-2">
                 {galleryImages.map((img, idx) => (
@@ -353,12 +367,12 @@ const ProductDetail = () => {
             <div>
               <Badge variant="secondary" className="mb-2">{product.category}</Badge>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">{product.name}</h1>
-              
+
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex">
                   {[1, 2, 3, 4, 5].map(star => (
-                    <Star 
-                      key={star} 
+                    <Star
+                      key={star}
                       className={`h-5 w-5 ${star <= averageRating ? 'fill-primary text-primary' : 'text-muted-foreground'}`}
                     />
                   ))}
@@ -370,11 +384,11 @@ const ProductDetail = () => {
             </div>
 
             <p className="text-3xl md:text-4xl font-bold text-primary">
-              ₵{product.price.toLocaleString()}
+              ₵{displayedPrice.toLocaleString()}
             </p>
 
             <p className="text-muted-foreground leading-relaxed">
-              {product.description || 'No description available.'}
+              {displayedDescription || 'No description available.'}
             </p>
 
             {/* Variant Selectors */}
@@ -451,17 +465,17 @@ const ProductDetail = () => {
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium">Quantity:</span>
                 <div className="flex items-center border rounded-md">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setQuantity(q => Math.max(1, q - 1))}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
                   <span className="w-12 text-center">{quantity}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setQuantity(q => q + 1)}
                   >
                     <Plus className="h-4 w-4" />
@@ -470,8 +484,8 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex gap-3 flex-wrap">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="flex-1"
                   onClick={handleAddToCart}
                   disabled={!product.is_service && availableStock <= 0}
@@ -487,10 +501,10 @@ const ProductDetail = () => {
                   productId={product.id}
                   productName={product.name}
                 />
-                <ShareButton 
+                <ShareButton
                   url={`/product/${product.id}`}
                   title={product.name}
-                  description={product.description || undefined}
+                  description={displayedDescription || undefined}
                   size="lg"
                 />
               </div>
@@ -522,7 +536,7 @@ const ProductDetail = () => {
         </div>
 
         {/* Reviews & Similar Products */}
-        <SimilarProducts 
+        <SimilarProducts
           currentProductId={product.id}
           category={product.category}
           price={product.price}
