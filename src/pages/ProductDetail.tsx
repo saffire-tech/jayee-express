@@ -1,5 +1,5 @@
 import { getCdnImageUrl } from "@/lib/cdn";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SEO from '@/components/SEO';
 import { supabase } from '@/integrations/supabase/client';
@@ -64,6 +64,8 @@ interface Review {
     avatar_url: string | null;
   };
 }
+
+const norm = (v: string | null | undefined) => (v == null ? null : String(v).trim());
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -130,16 +132,21 @@ const ProductDetail = () => {
   const fetchVariants = async () => {
     const { data, error } = await supabase
       .from('product_variants')
-      // fetch all variant fields we might use
       .select('id, product_id, color, size, material, stock, price, description, image_url')
       .eq('product_id', id);
 
     if (error) {
       console.error('Error fetching product variants:', error);
     } else if (data && data.length > 0) {
-      setVariants(data as ProductVariant[]);
-      // Set default selections if available (first row)
-      const first = data[0] as ProductVariant;
+      // normalize strings to remove whitespace differences while preserving original value
+      const normalized = (data as ProductVariant[]).map(v => ({
+        ...v,
+        color: norm(v.color),
+        size: norm(v.size),
+        material: norm(v.material),
+      }));
+      setVariants(normalized);
+      const first = normalized[0];
       setSelectedColor(first.color || null);
       setSelectedSize(first.size || null);
       setSelectedMaterial(first.material || null);
@@ -178,29 +185,123 @@ const ProductDetail = () => {
     }
   };
 
-  // Find current active variant matching selected attributes
-  const currentVariant = variants.find(v =>
-    (!selectedColor || v.color === selectedColor) &&
-    (!selectedSize || v.size === selectedSize) &&
-    (!selectedMaterial || v.material === selectedMaterial)
-  );
+  // Helpers to compute available options depending on current partial selection
+  const unique = (arr: Array<string | null>) => Array.from(new Set(arr.filter(Boolean))) as string[];
+
+  const colors = useMemo(() => unique(variants.map(v => norm(v.color))), [variants]);
+  const sizes = useMemo(() => unique(variants.map(v => norm(v.size))), [variants]);
+  const materials = useMemo(() => unique(variants.map(v => norm(v.material))), [variants]);
+
+  const getAvailableSizes = (color?: string | null, material?: string | null) => {
+    return unique(variants
+      .filter(v => (color ? v.color === color : true) && (material ? v.material === material : true))
+      .map(v => norm(v.size))
+    );
+  };
+
+  const getAvailableColors = (size?: string | null, material?: string | null) => {
+    return unique(variants
+      .filter(v => (size ? v.size === size : true) && (material ? v.material === material : true))
+      .map(v => norm(v.color))
+    );
+  };
+
+  const getAvailableMaterials = (color?: string | null, size?: string | null) => {
+    return unique(variants
+      .filter(v => (color ? v.color === color : true) && (size ? v.size === size : true))
+      .map(v => norm(v.material))
+    );
+  };
+
+  // find a variant that matches provided attributes (null means ignore)
+  const findVariant = (color?: string | null, size?: string | null, material?: string | null) => {
+    return variants.find(v =>
+      (color ? v.color === color : true) &&
+      (size ? v.size === size : true) &&
+      (material ? v.material === material : true)
+    ) || null;
+  };
+
+  // Choose the best matching variant for display: exact match, then color+size, then color, then size, then first variant
+  const bestMatchingVariant = useMemo(() => {
+    const exact = findVariant(selectedColor, selectedSize, selectedMaterial);
+    if (exact) return exact;
+    if (selectedColor && selectedSize) {
+      const byCS = findVariant(selectedColor, selectedSize, null);
+      if (byCS) return byCS;
+    }
+    if (selectedColor) {
+      const byC = findVariant(selectedColor, null, null);
+      if (byC) return byC;
+    }
+    if (selectedSize) {
+      const byS = findVariant(null, selectedSize, null);
+      if (byS) return byS;
+    }
+    return variants.length > 0 ? variants[0] : null;
+  }, [variants, selectedColor, selectedSize, selectedMaterial]);
 
   const availableStock = variants.length > 0
-    ? (currentVariant?.stock || 0)
+    ? (bestMatchingVariant?.stock || 0)
     : (product?.stock || 0);
+
+  // When user selects an attribute, adjust other selections to remain compatible
+  const onSelectColor = (color: string) => {
+    const c = norm(color);
+    // compute compatible sizes/materials for this color
+    const sizesForColor = getAvailableSizes(c, selectedMaterial);
+    const materialsForColor = getAvailableMaterials(c, selectedSize);
+
+    // If current selectedSize is not in sizesForColor, pick first compatible size (or null)
+    const newSize = sizesForColor.includes(selectedSize || "") ? selectedSize : (sizesForColor[0] || null);
+    const newMaterial = materialsForColor.includes(selectedMaterial || "") ? selectedMaterial : (materialsForColor[0] || null);
+
+    setSelectedColor(c);
+    setSelectedSize(newSize);
+    setSelectedMaterial(newMaterial);
+    // reset gallery index when variant image changes (optional)
+    setCurrentImageIndex(0);
+  };
+
+  const onSelectSize = (size: string) => {
+    const s = norm(size);
+    const colorsForSize = getAvailableColors(s, selectedMaterial);
+    const materialsForSize = getAvailableMaterials(selectedColor, s);
+
+    const newColor = colorsForSize.includes(selectedColor || "") ? selectedColor : (colorsForSize[0] || null);
+    const newMaterial = materialsForSize.includes(selectedMaterial || "") ? selectedMaterial : (materialsForSize[0] || null);
+
+    setSelectedSize(s);
+    setSelectedColor(newColor);
+    setSelectedMaterial(newMaterial);
+    setCurrentImageIndex(0);
+  };
+
+  const onSelectMaterial = (material: string) => {
+    const m = norm(material);
+    const colorsForMat = getAvailableColors(selectedSize, m);
+    const sizesForMat = getAvailableSizes(selectedColor, m);
+
+    const newColor = colorsForMat.includes(selectedColor || "") ? selectedColor : (colorsForMat[0] || null);
+    const newSize = sizesForMat.includes(selectedSize || "") ? selectedSize : (sizesForMat[0] || null);
+
+    setSelectedMaterial(m);
+    setSelectedColor(newColor);
+    setSelectedSize(newSize);
+    setCurrentImageIndex(0);
+  };
 
   const handleAddToCart = async () => {
     if (!product) return;
-    if (variants.length > 0 && !currentVariant) {
+    if (variants.length > 0 && !bestMatchingVariant) {
       toast.error('Please select valid product specifications.');
       return;
     }
 
-    // Pass variant ID or custom meta data (cart handler stores variant_id/color/size/material)
     await addToCart(
       product.id,
       quantity,
-      currentVariant ? { variantId: currentVariant.id, color: selectedColor, size: selectedSize, material: selectedMaterial } : undefined
+      bestMatchingVariant ? { variantId: bestMatchingVariant.id, color: bestMatchingVariant.color, size: bestMatchingVariant.size, material: bestMatchingVariant.material } : undefined
     );
   };
 
@@ -274,20 +375,42 @@ const ProductDetail = () => {
     );
   }
 
-  // If a variant is selected prefer its image/price/description, otherwise fallback to product values
-  const displayedImage = currentVariant?.image_url || galleryImages[currentImageIndex] || product.image_url || null;
-  const displayedPrice = Number(currentVariant?.price ?? product.price);
-  const displayedDescription = currentVariant?.description ?? product.description;
+  // prefer variant image/price/description if available (bestMatchingVariant)
+  const displayedImage = (bestMatchingVariant?.image_url) || galleryImages[currentImageIndex] || product.image_url || null;
+  const displayedPrice = Number(bestMatchingVariant?.price ?? product.price);
+  const displayedDescription = bestMatchingVariant?.description ?? product.description;
 
   const productImage = displayedImage ?? 'https://jayeeexpress.com/icons/icon-512x512.png';
   const productDescription = (displayedDescription
     ? displayedDescription.slice(0, 155)
     : `Buy ${product.name} from ${product.store?.name ?? 'a local seller'} on Jayee Express.`);
 
-  // Unique attribute options derived from fetched variants
-  const colors = Array.from(new Set(variants.map(v => v.color).filter(Boolean)));
-  const sizes = Array.from(new Set(variants.map(v => v.size).filter(Boolean)));
-  const materials = Array.from(new Set(variants.map(v => v.material).filter(Boolean)));
+  // helpers to decide if an option should be disabled given current partial selection
+  const isColorDisabled = (color: string) => {
+    const c = norm(color);
+    // if any variant exists with this color and compatible with selectedSize & selectedMaterial -> enabled
+    return !variants.some(v =>
+      v.color === c &&
+      (selectedSize ? v.size === selectedSize : true) &&
+      (selectedMaterial ? v.material === selectedMaterial : true)
+    );
+  };
+  const isSizeDisabled = (size: string) => {
+    const s = norm(size);
+    return !variants.some(v =>
+      v.size === s &&
+      (selectedColor ? v.color === selectedColor : true) &&
+      (selectedMaterial ? v.material === selectedMaterial : true)
+    );
+  };
+  const isMaterialDisabled = (material: string) => {
+    const m = norm(material);
+    return !variants.some(v =>
+      v.material === m &&
+      (selectedColor ? v.color === selectedColor : true) &&
+      (selectedSize ? v.size === selectedSize : true)
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -396,17 +519,23 @@ const ProductDetail = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Color: <span className="text-muted-foreground">{selectedColor}</span></label>
                 <div className="flex gap-2 flex-wrap">
-                  {colors.map(color => (
-                    <Button
-                      key={color}
-                      type="button"
-                      variant={selectedColor === color ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedColor(color)}
-                    >
-                      {color}
-                    </Button>
-                  ))}
+                  {colors.map(color => {
+                    const disabled = isColorDisabled(color);
+                    const c = norm(color);
+                    return (
+                      <Button
+                        key={color}
+                        type="button"
+                        variant={selectedColor === c ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => onSelectColor(color)}
+                        disabled={disabled}
+                        className={disabled ? "opacity-40 pointer-events-none" : ""}
+                      >
+                        {color}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -415,17 +544,23 @@ const ProductDetail = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Size: <span className="text-muted-foreground">{selectedSize}</span></label>
                 <div className="flex gap-2 flex-wrap">
-                  {sizes.map(size => (
-                    <Button
-                      key={size}
-                      type="button"
-                      variant={selectedSize === size ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedSize(size)}
-                    >
-                      {size}
-                    </Button>
-                  ))}
+                  {sizes.map(size => {
+                    const disabled = isSizeDisabled(size);
+                    const s = norm(size);
+                    return (
+                      <Button
+                        key={size}
+                        type="button"
+                        variant={selectedSize === s ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => onSelectSize(size)}
+                        disabled={disabled}
+                        className={disabled ? "opacity-40 pointer-events-none" : ""}
+                      >
+                        {size}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -434,17 +569,23 @@ const ProductDetail = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Material: <span className="text-muted-foreground">{selectedMaterial}</span></label>
                 <div className="flex gap-2 flex-wrap">
-                  {materials.map(mat => (
-                    <Button
-                      key={mat}
-                      type="button"
-                      variant={selectedMaterial === mat ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedMaterial(mat)}
-                    >
-                      {mat}
-                    </Button>
-                  ))}
+                  {materials.map(mat => {
+                    const disabled = isMaterialDisabled(mat);
+                    const m = norm(mat);
+                    return (
+                      <Button
+                        key={mat}
+                        type="button"
+                        variant={selectedMaterial === m ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => onSelectMaterial(mat)}
+                        disabled={disabled}
+                        className={disabled ? "opacity-40 pointer-events-none" : ""}
+                      >
+                        {mat}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
             )}
