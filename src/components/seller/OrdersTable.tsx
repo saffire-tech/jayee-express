@@ -64,14 +64,43 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
                 </p>
                 
                 {order.order_items && order.order_items.length > 0 && (
-                  <div className="mt-3 space-y-1">
-                    {order.order_items.map((item) => (
-                      <p key={item.id} className="text-sm text-muted-foreground">
-                        {item.quantity}x {(item.product as any)?.name || "Product"} - ${item.price.toFixed(2)}
-                      </p>
-                    ))}
-                  </div>
-                )}
+  <div className="mt-3 space-y-1">
+    {order.order_items.map((item: any) => {
+      // handle variant returned either as array or object
+      const variant = Array.isArray((item as any).variant) ? (item as any).variant[0] : (item as any).variant;
+      const thumb = variant?.image_url || (item.product as any)?.image_url || null;
+
+      return (
+        <div key={item.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+          {thumb ? (
+            <img
+              src={getCdnImageUrl(thumb)}
+              loading="lazy"
+              alt={(item.product as any)?.name || "Product"}
+              className="w-6 h-6 rounded object-cover"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded bg-muted" />
+          )}
+
+          <div className="truncate">
+            <div className="flex items-center gap-2">
+              <span className="font-medium line-clamp-1">{(item.product as any)?.name || "Product"}</span>
+              {variant && <span className="text-xs text-muted-foreground ml-1">· Variant</span>}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {item.quantity}x
+              {item.color ? ` · ${item.color}` : ''}
+              {item.size ? ` · ${item.size}` : ''}
+              {item.material ? ` · ${item.material}` : ''}
+              {" — ₵" + Number(item.price).toFixed(2)}
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
                 
                 {order.notes && (
                   <p className="text-sm text-muted-foreground mt-2">
