@@ -75,6 +75,8 @@ export interface OrderItem {
   material?: string | null;
   created_at?: string;
   product?: { name: string; image_url: string | null };
+  // Variant metadata returned by fetches (nullable)
+  variant?: { id: string; image_url?: string | null; price?: number | null } | null;
 }
 
 export const useStore = () => {
