@@ -124,34 +124,61 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
             <div>
               <h4 className="text-sm font-semibold mb-2">Items</h4>
               <div className="space-y-2">
-                {order.order_items.map((item: any) => (
-                  <div key={item.id} className="flex items-center justify-between bg-muted/50 rounded-lg p-3 text-sm">
-                    <div className="flex items-center gap-3">
-                      {item.product?.image_url && (
-                        <img 
-                          src={getCdnImageUrl(item.product.image_url)} 
-                          loading="lazy" 
-                          alt={item.product?.name} 
-                          className="h-10 w-10 rounded-md object-cover" 
-                        />
-                      )}
-                      <div>
-                        <p className="font-medium">{item.product?.name || "Product"}</p>
-                        <p className="text-muted-foreground">Qty: {item.quantity}</p>
-                        
-                        {/* Display Variant Specifications */}
-                        {(item.color || item.size || item.material) && (
-                          <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
-                            {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
-                            {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
-                            {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
+                {order.order_items.map((item: any) => {
+                  // Supabase sometimes returns related objects as arrays; handle both forms
+                  const variant = Array.isArray(item.variant) ? item.variant[0] : item.variant;
+
+                  const thumb = variant?.image_url || item.product?.image_url || null;
+
+                  return (
+                    <div key={item.id} className="flex items-center justify-between bg-muted/50 rounded-lg p-3 text-sm">
+                      <div className="flex items-center gap-3">
+                        {thumb ? (
+                          <img
+                            src={getCdnImageUrl(thumb)}
+                            loading="lazy"
+                            alt={item.product?.name || "Product"}
+                            className="h-10 w-10 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
+                            <Package className="h-5 w-5 text-muted-foreground" />
                           </div>
+                        )}
+
+                        <div>
+                          <p className="font-medium">{item.product?.name || "Product"}</p>
+
+                          <p className="text-muted-foreground">Qty: {item.quantity}</p>
+
+                          {/* Display Variant Specifications */}
+                          {(item.color || item.size || item.material) && (
+                            <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
+                              {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
+                              {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
+                              {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
+                            </div>
+                          )}
+
+                          {/* Show variant indicator if variant exists */}
+                          {variant && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              <span className="inline-block px-2 py-0.5 bg-secondary/10 rounded-md">Variant selected</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-semibold">₵{Number(item.price).toLocaleString()}</p>
+                        {/* If variant has its own price, show it as a small hint */}
+                        {variant?.price != null && Number(variant.price) !== Number(item.price) && (
+                          <p className="text-xs text-muted-foreground">Variant price: ₵{Number(variant.price).toLocaleString()}</p>
                         )}
                       </div>
                     </div>
-                    <p className="font-semibold">₵{Number(item.price).toLocaleString()}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
