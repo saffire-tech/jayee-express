@@ -378,15 +378,45 @@ export const useStore = () => {
   };
 
   const deleteProduct = async (productId: string) => {
-    const { error } = await supabase
-      .from("products")
-      .delete()
-      .eq("id", productId);
+    try {
+      // 1) Remove product from all carts so buyers immediately stop seeing it in their cart
+      const { error: cartErr } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('product_id', productId);
 
-    if (error) throw error;
-    
-    setProducts(products.filter(p => p.id !== productId));
-    toast({ title: "Product deleted!" });
+      if (cartErr) {
+        // log but continue - we still want to remove the product itself
+        console.error('Error removing product from carts:', cartErr);
+      }
+
+      // 2) Remove product variants to avoid orphan variant rows
+      const { error: variantsErr } = await supabase
+        .from('product_variants')
+        .delete()
+        .eq('product_id', productId);
+
+      if (variantsErr) {
+        console.error('Error deleting product variants:', variantsErr);
+      }
+
+      // 3) Finally delete the product row
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      // Update local state immediately so the seller sees the deletion
+      setProducts(prev => prev.filter(p => p.id !== productId));
+
+      toast({ title: "Product deleted!" });
+    } catch (err: any) {
+      console.error('deleteProduct error:', err);
+      toast({ title: 'Could not delete product', description: err?.message || String(err), variant: 'destructive' });
+      throw err;
+    }
   };
 
   const updateOrderStatus = async (orderId: string, status: Order["status"]) => {
