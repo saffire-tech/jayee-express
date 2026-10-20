@@ -137,19 +137,32 @@ const ProductDetail = () => {
 
     if (error) {
       console.error('Error fetching product variants:', error);
-    } else if (data && data.length > 0) {
-      // normalize strings to remove whitespace differences while preserving original value
+      setVariants([]);
+      setSelectedColor(null);
+      setSelectedSize(null);
+      setSelectedMaterial(null);
+      return;
+    }
+
+    if (data && data.length > 0) {
       const normalized = (data as ProductVariant[]).map(v => ({
         ...v,
         color: norm(v.color),
         size: norm(v.size),
         material: norm(v.material),
       }));
+
       setVariants(normalized);
-      const first = normalized[0];
-      setSelectedColor(first.color || null);
-      setSelectedSize(first.size || null);
-      setSelectedMaterial(first.material || null);
+
+      // IMPORTANT: no default variant pre-selection
+      setSelectedColor(null);
+      setSelectedSize(null);
+      setSelectedMaterial(null);
+    } else {
+      setVariants([]);
+      setSelectedColor(null);
+      setSelectedSize(null);
+      setSelectedMaterial(null);
     }
   };
 
@@ -222,44 +235,25 @@ const ProductDetail = () => {
     ) || null;
   };
 
-  // Choose the best matching variant for display: exact match, then color+size, then color, then size, then first variant
-  const bestMatchingVariant = useMemo(() => {
-    const exact = findVariant(selectedColor, selectedSize, selectedMaterial);
-    if (exact) return exact;
-    if (selectedColor && selectedSize) {
-      const byCS = findVariant(selectedColor, selectedSize, null);
-      if (byCS) return byCS;
-    }
-    if (selectedColor) {
-      const byC = findVariant(selectedColor, null, null);
-      if (byC) return byC;
-    }
-    if (selectedSize) {
-      const byS = findVariant(null, selectedSize, null);
-      if (byS) return byS;
-    }
-    return variants.length > 0 ? variants[0] : null;
+  const selectedVariant = useMemo(() => {
+    return findVariant(selectedColor, selectedSize, selectedMaterial) || null;
   }, [variants, selectedColor, selectedSize, selectedMaterial]);
 
   const availableStock = variants.length > 0
-    ? (bestMatchingVariant?.stock || 0)
-    : (product?.stock || 0);
+    ? (selectedVariant?.stock ?? 0)
+    : (product?.stock ?? 0);
 
-  // When user selects an attribute, adjust other selections to remain compatible
   const onSelectColor = (color: string) => {
     const c = norm(color);
-    // compute compatible sizes/materials for this color
     const sizesForColor = getAvailableSizes(c, selectedMaterial);
     const materialsForColor = getAvailableMaterials(c, selectedSize);
 
-    // If current selectedSize is not in sizesForColor, pick first compatible size (or null)
     const newSize = sizesForColor.includes(selectedSize || "") ? selectedSize : (sizesForColor[0] || null);
     const newMaterial = materialsForColor.includes(selectedMaterial || "") ? selectedMaterial : (materialsForColor[0] || null);
 
     setSelectedColor(c);
     setSelectedSize(newSize);
     setSelectedMaterial(newMaterial);
-    // reset gallery index when variant image changes (optional)
     setCurrentImageIndex(0);
   };
 
@@ -293,15 +287,32 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    if (variants.length > 0 && !bestMatchingVariant) {
-      toast.error('Please select valid product specifications.');
-      return;
+
+    if (variants.length > 0) {
+      const hasSelection = !!(selectedColor || selectedSize || selectedMaterial);
+
+      if (hasSelection && !selectedVariant) {
+        toast.error('Please select a valid variant combination.');
+        return;
+      }
+
+      if (!hasSelection) {
+        await addToCart(product.id, quantity, undefined);
+        return;
+      }
     }
 
     await addToCart(
       product.id,
       quantity,
-      bestMatchingVariant ? { variantId: bestMatchingVariant.id, color: bestMatchingVariant.color, size: bestMatchingVariant.size, material: bestMatchingVariant.material } : undefined
+      selectedVariant
+        ? {
+            variantId: selectedVariant.id,
+            color: selectedVariant.color,
+            size: selectedVariant.size,
+            material: selectedVariant.material,
+          }
+        : undefined
     );
   };
 
@@ -375,26 +386,24 @@ const ProductDetail = () => {
     );
   }
 
-  // prefer variant image/price/description if available (bestMatchingVariant)
-  const displayedImage = (bestMatchingVariant?.image_url) || galleryImages[currentImageIndex] || product.image_url || null;
-  const displayedPrice = Number(bestMatchingVariant?.price ?? product.price);
-  const displayedDescription = bestMatchingVariant?.description ?? product.description;
+  const displayedImage = selectedVariant?.image_url || galleryImages[currentImageIndex] || product.image_url || null;
+  const displayedPrice = Number(selectedVariant?.price ?? product.price);
+  const displayedDescription = selectedVariant?.description ?? product.description;
 
   const productImage = displayedImage ?? 'https://jayeeexpress.com/icons/icon-512x512.png';
   const productDescription = (displayedDescription
     ? displayedDescription.slice(0, 155)
     : `Buy ${product.name} from ${product.store?.name ?? 'a local seller'} on Jayee Express.`);
 
-  // helpers to decide if an option should be disabled given current partial selection
   const isColorDisabled = (color: string) => {
     const c = norm(color);
-    // if any variant exists with this color and compatible with selectedSize & selectedMaterial -> enabled
     return !variants.some(v =>
       v.color === c &&
       (selectedSize ? v.size === selectedSize : true) &&
       (selectedMaterial ? v.material === selectedMaterial : true)
     );
   };
+
   const isSizeDisabled = (size: string) => {
     const s = norm(size);
     return !variants.some(v =>
@@ -403,6 +412,7 @@ const ProductDetail = () => {
       (selectedMaterial ? v.material === selectedMaterial : true)
     );
   };
+
   const isMaterialDisabled = (material: string) => {
     const m = norm(material);
     return !variants.some(v =>
@@ -517,7 +527,7 @@ const ProductDetail = () => {
             {/* Variant Selectors */}
             {colors.length > 0 && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Color: <span className="text-muted-foreground">{selectedColor}</span></label>
+                <label className="text-sm font-medium">Color: <span className="text-muted-foreground">{selectedColor || 'Not selected'}</span></label>
                 <div className="flex gap-2 flex-wrap">
                   {colors.map(color => {
                     const disabled = isColorDisabled(color);
@@ -542,7 +552,7 @@ const ProductDetail = () => {
 
             {sizes.length > 0 && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Size: <span className="text-muted-foreground">{selectedSize}</span></label>
+                <label className="text-sm font-medium">Size: <span className="text-muted-foreground">{selectedSize || 'Not selected'}</span></label>
                 <div className="flex gap-2 flex-wrap">
                   {sizes.map(size => {
                     const disabled = isSizeDisabled(size);
@@ -567,7 +577,7 @@ const ProductDetail = () => {
 
             {materials.length > 0 && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Material: <span className="text-muted-foreground">{selectedMaterial}</span></label>
+                <label className="text-sm font-medium">Material: <span className="text-muted-foreground">{selectedMaterial || 'Not selected'}</span></label>
                 <div className="flex gap-2 flex-wrap">
                   {materials.map(mat => {
                     const disabled = isMaterialDisabled(mat);
