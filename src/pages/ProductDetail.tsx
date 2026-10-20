@@ -71,6 +71,7 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { addToCart } = useCart();
+
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -84,7 +85,6 @@ const ProductDetail = () => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Track product view
   useProductViewTracking(id);
 
   const getGalleryImages = () => {
@@ -154,7 +154,7 @@ const ProductDetail = () => {
 
       setVariants(normalized);
 
-      // IMPORTANT: no default variant pre-selection
+      // no default selection
       setSelectedColor(null);
       setSelectedSize(null);
       setSelectedMaterial(null);
@@ -198,35 +198,12 @@ const ProductDetail = () => {
     }
   };
 
-  // Helpers to compute available options depending on current partial selection
   const unique = (arr: Array<string | null>) => Array.from(new Set(arr.filter(Boolean))) as string[];
 
   const colors = useMemo(() => unique(variants.map(v => norm(v.color))), [variants]);
   const sizes = useMemo(() => unique(variants.map(v => norm(v.size))), [variants]);
   const materials = useMemo(() => unique(variants.map(v => norm(v.material))), [variants]);
 
-  const getAvailableSizes = (color?: string | null, material?: string | null) => {
-    return unique(variants
-      .filter(v => (color ? v.color === color : true) && (material ? v.material === material : true))
-      .map(v => norm(v.size))
-    );
-  };
-
-  const getAvailableColors = (size?: string | null, material?: string | null) => {
-    return unique(variants
-      .filter(v => (size ? v.size === size : true) && (material ? v.material === material : true))
-      .map(v => norm(v.color))
-    );
-  };
-
-  const getAvailableMaterials = (color?: string | null, size?: string | null) => {
-    return unique(variants
-      .filter(v => (color ? v.color === color : true) && (size ? v.size === size : true))
-      .map(v => norm(v.material))
-    );
-  };
-
-  // find a variant that matches provided attributes (null means ignore)
   const findVariant = (color?: string | null, size?: string | null, material?: string | null) => {
     return variants.find(v =>
       (color ? v.color === color : true) &&
@@ -245,43 +222,19 @@ const ProductDetail = () => {
 
   const onSelectColor = (color: string) => {
     const c = norm(color);
-    const sizesForColor = getAvailableSizes(c, selectedMaterial);
-    const materialsForColor = getAvailableMaterials(c, selectedSize);
-
-    const newSize = sizesForColor.includes(selectedSize || "") ? selectedSize : (sizesForColor[0] || null);
-    const newMaterial = materialsForColor.includes(selectedMaterial || "") ? selectedMaterial : (materialsForColor[0] || null);
-
-    setSelectedColor(c);
-    setSelectedSize(newSize);
-    setSelectedMaterial(newMaterial);
+    setSelectedColor(prev => (prev === c ? null : c));
     setCurrentImageIndex(0);
   };
 
   const onSelectSize = (size: string) => {
     const s = norm(size);
-    const colorsForSize = getAvailableColors(s, selectedMaterial);
-    const materialsForSize = getAvailableMaterials(selectedColor, s);
-
-    const newColor = colorsForSize.includes(selectedColor || "") ? selectedColor : (colorsForSize[0] || null);
-    const newMaterial = materialsForSize.includes(selectedMaterial || "") ? selectedMaterial : (materialsForSize[0] || null);
-
-    setSelectedSize(s);
-    setSelectedColor(newColor);
-    setSelectedMaterial(newMaterial);
+    setSelectedSize(prev => (prev === s ? null : s));
     setCurrentImageIndex(0);
   };
 
   const onSelectMaterial = (material: string) => {
     const m = norm(material);
-    const colorsForMat = getAvailableColors(selectedSize, m);
-    const sizesForMat = getAvailableSizes(selectedColor, m);
-
-    const newColor = colorsForMat.includes(selectedColor || "") ? selectedColor : (colorsForMat[0] || null);
-    const newSize = sizesForMat.includes(selectedSize || "") ? selectedSize : (sizesForMat[0] || null);
-
-    setSelectedMaterial(m);
-    setSelectedColor(newColor);
-    setSelectedSize(newSize);
+    setSelectedMaterial(prev => (prev === m ? null : m));
     setCurrentImageIndex(0);
   };
 
@@ -395,33 +348,6 @@ const ProductDetail = () => {
     ? displayedDescription.slice(0, 155)
     : `Buy ${product.name} from ${product.store?.name ?? 'a local seller'} on Jayee Express.`);
 
-  const isColorDisabled = (color: string) => {
-    const c = norm(color);
-    return !variants.some(v =>
-      v.color === c &&
-      (selectedSize ? v.size === selectedSize : true) &&
-      (selectedMaterial ? v.material === selectedMaterial : true)
-    );
-  };
-
-  const isSizeDisabled = (size: string) => {
-    const s = norm(size);
-    return !variants.some(v =>
-      v.size === s &&
-      (selectedColor ? v.color === selectedColor : true) &&
-      (selectedMaterial ? v.material === selectedMaterial : true)
-    );
-  };
-
-  const isMaterialDisabled = (material: string) => {
-    const m = norm(material);
-    return !variants.some(v =>
-      v.material === m &&
-      (selectedColor ? v.color === selectedColor : true) &&
-      (selectedSize ? v.size === selectedSize : true)
-    );
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <SEO
@@ -529,23 +455,17 @@ const ProductDetail = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Color: <span className="text-muted-foreground">{selectedColor || 'Not selected'}</span></label>
                 <div className="flex gap-2 flex-wrap">
-                  {colors.map(color => {
-                    const disabled = isColorDisabled(color);
-                    const c = norm(color);
-                    return (
-                      <Button
-                        key={color}
-                        type="button"
-                        variant={selectedColor === c ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => onSelectColor(color)}
-                        disabled={disabled}
-                        className={disabled ? "opacity-40 pointer-events-none" : ""}
-                      >
-                        {color}
-                      </Button>
-                    );
-                  })}
+                  {colors.map(color => (
+                    <Button
+                      key={color}
+                      type="button"
+                      variant={selectedColor === color ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => onSelectColor(color)}
+                    >
+                      {color}
+                    </Button>
+                  ))}
                 </div>
               </div>
             )}
@@ -554,23 +474,17 @@ const ProductDetail = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Size: <span className="text-muted-foreground">{selectedSize || 'Not selected'}</span></label>
                 <div className="flex gap-2 flex-wrap">
-                  {sizes.map(size => {
-                    const disabled = isSizeDisabled(size);
-                    const s = norm(size);
-                    return (
-                      <Button
-                        key={size}
-                        type="button"
-                        variant={selectedSize === s ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => onSelectSize(size)}
-                        disabled={disabled}
-                        className={disabled ? "opacity-40 pointer-events-none" : ""}
-                      >
-                        {size}
-                      </Button>
-                    );
-                  })}
+                  {sizes.map(size => (
+                    <Button
+                      key={size}
+                      type="button"
+                      variant={selectedSize === size ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => onSelectSize(size)}
+                    >
+                      {size}
+                    </Button>
+                  ))}
                 </div>
               </div>
             )}
@@ -579,23 +493,17 @@ const ProductDetail = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Material: <span className="text-muted-foreground">{selectedMaterial || 'Not selected'}</span></label>
                 <div className="flex gap-2 flex-wrap">
-                  {materials.map(mat => {
-                    const disabled = isMaterialDisabled(mat);
-                    const m = norm(mat);
-                    return (
-                      <Button
-                        key={mat}
-                        type="button"
-                        variant={selectedMaterial === m ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => onSelectMaterial(mat)}
-                        disabled={disabled}
-                        className={disabled ? "opacity-40 pointer-events-none" : ""}
-                      >
-                        {mat}
-                      </Button>
-                    );
-                  })}
+                  {materials.map(mat => (
+                    <Button
+                      key={mat}
+                      type="button"
+                      variant={selectedMaterial === mat ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => onSelectMaterial(mat)}
+                    >
+                      {mat}
+                    </Button>
+                  ))}
                 </div>
               </div>
             )}
