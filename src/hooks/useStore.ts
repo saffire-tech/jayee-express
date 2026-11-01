@@ -133,8 +133,7 @@ export const useStore = () => {
           color,
           size,
           material,
-          product:products (name, image_url),
-          variant:product_variants (id, image_url, price)
+          product:products (name, image_url)
         )
       `)
       .eq("store_id", storeId)
