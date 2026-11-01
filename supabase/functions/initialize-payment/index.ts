@@ -49,6 +49,37 @@ Deno.serve(async (req) => {
       if (!p || !p.is_active) throw new Error(`Invalid product: ${item.product_id}`);
     }
 
+    // Variants: if a product has variants, the buyer MUST have chosen one that
+    // belongs to that product and is in stock. Attributes come from the DB.
+    const { data: allVariants, error: varErr } = await admin
+      .from("product_variants")
+      .select("id, product_id, color, size, material, stock")
+      .in("product_id", productIds);
+    if (varErr) throw varErr;
+
+    const variantsByProduct: Record<string, any[]> = {};
+    for (const v of allVariants || []) {
+      (variantsByProduct[v.product_id] ||= []).push(v);
+    }
+    const resolvedVariant: Record<number, any | null> = {};
+    items.forEach((item: any, idx: number) => {
+      const qty = Number(item.quantity);
+      if (!Number.isInteger(qty) || qty < 1) throw new Error("Invalid quantity");
+      const options = variantsByProduct[item.product_id] || [];
+      if (options.length === 0) {
+        resolvedVariant[idx] = null;
+        return;
+      }
+      const name = priceMap[item.product_id].name;
+      if (!item.variant_id) {
+        throw new Error(`Please choose a variant (colour, size or material) for "${name}" before checkout.`);
+      }
+      const chosen = options.find((v) => v.id === item.variant_id);
+      if (!chosen) throw new Error(`The selected variant for "${name}" is no longer available. Please choose again.`);
+      if ((chosen.stock ?? 0) < qty) throw new Error(`The selected variant for "${name}" doesn't have enough stock.`);
+      resolvedVariant[idx] = chosen;
+    });
+
     const subtotal = items.reduce(
       (sum: number, item: any) => sum + priceMap[item.product_id].price * (parseInt(item.quantity) || 1),
       0
@@ -79,16 +110,21 @@ Deno.serve(async (req) => {
     if (totalGhs <= 0.01) throw new Error("Order total is too small to charge");
 
     const storeGroups: Record<string, any[]> = {};
-    for (const item of items) {
+    items.forEach((item: any, idx: number) => {
       const p = priceMap[item.product_id];
+      const v = resolvedVariant[idx];
       if (!storeGroups[p.store_id]) storeGroups[p.store_id] = [];
       storeGroups[p.store_id].push({
         product_id: item.product_id,
         quantity: parseInt(item.quantity) || 1,
         price: p.price,
         name: p.name,
+        variant_id: v?.id ?? null,
+        color: v?.color ?? null,
+        size: v?.size ?? null,
+        material: v?.material ?? null,
       });
-    }
+    });
 
     const metadata = {
       buyer_id: user.id,
