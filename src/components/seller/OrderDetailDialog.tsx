@@ -151,19 +151,15 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
 
                           <p className="text-muted-foreground">Qty: {item.quantity}</p>
 
-                          {/* Display Variant Specifications */}
+                          {/* Variant the seller must serve */}
                           {(item.color || item.size || item.material) && (
-                            <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
-                              {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
-                              {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
-                              {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
-                            </div>
-                          )}
-
-                          {/* Show variant indicator if variant exists */}
-                          {variant && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              <span className="inline-block px-2 py-0.5 bg-secondary/10 rounded-md">Variant selected</span>
+                            <div className="mt-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5 text-xs">
+                              <p className="font-semibold text-primary mb-0.5">Variant to serve</p>
+                              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                                {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
+                                {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
+                                {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -171,10 +167,6 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
 
                       <div className="text-right">
                         <p className="font-semibold">₵{Number(item.price).toLocaleString()}</p>
-                        {/* If variant has its own price, show it as a small hint */}
-                        {variant?.price != null && Number(variant.price) !== Number(item.price) && (
-                          <p className="text-xs text-muted-foreground">Variant price: ₵{Number(variant.price).toLocaleString()}</p>
-                        )}
                       </div>
                     </div>
                   );
