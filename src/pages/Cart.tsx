@@ -27,7 +27,7 @@ const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const online = useOnlineStatus();
-  const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
+  const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice, itemNeedsVariant, chooseVariantForItem } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [deliveryData, setDeliveryData] = useState<{
@@ -78,6 +78,12 @@ const Cart = () => {
     if (!user || items.length === 0) return;
     if (!online) {
       toast.error("You're offline. Please connect to the internet to complete your purchase.");
+      return;
+    }
+    const missing = items.find((i) => itemNeedsVariant(i));
+    if (missing) {
+      toast.error(`Please choose a variant for "${missing.product?.name}" before checkout.`);
+      chooseVariantForItem(missing.id);
       return;
     }
     setPayOpen(true);
@@ -199,6 +205,17 @@ const Cart = () => {
                         </div>
                       )}
 
+                      {itemNeedsVariant(item) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-1 h-7 text-xs border-destructive text-destructive"
+                          onClick={() => chooseVariantForItem(item.id)}
+                        >
+                          Choose variant (required)
+                        </Button>
+                      )}
+
                       <p className="text-base md:text-lg font-bold text-primary mt-1">
                         ₵{item.product?.price.toLocaleString()}
                       </p>
@@ -262,7 +279,7 @@ const Cart = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex-col gap-2 md:gap-3">
-                <Button className="w-full" size="lg" onClick={handleCheckout} disabled={checkingOut || !!pendingAttempt || !online}>
+                <Button className="w-full" size="lg" onClick={handleCheckout} disabled={checkingOut || !!pendingAttempt || !online || items.some((i) => itemNeedsVariant(i))}>
                   {checkingOut ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...

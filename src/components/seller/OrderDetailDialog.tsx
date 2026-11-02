@@ -24,6 +24,17 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps) => {
   const [buyer, setBuyer] = useState<{ full_name: string | null; phone: string | null; campus: string | null } | null>(null);
 
+  const [variantImages, setVariantImages] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    if (!order || !open) return;
+    const ids = ((order.order_items || []) as any[]).map((i) => i.variant_id).filter(Boolean);
+    if (ids.length === 0) { setVariantImages({}); return; }
+    supabase.from("product_variants").select("id, image_url").in("id", ids).then(({ data }) => {
+      setVariantImages(Object.fromEntries((data || []).map((v: any) => [v.id, v.image_url])));
+    });
+  }, [order?.id, open]);
+
   useEffect(() => {
     if (!order || !open) return;
     const fetchBuyer = async () => {
@@ -125,10 +136,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
               <h4 className="text-sm font-semibold mb-2">Items</h4>
               <div className="space-y-2">
                 {order.order_items.map((item: any) => {
-                  // Supabase sometimes returns related objects as arrays; handle both forms
-                  const variant = Array.isArray(item.variant) ? item.variant[0] : item.variant;
-
-                  const thumb = variant?.image_url || item.product?.image_url || null;
+                  const thumb = (item.variant_id && variantImages[item.variant_id]) || item.product?.image_url || null;
 
                   return (
                     <div key={item.id} className="flex items-center justify-between bg-muted/50 rounded-lg p-3 text-sm">
@@ -151,19 +159,15 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
 
                           <p className="text-muted-foreground">Qty: {item.quantity}</p>
 
-                          {/* Display Variant Specifications */}
+                          {/* Variant the seller must serve */}
                           {(item.color || item.size || item.material) && (
-                            <div className="text-xs text-muted-foreground mt-0.5 space-x-2">
-                              {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
-                              {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
-                              {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
-                            </div>
-                          )}
-
-                          {/* Show variant indicator if variant exists */}
-                          {variant && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              <span className="inline-block px-2 py-0.5 bg-secondary/10 rounded-md">Variant selected</span>
+                            <div className="mt-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1.5 text-xs">
+                              <p className="font-semibold text-primary mb-0.5">Variant to serve</p>
+                              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                                {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
+                                {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
+                                {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -171,10 +175,6 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
 
                       <div className="text-right">
                         <p className="font-semibold">₵{Number(item.price).toLocaleString()}</p>
-                        {/* If variant has its own price, show it as a small hint */}
-                        {variant?.price != null && Number(variant.price) !== Number(item.price) && (
-                          <p className="text-xs text-muted-foreground">Variant price: ₵{Number(variant.price).toLocaleString()}</p>
-                        )}
                       </div>
                     </div>
                   );

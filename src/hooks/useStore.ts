@@ -65,6 +65,7 @@ export interface Order {
 }
 
 export interface OrderItem {
+  variant_id?: string | null;
   id: string;
   order_id: string;
   product_id: string;
@@ -130,6 +131,7 @@ export const useStore = () => {
           product_id,
           quantity,
           price,
+          variant_id,
           color,
           size,
           material,
