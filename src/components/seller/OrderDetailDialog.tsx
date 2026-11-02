@@ -24,6 +24,17 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps) => {
   const [buyer, setBuyer] = useState<{ full_name: string | null; phone: string | null; campus: string | null } | null>(null);
 
+  const [variantImages, setVariantImages] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    if (!order || !open) return;
+    const ids = ((order.order_items || []) as any[]).map((i) => i.variant_id).filter(Boolean);
+    if (ids.length === 0) { setVariantImages({}); return; }
+    supabase.from("product_variants").select("id, image_url").in("id", ids).then(({ data }) => {
+      setVariantImages(Object.fromEntries((data || []).map((v: any) => [v.id, v.image_url])));
+    });
+  }, [order?.id, open]);
+
   useEffect(() => {
     if (!order || !open) return;
     const fetchBuyer = async () => {
@@ -125,10 +136,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange }: OrderDetailDialogProps
               <h4 className="text-sm font-semibold mb-2">Items</h4>
               <div className="space-y-2">
                 {order.order_items.map((item: any) => {
-                  // Supabase sometimes returns related objects as arrays; handle both forms
-                  const variant = Array.isArray(item.variant) ? item.variant[0] : item.variant;
-
-                  const thumb = variant?.image_url || item.product?.image_url || null;
+                  const thumb = (item.variant_id && variantImages[item.variant_id]) || item.product?.image_url || null;
 
                   return (
                     <div key={item.id} className="flex items-center justify-between bg-muted/50 rounded-lg p-3 text-sm">
