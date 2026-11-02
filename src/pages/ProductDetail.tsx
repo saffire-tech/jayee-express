@@ -242,15 +242,16 @@ const ProductDetail = () => {
     if (!product) return;
 
     if (variants.length > 0) {
-      const hasSelection = !!(selectedColor || selectedSize || selectedMaterial);
-
-      if (hasSelection && !selectedVariant) {
-        toast.error('Please select a valid variant combination.');
+      const needColor = colors.length > 0 && !selectedColor;
+      const needSize = sizes.length > 0 && !selectedSize;
+      const needMaterial = materials.length > 0 && !selectedMaterial;
+      if (needColor || needSize || needMaterial) {
+        const missing = [needColor && 'color', needSize && 'size', needMaterial && 'material'].filter(Boolean).join(', ');
+        toast.error(`Please select your preferred ${missing} before adding to cart.`);
         return;
       }
-
-      if (!hasSelection) {
-        await addToCart(product.id, quantity, undefined);
+      if (!selectedVariant) {
+        toast.error('Please select a valid variant combination.');
         return;
       }
     }
