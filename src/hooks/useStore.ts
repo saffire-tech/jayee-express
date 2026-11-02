@@ -131,6 +131,7 @@ export const useStore = () => {
           product_id,
           quantity,
           price,
+          variant_id,
           color,
           size,
           material,
