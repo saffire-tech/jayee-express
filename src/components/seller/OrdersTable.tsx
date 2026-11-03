@@ -134,6 +134,11 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
               </div>
 
               <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                {order.status === "completed" ? (
+                  <Badge className="bg-green-100 text-green-800" title="Completed orders are locked">
+                    <CheckCircle className="h-3 w-3 mr-1" /> Completed
+                  </Badge>
+                ) : (
                 <Select
                   value={order.status}
                   onValueChange={(value) => onUpdateStatus(order.id, value as Order["status"])}
@@ -148,6 +153,7 @@ const OrdersTable = ({ orders, onUpdateStatus, storeLocation }: OrdersTableProps
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
+                )}
               </div>
             </div>
           </div>

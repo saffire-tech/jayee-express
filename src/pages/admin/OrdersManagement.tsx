@@ -120,7 +120,10 @@ export default function OrdersManagement() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  const OrderActions = ({ order }: { order: typeof paginatedOrders[0] }) => (
+  const OrderActions = ({ order }: { order: typeof paginatedOrders[0] }) =>
+    order.status === 'completed' ? (
+      <span className="text-xs text-muted-foreground whitespace-nowrap">Locked</span>
+    ) : (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
