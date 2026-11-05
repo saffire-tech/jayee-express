@@ -227,8 +227,8 @@ const Profile = () => {
           <p className="text-sm text-muted-foreground mb-4">
             You'll only see stores, products, and deliveries from this city.
           </p>
-          <div className="grid grid-cols-3 gap-3">
-            {(["Tamale", "Wa", "Accra"] as const).map((c) => (
+          <div className="grid grid-cols-1 gap-3">
+            {(["Accra"] as const).map((c) => (
               <button
                 key={c}
                 onClick={async () => {

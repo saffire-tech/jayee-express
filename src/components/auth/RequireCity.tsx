@@ -1,34 +1,21 @@
-import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { DEFAULT_CITY } from "@/config/locations";
 
 /**
- * Redirects signed-in users without a city to /select-city.
- * Allowlist routes are excluded so unauthenticated/onboarding flows still work.
+ * Jayee Express serves Accra only: any signed-in user without a city
+ * (or with a retired city) is silently assigned Accra.
  */
-const ALLOWLIST = [
-  "/auth",
-  "/select-city",
-  "/reset-password",
-  "/privacy-policy",
-  "/terms",
-  "/download",
-];
-
 export const RequireCity = () => {
-  const { user, profile, loading } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user, profile, loading, updateProfile } = useAuth();
+  const done = useRef(false);
 
   useEffect(() => {
-    if (loading || !user || !profile) return;
-    if (profile.city) return;
-    const path = location.pathname;
-    if (ALLOWLIST.some((p) => path === p || path.startsWith(p + "/"))) return;
-    // Public product/store deep-links can still be browsed without a city
-    if (path.startsWith("/product/") || path.startsWith("/store/")) return;
-    navigate("/select-city", { replace: true });
-  }, [user, profile, loading, location.pathname, navigate]);
+    if (loading || !user || !profile || done.current) return;
+    if (profile.city === DEFAULT_CITY) return;
+    done.current = true;
+    updateProfile({ city: DEFAULT_CITY } as any).catch(() => { done.current = false; });
+  }, [user, profile, loading, updateProfile]);
 
   return null;
 };

@@ -88,7 +88,7 @@ const Index = () => {
     <main className="min-h-screen bg-background pb-16 md:pb-0">
       <SEO
         title="Jayee Express — Buy & Sell Locally in Ghana"
-        description="Buy and sell locally in Ghana. Set up a store, find trusted sellers, and shop with delivery across Accra, Tamale and Wa on Jayee Express."
+        description="Buy and sell locally in Ghana. Set up a store, find trusted sellers, and shop with delivery across Accra on Jayee Express."
         canonicalPath="/"
       />
       <Navbar />

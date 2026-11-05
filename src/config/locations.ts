@@ -5,62 +5,11 @@ export interface LocationGroup {
   locations: string[];
 }
 
-// Communities grouped by city/zone for Tamale and Wa.
+// Jayee Express serves Accra only.
+export const DEFAULT_CITY = 'Accra';
+
+// Communities grouped by zone in Accra.
 export const LOCATION_GROUPS: LocationGroup[] = [
-  {
-    id: 'tamale-central',
-    name: 'Tamale Central',
-    city: 'Tamale',
-    locations: [
-      'Aboabo', 'Sakasaka', 'Lamashegu', 'Choggu', 'Vittin', 'Nyohini',
-      'Gumbihini', 'Zogbeli', 'Tishigu', 'Kalpohin', 'Dakpema', 'Zongo',
-    ],
-  },
-  {
-    id: 'tamale-east',
-    name: 'Tamale East',
-    city: 'Tamale',
-    locations: [
-      'Kanvili', 'Gurugu', 'Gumani', 'Kpalsi', 'Kakpagyili', 'Sognaayili',
-      'Kanvili-Kukuo', 'Education Ridge',
-    ],
-  },
-  {
-    id: 'tamale-west-north',
-    name: 'Tamale West & North',
-    city: 'Tamale',
-    locations: [
-      'Bulpiela', 'Changli', 'Kpene', 'Tugu', 'Nyanshegu', 'Jisonayili',
-      'Kpalga', 'Kpanvo', 'Builpela',
-    ],
-  },
-  {
-    id: 'tamale-outskirts',
-    name: 'Tamale Outskirts',
-    city: 'Tamale',
-    locations: [
-      'Savelugu', 'Tolon', 'Kasalgu', 'Datoyili', 'Sangani', 'Diare',
-      'Nyankpala', 'Kumbungu',
-    ],
-  },
-  {
-    id: 'wa-central',
-    name: 'Wa Central',
-    city: 'Wa',
-    locations: [
-      'Wa Zongo', 'Dondoli', 'Kabanye', 'Kpaguri', 'Mangu', 'Nakori',
-      'SSNIT Flats', 'Kpongu', 'Dobile',
-    ],
-  },
-  {
-    id: 'wa-outskirts',
-    name: 'Wa Outskirts',
-    city: 'Wa',
-    locations: [
-      'Bamahu', 'Sing', 'Charia', 'Busa', 'Loho', 'Kperisi', 'Jujeyiri',
-      'Sombo', 'Nyagli',
-    ],
-  },
   {
     id: 'accra-central',
     name: 'Accra Central',

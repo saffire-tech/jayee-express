@@ -208,7 +208,7 @@ const Products = () => {
           "@type": "CollectionPage",
           name: "Browse Products & Services",
           description:
-            "Products and services from verified local sellers across Accra, Tamale and Wa on Jayee Express.",
+            "Products and services from verified local sellers across Accra on Jayee Express.",
           url: "https://jayeeexpress.com/products",
           mainEntity: {
             "@type": "ItemList",

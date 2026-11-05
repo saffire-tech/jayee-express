@@ -34,7 +34,7 @@ const StoreSetupWizard = ({ onComplete }: StoreSetupWizardProps) => {
     location: "",
     phone: "",
     campus: "",
-    city: profile?.city || "Tamale",
+    city: "Accra",
     cover_url: "",
     logo_url: "",
     latitude: undefined as number | undefined,

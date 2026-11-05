@@ -120,8 +120,17 @@ const MoMoPaymentDialog = ({
     setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke(functionName, { body: body || {} });
-      if (error) throw new Error(error.message || "Could not start the payment");
+      if (error) {
+        let msg = error.message || "Could not start the payment";
+        try {
+          const ctx = (error as any).context;
+          const j = ctx && typeof ctx.json === "function" ? await ctx.json() : null;
+          if (j?.error) msg = j.error;
+        } catch { /* keep default */ }
+        throw new Error(msg);
+      }
       if (data?.error) throw new Error(data.error);
+      if (!data?.access_code) throw new Error("Payment could not be started. Please try again.");
       const ref = data.reference as string;
       setReference(ref);
       await loadPaystack();

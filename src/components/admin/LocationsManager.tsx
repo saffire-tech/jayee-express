@@ -29,7 +29,7 @@ const LocationsManager = () => {
   const [form, setForm] = useState<{
     city: string; zone: string; name: string; display_order: number; is_active: boolean;
     latitude: string; longitude: string;
-  }>({ city: 'Tamale', zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
+  }>({ city: 'Accra', zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
 
   const fetchLocations = async () => {
     setLoading(true);
@@ -50,14 +50,14 @@ const LocationsManager = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ city: 'Tamale', zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
+    setForm({ city: 'Accra', zone: '', name: '', display_order: 0, is_active: true, latitude: '', longitude: '' });
     setOpen(true);
   };
 
   const openEdit = (loc: Location) => {
     setEditing(loc);
     setForm({
-      city: loc.city || 'Tamale',
+      city: loc.city || 'Accra',
       zone: loc.zone,
       name: loc.name,
       display_order: loc.display_order,
@@ -113,7 +113,7 @@ const LocationsManager = () => {
 
   // Group by zone
   const grouped = locations.reduce<Record<string, Location[]>>((acc, l) => {
-    const key = `${l.city || 'Tamale'} — ${l.zone}`;
+    const key = `${l.city || 'Accra'} — ${l.zone}`;
     (acc[key] = acc[key] || []).push(l);
     return acc;
   }, {});
@@ -142,8 +142,6 @@ const LocationsManager = () => {
                   onChange={(e) => setForm({ ...form, city: e.target.value })}
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="Tamale">Tamale</option>
-                  <option value="Wa">Wa</option>
                   <option value="Accra">Accra</option>
                 </select>
               </div>

@@ -8,8 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SEO";
 
 const CITIES = [
-  { id: "Tamale", description: "Northern Region" },
-  { id: "Wa", description: "Upper West Region" },
   { id: "Accra", description: "Greater Accra Region" },
 ] as const;
 
@@ -54,7 +52,7 @@ const SelectCity = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
       <SEO
         title="Choose Your City | Jayee Express"
-        description="Pick your city on Jayee Express to see stores, products and delivery jobs near you in Accra, Tamale or Wa."
+        description="Pick your city on Jayee Express to see stores, products and delivery jobs near you in Accra."
         canonicalPath="/select-city"
         noindex
       />

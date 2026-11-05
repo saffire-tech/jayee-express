@@ -14,7 +14,7 @@ interface LocationSelectorProps {
   allOptionLabel?: string;
   className?: string;
   disabled?: boolean;
-  /** Limit the areas shown to a single city (Tamale, Wa, Accra). */
+  /** Limit the areas shown to a single city (Accra). */
   city?: string | null;
 }
 

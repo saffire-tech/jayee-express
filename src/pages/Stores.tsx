@@ -168,7 +168,7 @@ const Stores = () => {
           "@type": "CollectionPage",
           name: "Browse Local Stores",
           description:
-            "Directory of verified community stores across Accra, Tamale and Wa on Jayee Express.",
+            "Directory of verified community stores across Accra on Jayee Express.",
           url: "https://jayeeexpress.com/stores",
           mainEntity: {
             "@type": "ItemList",
