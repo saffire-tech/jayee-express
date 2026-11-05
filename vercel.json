@@ -4,6 +4,14 @@
       "source": "/~oauth/:path*",
       "destination": "https://jayee-express.lovable.app/~oauth/:path*"
     },
+    {
+      "source": "/share/product/:id",
+      "destination": "https://brqzedcxzjqwzpkwrmow.supabase.co/functions/v1/og-redirect?type=product&id=:id"
+    },
+    {
+      "source": "/share/store/:id",
+      "destination": "https://brqzedcxzjqwzpkwrmow.supabase.co/functions/v1/og-redirect?type=store&id=:id"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
