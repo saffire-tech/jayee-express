@@ -143,41 +143,44 @@ const SubscriptionCard = ({ storeId, productCount, onUpdated }: Props) => {
   // Approved + admin-assigned fee — show admin-managed renewal flow
   if (hasAdminFee) {
     return (
-      <Card className={`p-5 ${isExpired ? "border-destructive/50 bg-destructive/5" : "border-primary/30"}`}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className={`p-2 rounded-lg ${isExpired ? "bg-destructive/10" : "bg-primary/10"}`}>
-              {isExpired ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Crown className="h-5 w-5 text-primary" />}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold">
-                  {isExpired ? "Subscription Expired" : "Store Subscription"}
-                </h3>
-                <Badge variant="outline">₵{Number(store.monthly_fee).toFixed(2)} / month</Badge>
+      <>
+        <Card className={`p-5 ${isExpired ? "border-destructive/50 bg-destructive/5" : "border-primary/30"}`}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className={`p-2 rounded-lg ${isExpired ? "bg-destructive/10" : "bg-primary/10"}`}>
+                {isExpired ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Crown className="h-5 w-5 text-primary" />}
               </div>
-              {isExpired ? (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Pay your monthly subscription so your products appear in the marketplace.
-                </p>
-              ) : (
-                <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                  <CalendarClock className="h-4 w-4" />
-                  <span>
-                    Renews in <span className="font-mono font-semibold text-foreground">
-                      {cd!.days}d {cd!.hours}h {cd!.minutes}m {cd!.seconds}s
-                    </span>
-                  </span>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold">
+                    {isExpired ? "Subscription Expired" : "Store Subscription"}
+                  </h3>
+                  <Badge variant="outline">₵{Number(store.monthly_fee).toFixed(2)} / month</Badge>
                 </div>
-              )}
+                {isExpired ? (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Pay your monthly subscription so your products appear in the marketplace.
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                    <CalendarClock className="h-4 w-4" />
+                    <span>
+                      Renews in <span className="font-mono font-semibold text-foreground">
+                        {cd!.days}d {cd!.hours}h {cd!.minutes}m {cd!.seconds}s
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
+            <Button onClick={payAdminFee} disabled={payLoading} variant={isExpired ? "default" : "outline"}>
+              {payLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {isExpired ? "Pay & Activate" : "Renew Now"}
+            </Button>
           </div>
-          <Button onClick={payAdminFee} disabled={payLoading} variant={isExpired ? "default" : "outline"}>
-            {payLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            {isExpired ? "Pay & Activate" : "Renew Now"}
-          </Button>
-        </div>
-      </Card>
+        </Card>
+        {feeDialog}
+      </>
     );
   }
 
