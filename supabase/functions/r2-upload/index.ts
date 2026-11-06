@@ -7,6 +7,8 @@ const MAX_BYTES = 6 * 1024 * 1024;
 const EXT: Record<string, string> = {
   "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/avif": "avif",
 };
+const VIDEO_EXT: Record<string, string> = { "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov" };
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -28,9 +30,12 @@ Deno.serve(async (req) => {
     const folder = String(form.get("folder") ?? "");
     if (!(file instanceof File)) return json({ error: "No file provided" }, 400);
     if (!FOLDERS.has(folder)) return json({ error: "Invalid folder" }, 400);
-    const ext = EXT[file.type];
-    if (!ext) return json({ error: "Only JPG, PNG, WEBP, GIF or AVIF images are allowed" }, 400);
-    if (file.size > MAX_BYTES) return json({ error: "Image too large" }, 400);
+    const videoExt = folder === "products" ? VIDEO_EXT[file.type] : undefined;
+    const ext = EXT[file.type] ?? videoExt;
+    if (!ext) return json({ error: "Only JPG, PNG, WEBP, GIF, AVIF images or MP4, WEBM, MOV videos are allowed" }, 400);
+    if (videoExt ? file.size > MAX_VIDEO_BYTES : file.size > MAX_BYTES) {
+      return json({ error: videoExt ? "Video must be 20MB or less" : "Image too large" }, 400);
+    }
 
     const accountId = Deno.env.get("R2_ACCOUNT_ID");
     const bucket = Deno.env.get("R2_BUCKET");

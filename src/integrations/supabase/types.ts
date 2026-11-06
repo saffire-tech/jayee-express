@@ -1012,6 +1012,7 @@ export type Database = {
           stock: number | null
           store_id: string
           updated_at: string
+          video_url: string | null
           views: number | null
         }
         Insert: {
@@ -1029,6 +1030,7 @@ export type Database = {
           stock?: number | null
           store_id: string
           updated_at?: string
+          video_url?: string | null
           views?: number | null
         }
         Update: {
@@ -1046,6 +1048,7 @@ export type Database = {
           stock?: number | null
           store_id?: string
           updated_at?: string
+          video_url?: string | null
           views?: number | null
         }
         Relationships: [

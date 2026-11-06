@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Star, ShoppingCart, Store, ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
+import { Star, ShoppingCart, Store, ChevronLeft, ChevronRight, Minus, Plus, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import ShareButton from '@/components/ui/ShareButton';
 import ContactSellerDialog from '@/components/messaging/ContactSellerDialog';
@@ -39,6 +39,7 @@ interface Product {
   price: number;
   image_url: string | null;
   images: string[] | null;
+  video_url?: string | null;
   category: string;
   stock: number | null;
   is_service: boolean | null;
@@ -84,6 +85,7 @@ const ProductDetail = () => {
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showVideo, setShowVideo] = useState(true);
 
   useProductViewTracking(id);
 
@@ -371,7 +373,18 @@ const ProductDetail = () => {
           {/* Image Gallery */}
           <div className="space-y-4">
             <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-              {displayedImage ? (
+              {product.video_url && showVideo && !selectedVariant?.image_url ? (
+                <video
+                  src={getCdnImageUrl(product.video_url)}
+                  poster={galleryImages[0] ? getCdnImageUrl(galleryImages[0]) : undefined}
+                  className="w-full h-full object-contain bg-muted"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls
+                />
+              ) : displayedImage ? (
                 <img
                   src={getCdnImageUrl(displayedImage)}
                   alt={product.name}
@@ -389,7 +402,7 @@ const ProductDetail = () => {
                     variant="ghost"
                     size="icon"
                     className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
-                    onClick={() => setCurrentImageIndex(prev => prev === 0 ? galleryImages.length - 1 : prev - 1)}
+                    onClick={() => { setShowVideo(false); setCurrentImageIndex(prev => prev === 0 ? galleryImages.length - 1 : prev - 1); }}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -397,7 +410,7 @@ const ProductDetail = () => {
                     variant="ghost"
                     size="icon"
                     className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
-                    onClick={() => setCurrentImageIndex(prev => prev === galleryImages.length - 1 ? 0 : prev + 1)}
+                    onClick={() => { setShowVideo(false); setCurrentImageIndex(prev => prev === galleryImages.length - 1 ? 0 : prev + 1); }}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -405,14 +418,25 @@ const ProductDetail = () => {
               )}
             </div>
 
-            {galleryImages.length > 1 && (
-              <div className="flex gap-2">
+            {(galleryImages.length > 1 || (product.video_url && galleryImages.length > 0)) && (
+              <div className="flex gap-2 flex-wrap">
+                {product.video_url && (
+                  <button
+                    onClick={() => setShowVideo(true)}
+                    aria-label="Play product video"
+                    className={`relative w-20 h-20 rounded-md overflow-hidden border-2 bg-muted flex items-center justify-center ${
+                      showVideo ? 'border-primary' : 'border-transparent'
+                    }`}
+                  >
+                    <Play className="h-8 w-8 text-primary" />
+                  </button>
+                )}
                 {galleryImages.map((img, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setCurrentImageIndex(idx)}
+                    onClick={() => { setShowVideo(false); setCurrentImageIndex(idx); }}
                     className={`w-20 h-20 rounded-md overflow-hidden border-2 ${
-                      idx === currentImageIndex ? 'border-primary' : 'border-transparent'
+                      !(product.video_url && showVideo) && idx === currentImageIndex ? 'border-primary' : 'border-transparent'
                     }`}
                   >
                     <img loading="lazy" src={getCdnImageUrl(img)} alt="" className="w-full h-full object-contain bg-muted" />

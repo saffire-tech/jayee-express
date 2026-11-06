@@ -43,6 +43,7 @@ export interface Product {
   category: string;
   image_url: string | null;
   images: string[];
+  video_url?: string | null;
   is_service: boolean;
   is_active: boolean;
   stock: number;

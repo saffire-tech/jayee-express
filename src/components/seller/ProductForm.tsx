@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import MultiImageUpload from "./MultiImageUpload";
+import ProductVideoUpload from "./ProductVideoUpload";
 import ImageUpload from "./ImageUpload";
 import type { Product } from "@/hooks/useStore";
 
@@ -94,6 +95,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
     price: product?.price?.toString() || "",
     category: product?.category || "",
     images: getInitialImages(),
+    video_url: (product as any)?.video_url || null as string | null,
     is_service: product?.is_service || false,
     is_active: product?.is_active ?? true,
     stock: product?.stock?.toString() || "0",
@@ -110,6 +112,7 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
         category: formData.category,
         image_url: formData.images[0] || null,
         images: formData.images,
+        video_url: formData.video_url || null,
         is_service: formData.is_service,
         is_active: formData.is_active,
         stock: parseInt(formData.stock) || 0,
@@ -142,6 +145,16 @@ const ProductForm = ({ product, onSubmit, onCancel }: ProductFormProps) => {
               currentImages={formData.images}
               onImagesChanged={(urls) => setFormData({ ...formData, images: urls })}
               maxImages={5}
+            />
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
+          <Label>Product Video (optional)</Label>
+          <div className="mt-1">
+            <ProductVideoUpload
+              value={formData.video_url}
+              onChange={(url) => setFormData((f) => ({ ...f, video_url: url }))}
             />
           </div>
         </div>
