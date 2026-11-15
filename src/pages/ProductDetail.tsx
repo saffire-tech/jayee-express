@@ -1,5 +1,5 @@
 import { getCdnImageUrl } from "@/lib/cdn";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, type TouchEvent, type PointerEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SEO from '@/components/SEO';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,6 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -72,6 +71,7 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const swipeStartX = useRef<number | null>(null);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -100,6 +100,49 @@ const ProductDetail = () => {
   };
 
   const galleryImages = getGalleryImages();
+
+  const goToImage = (direction: 1 | -1) => {
+    if (galleryImages.length <= 1) return;
+
+    setShowVideo(false);
+    setCurrentImageIndex(prev => {
+      const total = galleryImages.length;
+      return (prev + direction + total) % total;
+    });
+  };
+
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    swipeStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    if (swipeStartX.current === null) return;
+
+    const endX = event.changedTouches[0]?.clientX ?? swipeStartX.current;
+    const diff = endX - swipeStartX.current;
+
+    if (Math.abs(diff) > 50) {
+      goToImage(diff < 0 ? 1 : -1);
+    }
+
+    swipeStartX.current = null;
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    swipeStartX.current = event.clientX;
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (swipeStartX.current === null) return;
+
+    const diff = event.clientX - swipeStartX.current;
+
+    if (Math.abs(diff) > 50) {
+      goToImage(diff < 0 ? 1 : -1);
+    }
+
+    swipeStartX.current = null;
+  };
 
   useEffect(() => {
     if (id) {
@@ -156,7 +199,6 @@ const ProductDetail = () => {
 
       setVariants(normalized);
 
-      // no default selection
       setSelectedColor(null);
       setSelectedSize(null);
       setSelectedMaterial(null);
@@ -370,9 +412,14 @@ const ProductDetail = () => {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6 md:gap-8 mb-8 md:mb-12">
-          {/* Image Gallery */}
           <div className="space-y-4">
-            <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
+            <div
+              className="relative aspect-square bg-muted rounded-lg overflow-hidden cursor-grab touch-pan-y active:cursor-grabbing"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+            >
               {product.video_url && showVideo && !selectedVariant?.image_url ? (
                 <video
                   src={getCdnImageUrl(product.video_url)}
@@ -388,7 +435,7 @@ const ProductDetail = () => {
                 <img
                   src={getCdnImageUrl(displayedImage)}
                   alt={product.name}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain select-none"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -402,7 +449,7 @@ const ProductDetail = () => {
                     variant="ghost"
                     size="icon"
                     className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
-                    onClick={() => { setShowVideo(false); setCurrentImageIndex(prev => prev === 0 ? galleryImages.length - 1 : prev - 1); }}
+                    onClick={() => goToImage(-1)}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -410,10 +457,16 @@ const ProductDetail = () => {
                     variant="ghost"
                     size="icon"
                     className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
-                    onClick={() => { setShowVideo(false); setCurrentImageIndex(prev => prev === galleryImages.length - 1 ? 0 : prev + 1); }}
+                    onClick={() => goToImage(1)}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
+
+                  <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full bg-background/75 px-2.5 py-1 text-[10px] font-medium text-muted-foreground backdrop-blur-sm">
+                    <ChevronLeft className="h-3 w-3" />
+                    <span>Swipe</span>
+                    <ChevronRight className="h-3 w-3" />
+                  </div>
                 </>
               )}
             </div>
@@ -446,7 +499,6 @@ const ProductDetail = () => {
             )}
           </div>
 
-          {/* Product Info */}
           <div className="space-y-4 md:space-y-6">
             <div>
               <Badge variant="secondary" className="mb-2">{product.category}</Badge>
@@ -475,7 +527,6 @@ const ProductDetail = () => {
               {displayedDescription || 'No description available.'}
             </p>
 
-            {/* Variant Selectors */}
             {colors.length > 0 && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Color: <span className="text-muted-foreground">{selectedColor || 'Not selected'}</span></label>
@@ -544,7 +595,6 @@ const ProductDetail = () => {
 
             <Separator />
 
-            {/* Quantity & Add to Cart */}
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium">Quantity:</span>
@@ -596,7 +646,6 @@ const ProductDetail = () => {
 
             <Separator />
 
-            {/* Seller Info */}
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
@@ -619,7 +668,6 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Reviews & Similar Products */}
         <SimilarProducts
           currentProductId={product.id}
           category={product.category}
