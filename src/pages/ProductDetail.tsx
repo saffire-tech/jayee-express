@@ -1,5 +1,5 @@
 import { getCdnImageUrl } from "@/lib/cdn";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, type TouchEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SEO from '@/components/SEO';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Star, ShoppingCart, Store, ChevronLeft, ChevronRight, Minus, Plus, Play } from 'lucide-react';
+import { Star, ShoppingCart, Store, Minus, Plus, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import ShareButton from '@/components/ui/ShareButton';
 import ContactSellerDialog from '@/components/messaging/ContactSellerDialog';
@@ -86,6 +86,7 @@ const ProductDetail = () => {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(true);
+  const touchStartX = useRef<number | null>(null);
 
   useProductViewTracking(id);
 
@@ -100,6 +101,36 @@ const ProductDetail = () => {
   };
 
   const galleryImages = getGalleryImages();
+
+  const goToImage = (direction: 'next' | 'prev') => {
+    if (galleryImages.length <= 1) return;
+
+    setShowVideo(false);
+
+    setCurrentImageIndex(prev => {
+      if (direction === 'next') {
+        return prev === galleryImages.length - 1 ? 0 : prev + 1;
+      }
+
+      return prev === 0 ? galleryImages.length - 1 : prev - 1;
+    });
+  };
+
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    if (touchStartX.current === null) return;
+
+    const deltaX = (event.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
+
+    if (Math.abs(deltaX) > 50) {
+      goToImage(deltaX < 0 ? 'next' : 'prev');
+    }
+
+    touchStartX.current = null;
+  };
 
   useEffect(() => {
     if (id) {
@@ -372,7 +403,11 @@ const ProductDetail = () => {
         <div className="grid lg:grid-cols-2 gap-6 md:gap-8 mb-8 md:mb-12">
           {/* Image Gallery */}
           <div className="space-y-4">
-            <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
+            <div
+              className="relative aspect-square bg-muted rounded-lg overflow-hidden"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
               {product.video_url && showVideo && !selectedVariant?.image_url ? (
                 <video
                   src={getCdnImageUrl(product.video_url)}
@@ -394,27 +429,6 @@ const ProductDetail = () => {
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                   No image available
                 </div>
-              )}
-
-              {galleryImages.length > 1 && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
-                    onClick={() => { setShowVideo(false); setCurrentImageIndex(prev => prev === 0 ? galleryImages.length - 1 : prev - 1); }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background"
-                    onClick={() => { setShowVideo(false); setCurrentImageIndex(prev => prev === galleryImages.length - 1 ? 0 : prev + 1); }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </>
               )}
             </div>
 
