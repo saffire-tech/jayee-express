@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,11 +33,32 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [triggerHost, setTriggerHost] = useState<HTMLElement | null>(null);
 
   const myReview = user ? reviews.find((review) => review.user_id === user.id) : undefined;
   const averageRating = reviews.length
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
+
+  // Render the reviews trigger as a sibling of the Share button so it sits beside it
+  // in the existing product action row, including when the product loads asynchronously.
+  useEffect(() => {
+    const findShareButton = () => Array.from(document.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Share');
+    const attachToShareRow = () => {
+      const shareButton = findShareButton();
+      if (!shareButton?.parentElement) return false;
+      setTriggerHost(shareButton.parentElement);
+      return true;
+    };
+
+    if (attachToShareRow()) return;
+    const observer = new MutationObserver(() => {
+      if (attachToShareRow()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [productId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,12 +169,15 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button type="button" variant="outline" className="fixed bottom-20 right-4 z-40 shadow-lg md:bottom-6 md:right-6">
-          <Star className="mr-2 h-4 w-4" />
-          Reviews & ratings ({reviews.length})
-        </Button>
-      </DialogTrigger>
+      {triggerHost && createPortal(
+        <DialogTrigger asChild>
+          <Button type="button" variant="outline" size="lg">
+            <Star className="mr-2 h-4 w-4" />
+            Reviews & ratings ({reviews.length})
+          </Button>
+        </DialogTrigger>,
+        triggerHost,
+      )}
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Customer reviews & ratings</DialogTitle>
