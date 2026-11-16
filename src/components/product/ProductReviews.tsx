@@ -33,28 +33,32 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
-  const [triggerHost, setTriggerHost] = useState<HTMLElement | null>(null);
+  const [actionRow, setActionRow] = useState<HTMLElement | null>(null);
 
   const myReview = user ? reviews.find((review) => review.user_id === user.id) : undefined;
   const averageRating = reviews.length
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
 
-  // Render the reviews trigger as a sibling of the Share button so it sits beside it
-  // in the existing product action row, including when the product loads asynchronously.
+  // Mount the trigger in the existing product action row, beside Add to Cart,
+  // Contact Seller, and Share. ProductDetail renders after the route wrapper,
+  // so watch for the Share control to appear before attaching the portal.
   useEffect(() => {
-    const findShareButton = () => Array.from(document.querySelectorAll('button'))
-      .find((button) => button.textContent?.trim() === 'Share');
-    const attachToShareRow = () => {
-      const shareButton = findShareButton();
-      if (!shareButton?.parentElement) return false;
-      setTriggerHost(shareButton.parentElement);
+    let mountedRow: HTMLElement | null = null;
+    const locateActionRow = () => {
+      const shareButton = Array.from(document.querySelectorAll('button')).find((button) =>
+        Array.from(button.querySelectorAll('span')).some((span) => span.textContent?.trim() === 'Share'),
+      );
+      const row = shareButton?.parentElement;
+      if (!row || row === mountedRow) return false;
+      mountedRow = row;
+      setActionRow(row);
       return true;
     };
 
-    if (attachToShareRow()) return;
+    if (locateActionRow()) return;
     const observer = new MutationObserver(() => {
-      if (attachToShareRow()) observer.disconnect();
+      if (locateActionRow()) observer.disconnect();
     });
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
@@ -62,7 +66,6 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
 
   useEffect(() => {
     let cancelled = false;
-
     const loadEligibility = async () => {
       setEligibilityLoading(true);
       if (!user) {
@@ -96,7 +99,6 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
 
   useEffect(() => {
     let cancelled = false;
-
     const loadReviews = async () => {
       const { data, error } = await supabase
         .from('reviews')
@@ -123,7 +125,6 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
         profile: profiles?.find((profile: any) => profile.user_id === review.user_id),
       })) as Review[];
       setReviews(withProfiles);
-
       const mine = user ? withProfiles.find((review) => review.user_id === user.id) : undefined;
       setRating(mine?.rating ?? 5);
       setComment(mine?.comment || '');
@@ -169,14 +170,14 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {triggerHost && createPortal(
+      {actionRow && createPortal(
         <DialogTrigger asChild>
           <Button type="button" variant="outline" size="lg">
             <Star className="mr-2 h-4 w-4" />
             Reviews & ratings ({reviews.length})
           </Button>
         </DialogTrigger>,
-        triggerHost,
+        actionRow,
       )}
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
