@@ -40,19 +40,19 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
 
-  // Mount the trigger in the existing product action row, beside Add to Cart,
-  // Contact Seller, and Share. ProductDetail renders after the route wrapper,
-  // so watch for the Share control to appear before attaching the portal.
+  // Portal the trigger into the exact action row that contains Add to Cart,
+  // Contact Seller, and Share. Selecting the row explicitly avoids placing it
+  // in the Share dropdown wrapper or as a separate page-level control.
   useEffect(() => {
     let mountedRow: HTMLElement | null = null;
     const locateActionRow = () => {
       const shareButton = Array.from(document.querySelectorAll('button')).find((button) =>
-        Array.from(button.querySelectorAll('span')).some((span) => span.textContent?.trim() === 'Share'),
+        button.textContent?.trim().endsWith('Share'),
       );
-      const row = shareButton?.parentElement;
+      const row = shareButton?.closest('div.flex.gap-3.flex-wrap');
       if (!row || row === mountedRow) return false;
-      mountedRow = row;
-      setActionRow(row);
+      mountedRow = row as HTMLElement;
+      setActionRow(mountedRow);
       return true;
     };
 
@@ -172,7 +172,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       {actionRow && createPortal(
         <DialogTrigger asChild>
-          <Button type="button" variant="outline" size="lg">
+          <Button type="button" variant="outline" size="lg" className="shrink-0">
             <Star className="mr-2 h-4 w-4" />
             Reviews & ratings ({reviews.length})
           </Button>
