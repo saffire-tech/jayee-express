@@ -70,9 +70,11 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      gcTime: 1000 * 60 * 60 * 24 * 7,
-      staleTime: 1000 * 60 * 5,
+      // Keep cached data around long enough for the persister to restore it
+      gcTime: 1000 * 60 * 60 * 24 * 7, // 7 days
+      staleTime: 1000 * 60 * 5, // 5 min
       retry: (failureCount, error: any) => {
+        // Don't retry when offline — serve from cache instantly
         if (typeof navigator !== "undefined" && !navigator.onLine) return false;
         return failureCount < 2;
       },
@@ -113,63 +115,66 @@ const App = () => {
           }}
         >
           <TooltipProvider>
-            <OfflineBanner />
-            {showSplash && isFirstVisit && <SplashScreen onComplete={handleSplashComplete} />}
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <PWABadgeManager />
-                <PushNotificationManager />
-                <RequireCity />
-                <AdminProvider>
-                  <CartProvider>
-                    <MaintenanceGate>
-                      <Suspense fallback={<PageLoader />}>
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/auth" element={<Auth />} />
-                          <Route path="/reset-password" element={<ResetPassword />} />
-                          <Route path="/select-city" element={<SelectCity />} />
-                          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
-                          <Route path="/profile" element={<Profile />} />
-                          <Route path="/purchases" element={<PurchaseHistory />} />
-                          <Route path="/seller" element={<SellerDashboard />} />
-                          <Route path="/products" element={<Products />} />
-                          <Route path="/product/:id" element={<ProductDetail />} />
-                          <Route path="/stores" element={<Stores />} />
-                          <Route path="/store/:slug" element={<StorePage />} />
-                          <Route path="/cart" element={<Cart />} />
-                          <Route path="/messages" element={<Messages />} />
-                          <Route path="/notifications" element={<NotificationCenter />} />
-                          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                          <Route path="/admin/users" element={<AdminRoute><UsersManagement /></AdminRoute>} />
-                          <Route path="/admin/stores" element={<AdminRoute><StoresManagement /></AdminRoute>} />
-                          <Route path="/admin/products" element={<AdminRoute><ProductsManagement /></AdminRoute>} />
-                          <Route path="/admin/orders" element={<AdminRoute><OrdersManagement /></AdminRoute>} />
-                          <Route path="/admin/reports" element={<AdminRoute><ReportsManagement /></AdminRoute>} />
-                          <Route path="/admin/riders" element={<AdminRoute><RiderApplications /></AdminRoute>} />
-                          <Route path="/admin/payouts" element={<AdminRoute><PayoutsManagement /></AdminRoute>} />
-                          <Route path="/admin/payments" element={<AdminRoute><PaymentsReconciliation /></AdminRoute>} />
-                          <Route path="/admin/help" element={<AdminRoute><HelpManagement /></AdminRoute>} />
-                          <Route path="/admin/emails" element={<AdminRoute><EmailLogs /></AdminRoute>} />
-                          <Route path="/help" element={<Help />} />
-                          <Route path="/delivery" element={<DeliveryDashboard />} />
-                          <Route path="/report-issue" element={<ReportIssue />} />
-                          <Route path="/download" element={<Download />} />
-                          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                          <Route path="/terms" element={<Terms />} />
-                          <Route path="/unsubscribe" element={<Unsubscribe />} />
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                        <MobileTabBar />
-                        <FloatingHelpButton />
-                      </Suspense>
-                    </MaintenanceGate>
-                  </CartProvider>
-                </AdminProvider>
-              </AuthProvider>
-            </BrowserRouter>
+          <OfflineBanner />
+          {showSplash && isFirstVisit && (
+            <SplashScreen onComplete={handleSplashComplete} />
+          )}
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <PWABadgeManager />
+              <PushNotificationManager />
+              <RequireCity />
+              <AdminProvider>
+                <CartProvider>
+                  <MaintenanceGate>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/select-city" element={<SelectCity />} />
+                      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/purchases" element={<PurchaseHistory />} />
+                      <Route path="/seller" element={<SellerDashboard />} />
+                      <Route path="/products" element={<Products />} />
+                      <Route path="/product/:id" element={<ProductDetail />} />
+                      <Route path="/stores" element={<Stores />} />
+                      <Route path="/store/:slug" element={<StorePage />} />
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/messages" element={<Messages />} />
+                      <Route path="/notifications" element={<NotificationCenter />} />
+                      <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                      <Route path="/admin/users" element={<AdminRoute><UsersManagement /></AdminRoute>} />
+                      <Route path="/admin/stores" element={<AdminRoute><StoresManagement /></AdminRoute>} />
+                      <Route path="/admin/products" element={<AdminRoute><ProductsManagement /></AdminRoute>} />
+                      <Route path="/admin/orders" element={<AdminRoute><OrdersManagement /></AdminRoute>} />
+                      <Route path="/admin/reports" element={<AdminRoute><ReportsManagement /></AdminRoute>} />
+                      <Route path="/admin/riders" element={<AdminRoute><RiderApplications /></AdminRoute>} />
+                      <Route path="/admin/payouts" element={<AdminRoute><PayoutsManagement /></AdminRoute>} />
+                      <Route path="/admin/payments" element={<AdminRoute><PaymentsReconciliation /></AdminRoute>} />
+                      <Route path="/admin/help" element={<AdminRoute><HelpManagement /></AdminRoute>} />
+                      <Route path="/admin/emails" element={<AdminRoute><EmailLogs /></AdminRoute>} />
+                      <Route path="/help" element={<Help />} />
+
+                      <Route path="/delivery" element={<DeliveryDashboard />} />
+                      <Route path="/report-issue" element={<ReportIssue />} />
+                      <Route path="/download" element={<Download />} />
+                      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                      <Route path="/terms" element={<Terms />} />
+                      <Route path="/unsubscribe" element={<Unsubscribe />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <MobileTabBar />
+                    <FloatingHelpButton />
+                  </Suspense>
+                  </MaintenanceGate>
+                </CartProvider>
+              </AdminProvider>
+            </AuthProvider>
+          </BrowserRouter>
           </TooltipProvider>
         </PersistQueryClientProvider>
       </ThemeProvider>
