@@ -1,6 +1,6 @@
-import { getCdnImageUrl } from "@/lib/cdn";
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { getCdnImageUrl } from '@/lib/cdn';
 import MoMoPaymentDialog from '@/components/payments/MoMoPaymentDialog';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,13 +21,24 @@ interface StoreInfo {
   name: string;
   latitude: number | null;
   longitude: number | null;
+  delivery_enabled?: boolean | null;
 }
 
 const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const online = useOnlineStatus();
-  const { items, loading, removeFromCart, updateQuantity, clearCart, totalPrice, itemNeedsVariant, chooseVariantForItem } = useCart();
+  const {
+    items,
+    loading,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    totalPrice,
+    itemNeedsVariant,
+    chooseVariantForItem,
+  } = useCart();
+
   const [checkingOut, setCheckingOut] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [deliveryData, setDeliveryData] = useState<{
@@ -38,12 +49,14 @@ const Cart = () => {
     deliveryAddress?: string;
     deliveryLandmark?: string;
   }>({ deliveryType: 'pickup', deliveryFee: 0 });
+
   const [cartStores, setCartStores] = useState<StoreInfo[]>([]);
   const [pendingAttempt, setPendingAttempt] = useState<{ reference: string; created_at: string } | null>(null);
 
   // Check for a recent in-flight payment attempt
   useEffect(() => {
     if (!user) return;
+
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     supabase
       .from('payment_attempts')
@@ -62,10 +75,12 @@ const Cart = () => {
       setCartStores([]);
       return;
     }
+
     const uniqueStoreIds = [...new Set(items.map((item) => item.product.store_id))];
+
     supabase
       .from('stores')
-      .select('id, name, latitude, longitude')
+      .select('id, name, latitude, longitude, delivery_enabled')
       .in('id', uniqueStoreIds)
       .then(({ data }) => {
         if (data) {
@@ -76,16 +91,19 @@ const Cart = () => {
 
   const handleCheckout = () => {
     if (!user || items.length === 0) return;
+
     if (!online) {
       toast.error("You're offline. Please connect to the internet to complete your purchase.");
       return;
     }
+
     const missing = items.find((i) => itemNeedsVariant(i));
     if (missing) {
       toast.error(`Please choose a variant for "${missing.product?.name}" before checkout.`);
       chooseVariantForItem(missing.id);
       return;
     }
+
     setPayOpen(true);
   };
 
@@ -136,8 +154,14 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEO title="Your Cart | Jayee Express" description="Review the items in your Jayee Express cart and check out." canonicalPath="/cart" noindex />
+      <SEO
+        title="Your Cart | Jayee Express"
+        description="Review the items in your Jayee Express cart and check out."
+        canonicalPath="/cart"
+        noindex
+      />
       <Navbar />
+
       <main className="container mx-auto px-4 pt-24 pb-8">
         <div className="flex items-center justify-between mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold">Shopping Cart</h1>
@@ -150,7 +174,9 @@ const Cart = () => {
 
         {pendingAttempt && (
           <div className="mb-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-sm">
-            <p className="font-medium text-yellow-700 dark:text-yellow-400">A recent payment is still being confirmed.</p>
+            <p className="font-medium text-yellow-700 dark:text-yellow-400">
+              A recent payment is still being confirmed.
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               Please wait a minute before trying again — if the payment succeeded, your cart will clear automatically and you will not be charged twice.
             </p>
@@ -170,7 +196,6 @@ const Cart = () => {
         )}
 
         <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
-          {/* Cart Items */}
           <div className="lg:col-span-2 space-y-3 md:space-y-4">
             {items.map((item) => (
               <Card key={item.id}>
@@ -178,11 +203,11 @@ const Cart = () => {
                   <div className="flex gap-3 md:gap-4">
                     <div className="w-20 h-20 md:w-24 md:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                       {item.product?.image_url ? (
-                        <img 
-                          src={getCdnImageUrl(item.product.image_url)} 
-                          loading="lazy" 
-                          alt={item.product.name} 
-                          className="w-full h-full object-cover" 
+                        <img
+                          src={getCdnImageUrl(item.product.image_url)}
+                          loading="lazy"
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -190,18 +215,32 @@ const Cart = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
-                      <Link to={`/product/${item.product_id}`} className="font-semibold hover:text-primary truncate block text-sm md:text-base">
+                      <Link
+                        to={`/product/${item.product_id}`}
+                        className="font-semibold hover:text-primary truncate block text-sm md:text-base"
+                      >
                         {item.product?.name}
                       </Link>
 
-                      {/* Display Selected Variant Specifications */}
                       {(item.color || item.size || item.material) && (
                         <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                          {item.color && <span>Color: <strong className="text-foreground">{item.color}</strong></span>}
-                          {item.size && <span>Size: <strong className="text-foreground">{item.size}</strong></span>}
-                          {item.material && <span>Material: <strong className="text-foreground">{item.material}</strong></span>}
+                          {item.color && (
+                            <span>
+                              Color: <strong className="text-foreground">{item.color}</strong>
+                            </span>
+                          )}
+                          {item.size && (
+                            <span>
+                              Size: <strong className="text-foreground">{item.size}</strong>
+                            </span>
+                          )}
+                          {item.material && (
+                            <span>
+                              Material: <strong className="text-foreground">{item.material}</strong>
+                            </span>
+                          )}
                         </div>
                       )}
 
@@ -222,15 +261,31 @@ const Cart = () => {
 
                       <div className="flex items-center justify-between mt-2 md:mt-3">
                         <div className="flex items-center border rounded-md">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          >
                             <Minus className="h-3 w-3" />
                           </Button>
                           <span className="w-8 text-center text-sm">{item.quantity}</span>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          >
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" onClick={() => removeFromCart(item.id)}>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive h-8 w-8"
+                          onClick={() => removeFromCart(item.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -247,7 +302,6 @@ const Cart = () => {
             ))}
           </div>
 
-          {/* Delivery Option + Order Summary */}
           <div className="lg:col-span-1 space-y-4">
             <Card>
               <CardContent className="p-4">
@@ -259,27 +313,46 @@ const Cart = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg md:text-xl">Order Summary</CardTitle>
               </CardHeader>
+
               <CardContent className="space-y-3 md:space-y-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal ({items.length} items)</span>
                   <span>₵{totalPrice.toLocaleString()}</span>
                 </div>
+
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Delivery</span>
                   {deliveryData.deliveryFee > 0 ? (
                     <span>₵{deliveryData.deliveryFee.toLocaleString()}</span>
                   ) : (
-                    <span className="text-primary">{deliveryData.deliveryType === 'pickup' ? 'Pickup' : 'Free'}</span>
+                    <span className="text-primary">
+                      {deliveryData.deliveryType === 'pickup' ? 'Pickup' : 'Free'}
+                    </span>
                   )}
                 </div>
+
                 <Separator />
+
                 <div className="flex justify-between font-bold text-base md:text-lg">
                   <span>Total</span>
-                  <span className="text-primary">₵{(totalPrice + deliveryData.deliveryFee).toLocaleString()}</span>
+                  <span className="text-primary">
+                    ₵{(totalPrice + deliveryData.deliveryFee).toLocaleString()}
+                  </span>
                 </div>
               </CardContent>
+
               <CardFooter className="flex-col gap-2 md:gap-3">
-                <Button className="w-full" size="lg" onClick={handleCheckout} disabled={checkingOut || !!pendingAttempt || !online || items.some((i) => itemNeedsVariant(i))}>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleCheckout}
+                  disabled={
+                    checkingOut ||
+                    !!pendingAttempt ||
+                    !online ||
+                    items.some((i) => itemNeedsVariant(i))
+                  }
+                >
                   {checkingOut ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
@@ -290,12 +363,19 @@ const Cart = () => {
                     </>
                   )}
                 </Button>
+
                 <Link to="/purchases" className="w-full">
                   <Button variant="outline" className="w-full">
                     <History className="mr-2 h-4 w-4" /> View Purchases
                   </Button>
                 </Link>
-                <Button variant="ghost" className="w-full text-destructive hover:text-destructive" onClick={clearCart} disabled={checkingOut}>
+
+                <Button
+                  variant="ghost"
+                  className="w-full text-destructive hover:text-destructive"
+                  onClick={clearCart}
+                  disabled={checkingOut}
+                >
                   Clear Cart
                 </Button>
               </CardFooter>
@@ -304,13 +384,13 @@ const Cart = () => {
         </div>
       </main>
 
-      <MoMoPaymentDialog 
-        open={payOpen} 
-        onOpenChange={setPayOpen} 
-        amount={totalPrice + deliveryData.deliveryFee} 
-        title="Complete payment" 
-        description={`You are paying ₵${(totalPrice + deliveryData.deliveryFee).toLocaleString()} for your order.`} 
-        functionName="initialize-payment" 
+      <MoMoPaymentDialog
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        amount={totalPrice + deliveryData.deliveryFee}
+        title="Complete payment"
+        description={`You are paying ₵${(totalPrice + deliveryData.deliveryFee).toLocaleString()} for your order.`}
+        functionName="initialize-payment"
         body={{
           items: items.map((item) => ({
             product_id: item.product_id,
@@ -324,14 +404,14 @@ const Cart = () => {
               price: item.product?.price,
               name: item.product?.name,
             },
-          })), 
-          deliveryData, 
-          email: user.email, 
-        }} 
+          })),
+          deliveryData,
+          email: user.email,
+        }}
         onSuccess={() => {
           toast.success('Payment successful');
           navigate('/purchases');
-        }} 
+        }}
       />
 
       <Footer />
