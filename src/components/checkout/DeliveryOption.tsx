@@ -1,17 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Package, Truck, MapPin } from 'lucide-react';
+import { Package, Truck } from 'lucide-react';
 import MapPicker from '@/components/maps/MapPicker';
 import { haversineDistance } from '@/lib/distance';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
+import { MapPin } from 'lucide-react';
 
 interface StoreInfo {
   id: string;
   name: string;
   latitude: number | null;
   longitude: number | null;
+  delivery_enabled?: boolean | null;
 }
 
 interface DeliveryOptionProps {
@@ -68,6 +70,7 @@ function computeRouteDistance(
     ordered.push(current);
   }
 
+  // Sum distances along the chain + last store to buyer
   let total = 0;
   for (let i = 0; i < ordered.length - 1; i++) {
     total += haversineDistance(ordered[i].latitude, ordered[i].longitude, ordered[i + 1].latitude, ordered[i + 1].longitude);
@@ -85,27 +88,6 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
   const [noZoneMatch, setNoZoneMatch] = useState(false);
   const [landmark, setLandmark] = useState('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [storesAllowDelivery, setStoresAllowDelivery] = useState(false);
-
-  // Fail closed until the authoritative store delivery settings have loaded.
-  useEffect(() => {
-    let cancelled = false;
-    const storeIds = [...new Set(stores.map((store) => store.id))];
-    if (storeIds.length === 0) {
-      setStoresAllowDelivery(false);
-      return;
-    }
-
-    const loadStoreDeliverySettings = async () => {
-      const { data, error } = await supabase.from('stores').select('*').in('id', storeIds);
-      if (cancelled) return;
-      const enabled = !error && data?.length === storeIds.length && data.every((store: any) => store.delivery_enabled !== false);
-      setStoresAllowDelivery(enabled);
-      if (!enabled) setDeliveryType('pickup');
-    };
-    loadStoreDeliverySettings();
-    return () => { cancelled = true; };
-  }, [stores]);
 
   useEffect(() => {
     const fetchZones = async () => {
@@ -124,22 +106,44 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
       onDeliveryChange({ deliveryType: 'pickup', deliveryFee: 0 });
       setRouteInfo(null);
     }
-  }, [deliveryType]);
+  }, [deliveryType, onDeliveryChange]);
 
-  const storesWithCoords = useMemo(
-    () => stores.filter((s): s is StoreInfo & { latitude: number; longitude: number } => s.latitude != null && s.longitude != null),
+  // Only stores that are permitted to do delivery count toward the delivery option.
+  const enabledStores = useMemo(
+    () => stores.filter((s) => s.delivery_enabled !== false),
     [stores]
   );
-  const storesMissingCoords = stores.filter((s) => s.latitude == null || s.longitude == null);
-  const hasDeliveryStores = storesAllowDelivery && stores.length > 0 && storesMissingCoords.length === 0;
 
+  const storesWithCoords = useMemo(
+    () =>
+      enabledStores.filter(
+        (s): s is StoreInfo & { latitude: number; longitude: number } =>
+          s.latitude != null && s.longitude != null
+      ),
+    [enabledStores]
+  );
+
+  const storesMissingCoords = enabledStores.filter((s) => s.latitude == null || s.longitude == null);
+  const storesBlockingDelivery = stores.filter((s) => s.delivery_enabled === false);
+  const hasDeliveryStores =
+    stores.length > 0 &&
+    storesBlockingDelivery.length === 0 &&
+    storesMissingCoords.length === 0;
+
+  // Store markers for MapPicker
   const storeMarkers = useMemo(
-    () => storesWithCoords.map((s) => ({ name: s.name, latitude: s.latitude, longitude: s.longitude })),
+    () =>
+      storesWithCoords.map((s) => ({
+        name: s.name,
+        latitude: s.latitude,
+        longitude: s.longitude,
+      })),
     [storesWithCoords]
   );
 
   const handleLocationSelect = (lat: number, lng: number) => {
     if (!hasDeliveryStores || storesWithCoords.length === 0) return;
+
     setCoords({ lat, lng });
 
     const { orderedStores, totalDistance } = computeRouteDistance(
@@ -149,10 +153,14 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
     );
 
     setRouteInfo({ totalDistance, orderedStores });
-    const zone = zones.find((z) => totalDistance >= z.min_distance_km && totalDistance < z.max_distance_km);
+
+    const zone = zones.find(
+      (z) => totalDistance >= z.min_distance_km && totalDistance < z.max_distance_km
+    );
     const fee = zone?.fee ?? 0;
     setDeliveryFee(fee);
     setNoZoneMatch(!zone);
+
     onDeliveryChange({
       deliveryType: 'delivery',
       deliveryFee: fee,
@@ -164,7 +172,8 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
 
   const handleLandmarkChange = (val: string) => {
     setLandmark(val);
-    if (deliveryType === 'delivery' && coords && hasDeliveryStores) {
+
+    if (deliveryType === 'delivery' && coords) {
       onDeliveryChange({
         deliveryType: 'delivery',
         deliveryFee,
@@ -175,17 +184,18 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
     }
   };
 
-  const storesBlockingDelivery = stores.filter((store) => (store as StoreInfo & { delivery_enabled?: boolean }).delivery_enabled === false);
-
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-base">Delivery Option</h3>
+
       <RadioGroup
         value={deliveryType}
         onValueChange={(v) => {
-          if (v === 'pickup' || (v === 'delivery' && storesAllowDelivery)) setDeliveryType(v as 'pickup' | 'delivery');
+          if (v === 'pickup' || (v === 'delivery' && hasDeliveryStores)) {
+            setDeliveryType(v as 'pickup' | 'delivery');
+          }
         }}
-        className={`grid gap-3 ${storesAllowDelivery ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}
+        className="grid grid-cols-2 gap-3"
       >
         <Label
           htmlFor="pickup"
@@ -200,32 +210,34 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
             <p className="text-xs text-muted-foreground">Collect from store</p>
           </div>
         </Label>
-        {storesAllowDelivery && (
-          <Label
-            htmlFor="delivery"
-            className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-colors ${
-              deliveryType === 'delivery' ? 'border-primary bg-primary/5' : 'border-border'
-            } ${!hasDeliveryStores ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <RadioGroupItem value="delivery" id="delivery" disabled={!hasDeliveryStores} />
-            <Truck className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="font-medium text-sm">Deliver to Me</p>
-              <p className="text-xs text-muted-foreground">
-                {hasDeliveryStores ? 'Set your location' : 'Store map locations required'}
-              </p>
-            </div>
-          </Label>
-        )}
+
+        <Label
+          htmlFor="delivery"
+          className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-colors ${
+            deliveryType === 'delivery' ? 'border-primary bg-primary/5' : 'border-border'
+          } ${!hasDeliveryStores ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <RadioGroupItem value="delivery" id="delivery" disabled={!hasDeliveryStores} />
+          <Truck className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <p className="font-medium text-sm">Deliver to Me</p>
+            <p className="text-xs text-muted-foreground">
+              {hasDeliveryStores ? 'Set your location' : 'Delivery unavailable'}
+            </p>
+          </div>
+        </Label>
       </RadioGroup>
 
-      {!storesAllowDelivery && stores.length > 0 && (
+      {storesBlockingDelivery.length > 0 && (
         <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-          Delivery is unavailable because {storesBlockingDelivery.length ? <><strong>{storesBlockingDelivery.map((s) => s.name).join(', ')}</strong> {storesBlockingDelivery.length > 1 ? 'do not allow' : 'does not allow'} delivery.</> : 'store delivery settings could not be loaded.'} Pick Up is the only option for this cart.
+          Delivery is unavailable because{' '}
+          <strong>{storesBlockingDelivery.map((s) => s.name).join(', ')}</strong>{' '}
+          {storesBlockingDelivery.length > 1 ? 'disabled delivery' : 'disabled delivery'} in their store settings.
+          Choose Pick Up instead.
         </p>
       )}
 
-      {storesAllowDelivery && stores.length > 0 && storesMissingCoords.length > 0 && (
+      {stores.length > 0 && storesBlockingDelivery.length === 0 && storesMissingCoords.length > 0 && (
         <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
           Delivery isn't available yet because{' '}
           <strong>{storesMissingCoords.map((s) => s.name).join(', ')}</strong>{' '}
@@ -237,26 +249,42 @@ const DeliveryOption = ({ stores, onDeliveryChange }: DeliveryOptionProps) => {
       {deliveryType === 'delivery' && hasDeliveryStores && (
         <div className="space-y-3">
           <MapPicker onLocationSelect={handleLocationSelect} storeMarkers={storeMarkers} />
+
           {routeInfo && (
             <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
               <p className="text-xs text-muted-foreground">
                 Route: {routeInfo.orderedStores.map((s) => s.name).join(' → ')} → You
               </p>
-              <p>Total route: <strong>{routeInfo.totalDistance.toFixed(1)} km</strong> across {storesWithCoords.length} store{storesWithCoords.length > 1 ? 's' : ''}</p>
+              <p>
+                Total route: <strong>{routeInfo.totalDistance.toFixed(1)} km</strong> across{' '}
+                {storesWithCoords.length} store{storesWithCoords.length > 1 ? 's' : ''}
+              </p>
               {noZoneMatch ? (
-                <p className="text-destructive">Delivery not available for this distance. Please choose a closer location.</p>
+                <p className="text-destructive">
+                  Delivery not available for this distance. Please choose a closer location.
+                </p>
               ) : (
-                <p>Delivery Fee: <strong className="text-primary">₵{deliveryFee.toLocaleString()}</strong></p>
+                <p>
+                  Delivery Fee: <strong className="text-primary">₵{deliveryFee.toLocaleString()}</strong>
+                </p>
               )}
             </div>
           )}
+
           <div className="space-y-1.5">
             <label className="text-sm font-medium flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
               Landmark <span className="text-xs text-muted-foreground font-normal">(optional)</span>
             </label>
-            <Input value={landmark} onChange={(e) => handleLandmarkChange(e.target.value)} placeholder="e.g. Near Shell filling station, blue gate" maxLength={200} />
-            <p className="text-xs text-muted-foreground">Help the courier find you faster with a nearby landmark.</p>
+            <Input
+              value={landmark}
+              onChange={(e) => handleLandmarkChange(e.target.value)}
+              placeholder="e.g. Near Shell filling station, blue gate"
+              maxLength={200}
+            />
+            <p className="text-xs text-muted-foreground">
+              Help the courier find you faster with a nearby landmark.
+            </p>
           </div>
         </div>
       )}
