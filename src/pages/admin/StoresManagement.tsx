@@ -17,7 +17,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Search, MoreHorizontal, Star, StarOff, CheckCircle, XCircle, Ban, ShieldCheck, ExternalLink, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +41,7 @@ type StoreRow = {
   is_active: boolean | null;
   is_featured: boolean | null;
   is_suspended: boolean | null;
+  delivery_enabled: boolean | null;
   total_views: number | null;
   total_sales: number | null;
   monthly_fee: number | null;
@@ -55,7 +56,6 @@ export default function StoresManagement() {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
 
-  // Dialog state for approve / reject / edit-fee
   const [reviewing, setReviewing] = useState<StoreRow | null>(null);
   const [action, setAction] = useState<'approve' | 'reject' | 'edit-fee' | null>(null);
   const [monthlyFee, setMonthlyFee] = useState<string>('50');
@@ -66,11 +66,37 @@ export default function StoresManagement() {
     queryFn: async () => {
       let query = supabase
         .from('stores')
-        .select('id, user_id, slug, name, description, logo_url, cover_url, location, phone, campus, city, is_verified, is_active, is_featured, is_suspended, total_views, total_sales, monthly_fee, rejection_reason, subscription_expires_at, created_at')
+        .select(`
+          id,
+          user_id,
+          slug,
+          name,
+          description,
+          logo_url,
+          cover_url,
+          location,
+          phone,
+          campus,
+          city,
+          is_verified,
+          is_active,
+          is_featured,
+          is_suspended,
+          delivery_enabled,
+          total_views,
+          total_sales,
+          monthly_fee,
+          rejection_reason,
+          subscription_expires_at,
+          created_at
+        `)
         .order('created_at', { ascending: false });
+
       if (search) query = query.or(`name.ilike.%${search}%,location.ilike.%${search}%`);
+
       const { data, error } = await query;
       if (error) throw error;
+
       return data as StoreRow[];
     },
   });
@@ -102,10 +128,11 @@ export default function StoresManagement() {
           is_verified: true,
           monthly_fee: fee,
           rejection_reason: null,
-          // expired by default so the owner must pay before going live
           subscription_expires_at: new Date().toISOString(),
+          delivery_enabled: store.delivery_enabled ?? true,
         })
         .eq('id', store.id);
+
       if (error) throw error;
 
       await supabase.from('notifications').insert({
@@ -130,8 +157,13 @@ export default function StoresManagement() {
     mutationFn: async ({ store, reason }: { store: StoreRow; reason: string }) => {
       const { error } = await supabase
         .from('stores')
-        .update({ is_verified: false, rejection_reason: reason })
+        .update({
+          is_verified: false,
+          rejection_reason: reason,
+          delivery_enabled: false,
+        })
         .eq('id', store.id);
+
       if (error) throw error;
 
       await supabase.from('notifications').insert({
@@ -176,7 +208,12 @@ export default function StoresManagement() {
     setMonthlyFee(store.monthly_fee ? String(store.monthly_fee) : '50');
     setRejectionReason(store.rejection_reason || '');
   };
-  const closeDialog = () => { setReviewing(null); setAction(null); setRejectionReason(''); };
+
+  const closeDialog = () => {
+    setReviewing(null);
+    setAction(null);
+    setRejectionReason('');
+  };
 
   const StoreActions = ({ store }: { store: StoreRow }) => (
     <DropdownMenu>
@@ -189,7 +226,9 @@ export default function StoresManagement() {
             <ExternalLink className="mr-2 h-4 w-4" />View Store
           </Link>
         </DropdownMenuItem>
+
         <DropdownMenuSeparator />
+
         {!store.is_verified && !store.rejection_reason && (
           <>
             <DropdownMenuItem onClick={() => openReview(store, 'approve')}>
@@ -201,17 +240,39 @@ export default function StoresManagement() {
             <DropdownMenuSeparator />
           </>
         )}
+
         {store.is_verified && (
           <>
             <DropdownMenuItem onClick={() => openReview(store, 'edit-fee')}>
               <Pencil className="mr-2 h-4 w-4" />Edit monthly fee
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => updateStoreMutation.mutate({ storeId: store.id, updates: { is_verified: false } })}>
-              <XCircle className="mr-2 h-4 w-4" />Revoke verification
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         )}
+
+        {store.delivery_enabled === false ? (
+          <DropdownMenuItem
+            onClick={() => updateStoreMutation.mutate({
+              storeId: store.id,
+              updates: { delivery_enabled: true }
+            })}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />Allow delivery
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            className="text-destructive"
+            onClick={() => updateStoreMutation.mutate({
+              storeId: store.id,
+              updates: { delivery_enabled: false }
+            })}
+          >
+            <Ban className="mr-2 h-4 w-4" />Block delivery
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
         {store.is_featured ? (
           <DropdownMenuItem onClick={() => updateStoreMutation.mutate({ storeId: store.id, updates: { is_featured: false } })}>
             <StarOff className="mr-2 h-4 w-4" />Remove featured
@@ -221,7 +282,9 @@ export default function StoresManagement() {
             <Star className="mr-2 h-4 w-4" />Mark featured
           </DropdownMenuItem>
         )}
+
         <DropdownMenuSeparator />
+
         {store.is_suspended ? (
           <DropdownMenuItem onClick={() => updateStoreMutation.mutate({ storeId: store.id, updates: { is_suspended: false } })}>
             <CheckCircle className="mr-2 h-4 w-4" />Reinstate store
@@ -253,9 +316,18 @@ export default function StoresManagement() {
                 )}
                 {store.rejection_reason && <Badge variant="destructive">Rejected</Badge>}
               </div>
+
               <MobileCardRow label="City" value={store.city || '-'} />
               <MobileCardRow label="Location" value={store.location || '-'} />
               <MobileCardRow label="Monthly fee" value={store.monthly_fee ? `₵${Number(store.monthly_fee).toFixed(2)}` : '—'} />
+              <MobileCardRow
+                label="Delivery"
+                value={
+                  store.delivery_enabled === false
+                    ? <Badge variant="destructive">Blocked</Badge>
+                    : <Badge variant="outline" className="text-green-600 border-green-600">Allowed</Badge>
+                }
+              />
               <MobileCardRow
                 label="Status"
                 value={
@@ -280,6 +352,7 @@ export default function StoresManagement() {
               <TableHead>City</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Fee</TableHead>
+              <TableHead>Delivery</TableHead>
               <TableHead>Sub expires</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-[70px]"></TableHead>
@@ -304,6 +377,13 @@ export default function StoresManagement() {
                 <TableCell>{store.city || '-'}</TableCell>
                 <TableCell>{store.location || '-'}</TableCell>
                 <TableCell>{store.monthly_fee ? `₵${Number(store.monthly_fee).toFixed(2)}` : '—'}</TableCell>
+                <TableCell>
+                  {store.delivery_enabled === false ? (
+                    <Badge variant="destructive">Blocked</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-green-600 border-green-600">Allowed</Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {store.subscription_expires_at ? format(new Date(store.subscription_expires_at), 'MMM d, yyyy') : '—'}
                 </TableCell>
@@ -345,7 +425,6 @@ export default function StoresManagement() {
         </Tabs>
       </div>
 
-      {/* Review dialog */}
       <Dialog open={!!reviewing} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -362,6 +441,7 @@ export default function StoresManagement() {
               {reviewing.cover_url && (
                 <img loading="lazy" src={getCdnImageUrl(reviewing.cover_url)} alt={reviewing.name} className="w-full h-40 object-cover rounded-lg" />
               )}
+
               <div className="text-sm space-y-1">
                 <p><span className="text-muted-foreground">City:</span> {reviewing.city || '—'}</p>
                 <p><span className="text-muted-foreground">Area:</span> {reviewing.campus || '—'}</p>
@@ -383,6 +463,7 @@ export default function StoresManagement() {
                   />
                 </div>
               )}
+
               {action === 'reject' && (
                 <div>
                   <Label>Rejection reason</Label>
@@ -399,6 +480,7 @@ export default function StoresManagement() {
 
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+
             {action === 'approve' && reviewing && (
               <Button
                 onClick={() => approveMutation.mutate({ store: reviewing, fee: Number(monthlyFee) })}
@@ -407,6 +489,7 @@ export default function StoresManagement() {
                 Approve
               </Button>
             )}
+
             {action === 'reject' && reviewing && (
               <Button
                 variant="destructive"
@@ -416,6 +499,7 @@ export default function StoresManagement() {
                 Reject
               </Button>
             )}
+
             {action === 'edit-fee' && reviewing && (
               <Button
                 onClick={() => editFeeMutation.mutate({ store: reviewing, fee: Number(monthlyFee) })}
