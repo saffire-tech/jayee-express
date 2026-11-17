@@ -32,8 +32,6 @@ Deno.serve(async (req) => {
     const { items, deliveryData } = await req.json();
     if (!Array.isArray(items) || items.length === 0) throw new Error("No items provided");
 
-
-    // Fetch authoritative product data — never trust client prices
     const productIds = items.map((i: any) => i.product_id).filter(Boolean);
     const { data: products, error: prodErr } = await admin
       .from("products")
@@ -49,8 +47,15 @@ Deno.serve(async (req) => {
       if (!p || !p.is_active) throw new Error(`Invalid product: ${item.product_id}`);
     }
 
-    // Variants: if a product has variants, the buyer MUST have chosen one that
-    // belongs to that product and is in stock. Attributes come from the DB.
+    const uniqueStoreIds = Array.from(new Set((products || []).map((p: any) => p.store_id)));
+    const { data: storeRows, error: storeErr } = await admin
+      .from("stores")
+      .select("id, delivery_enabled, latitude, longitude")
+      .in("id", uniqueStoreIds);
+    if (storeErr) throw storeErr;
+
+    const storeMap = new Map((storeRows || []).map((store: any) => [store.id, store]));
+
     const { data: allVariants, error: varErr } = await admin
       .from("product_variants")
       .select("id, product_id, color, size, material, stock")
@@ -85,14 +90,17 @@ Deno.serve(async (req) => {
       0
     );
 
-    // Server-side delivery fee — never trust client
     const deliveryType = deliveryData?.deliveryType === "delivery" ? "delivery" : "pickup";
     const destLat = deliveryData?.deliveryLatitude ?? null;
     const destLng = deliveryData?.deliveryLongitude ?? null;
-    const uniqueStoreIds = Array.from(new Set((products || []).map((p: any) => p.store_id)));
 
     let deliveryFee = 0;
     if (deliveryType === "delivery") {
+      const blockedStore = uniqueStoreIds.find((storeId) => storeMap.get(storeId)?.delivery_enabled === false);
+      if (blockedStore) {
+        throw new Error("One or more stores in your cart does not allow delivery.");
+      }
+
       const { data: feeRes, error: feeErr } = await admin.rpc("compute_delivery_fee", {
         _store_ids: uniqueStoreIds,
         _dest_lat: destLat,
@@ -141,10 +149,7 @@ Deno.serve(async (req) => {
       })),
     };
 
-    // Resuming an OTP challenge: reuse the reference AND the provider's own
-    // transaction id already recorded, so Moolre resumes the same session.
     let reference = newReference();
-    // Record the attempt BEFORE charging — source of truth for reconciliation
     const { error: attemptErr } = await admin.from("payment_attempts").insert({
       reference,
       buyer_id: user.id,
